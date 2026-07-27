@@ -1,0 +1,185 @@
+{
+  "extractedAt": "2026-07-16T22:10:04.383Z",
+  "framework": "CSRD_SET1",
+  "source": "data/esrs-set1-datapoints.json",
+  "metricsInScope": [
+    "electricity_kwh",
+    "diesel_litres",
+    "natural_gas_m3",
+    "petrol_litres",
+    "district_heat_kwh",
+    "electricity_renewable_pct"
+  ],
+  "note": "Human review complete 2026-07-16. All raw E-metric CSRD candidates rejected (approved: false). No defensible 1:1 — use lib/derive/ + DerivedMetricDefinitions.",
+  "byMetric": {
+    "electricity_kwh": [
+      {
+        "metricKey": "electricity_kwh",
+        "framework": "CSRD_SET1",
+        "dpId": "E1-5_07",
+        "dpNameVerbatim": "Consumption of purchased or acquired electricity, heat, steam, and cooling from renewable sources",
+        "sourceSheet": "ESRS E1",
+        "sourceRow": 90,
+        "paragraph": "37 c ii",
+        "relatedAr": null,
+        "dataType": "energy",
+        "voluntary": null,
+        "phaseInUnder750Employees": null,
+        "phaseInAllUndertakings": null,
+        "conditional": null,
+        "matchBasis": "DR E1-5 §37 c ii name includes the words \"purchased or acquired electricity\" and dataType is energy; caveat: the same DP also bundles heat, steam, and cooling and is renewable-sources only, so it is not an electricity-kWh total.",
+        "confidence": "possible",
+        "approved": false,
+        "rejectionReason": "No defensible 1:1 from raw input to ESRS. Use derivation layer instead (2026-07-16 review)."
+      },
+      {
+        "metricKey": "electricity_kwh",
+        "framework": "CSRD_SET1",
+        "dpId": "E1-5_14",
+        "dpNameVerbatim": "Consumption of purchased or acquired electricity, heat, steam, or cooling from fossil sources",
+        "sourceSheet": "ESRS E1",
+        "sourceRow": 97,
+        "paragraph": "38 e",
+        "relatedAr": "AR 33",
+        "dataType": "energy",
+        "voluntary": null,
+        "phaseInUnder750Employees": null,
+        "phaseInAllUndertakings": null,
+        "conditional": true,
+        "matchBasis": "DR E1-5 §38 e name includes \"purchased or acquired electricity\" with dataType energy; caveat: bundles heat/steam/cooling and covers fossil-sourced purchases only, not total grid kWh.",
+        "confidence": "possible",
+        "approved": false,
+        "rejectionReason": "No defensible 1:1 from raw input to ESRS. Use derivation layer instead (2026-07-16 review)."
+      }
+    ],
+    "diesel_litres": [
+      {
+        "metricKey": "diesel_litres",
+        "framework": "CSRD_SET1",
+        "dpId": "E1-5_11",
+        "dpNameVerbatim": "Fuel consumption from crude oil and petroleum products",
+        "sourceSheet": "ESRS E1",
+        "sourceRow": 94,
+        "paragraph": "38 b",
+        "relatedAr": "AR 33",
+        "dataType": "energy",
+        "voluntary": null,
+        "phaseInUnder750Employees": null,
+        "phaseInAllUndertakings": null,
+        "conditional": true,
+        "matchBasis": "DR E1-5 §38 b names \"Fuel consumption from crude oil and petroleum products\" — diesel sits in that petroleum-products class — but the DP does not say diesel and dataType is energy, not litres.",
+        "confidence": "weak",
+        "approved": false,
+        "rejectionReason": "No defensible 1:1 from raw input to ESRS. Use derivation layer instead (2026-07-16 review)."
+      }
+    ],
+    "natural_gas_m3": [
+      {
+        "metricKey": "natural_gas_m3",
+        "framework": "CSRD_SET1",
+        "dpId": "E1-5_12",
+        "dpNameVerbatim": "Fuel consumption from natural gas",
+        "sourceSheet": "ESRS E1",
+        "sourceRow": 95,
+        "paragraph": "38 c",
+        "relatedAr": "AR 33",
+        "dataType": "energy",
+        "voluntary": null,
+        "phaseInUnder750Employees": null,
+        "phaseInAllUndertakings": null,
+        "conditional": true,
+        "matchBasis": "DR E1-5 §38 c name is exactly \"Fuel consumption from natural gas\" (same fuel named); dataType is energy, not cubic metres, so a unit conversion would still be required.",
+        "confidence": "possible",
+        "approved": false,
+        "rejectionReason": "No defensible 1:1 from raw input to ESRS. Use derivation layer instead (2026-07-16 review)."
+      }
+    ],
+    "petrol_litres": [
+      {
+        "metricKey": "petrol_litres",
+        "framework": "CSRD_SET1",
+        "dpId": "E1-5_11",
+        "dpNameVerbatim": "Fuel consumption from crude oil and petroleum products",
+        "sourceSheet": "ESRS E1",
+        "sourceRow": 94,
+        "paragraph": "38 b",
+        "relatedAr": "AR 33",
+        "dataType": "energy",
+        "voluntary": null,
+        "phaseInUnder750Employees": null,
+        "phaseInAllUndertakings": null,
+        "conditional": true,
+        "matchBasis": "DR E1-5 §38 b names \"petroleum products\" — petrol is a petroleum product — but the DP does not say petrol and dataType is energy, not litres; same bucket as diesel.",
+        "confidence": "weak",
+        "approved": false,
+        "rejectionReason": "No defensible 1:1 from raw input to ESRS. Use derivation layer instead (2026-07-16 review)."
+      }
+    ],
+    "district_heat_kwh": [
+      {
+        "metricKey": "district_heat_kwh",
+        "framework": "CSRD_SET1",
+        "dpId": "E1-5_07",
+        "dpNameVerbatim": "Consumption of purchased or acquired electricity, heat, steam, and cooling from renewable sources",
+        "sourceSheet": "ESRS E1",
+        "sourceRow": 90,
+        "paragraph": "37 c ii",
+        "relatedAr": null,
+        "dataType": "energy",
+        "voluntary": null,
+        "phaseInUnder750Employees": null,
+        "phaseInAllUndertakings": null,
+        "conditional": null,
+        "matchBasis": "DR E1-5 §37 c ii name lists purchased \"heat, steam, and cooling\" (district heat is purchased heat) with dataType energy; caveat: bundled with electricity and renewable-only.",
+        "confidence": "possible",
+        "approved": false,
+        "rejectionReason": "No defensible 1:1 from raw input to ESRS. Use derivation layer instead (2026-07-16 review)."
+      },
+      {
+        "metricKey": "district_heat_kwh",
+        "framework": "CSRD_SET1",
+        "dpId": "E1-5_14",
+        "dpNameVerbatim": "Consumption of purchased or acquired electricity, heat, steam, or cooling from fossil sources",
+        "sourceSheet": "ESRS E1",
+        "sourceRow": 97,
+        "paragraph": "38 e",
+        "relatedAr": "AR 33",
+        "dataType": "energy",
+        "voluntary": null,
+        "phaseInUnder750Employees": null,
+        "phaseInAllUndertakings": null,
+        "conditional": true,
+        "matchBasis": "DR E1-5 §38 e name lists purchased \"heat, steam, or cooling\" from fossil sources with dataType energy; caveat: bundled with electricity and fossil-only.",
+        "confidence": "possible",
+        "approved": false,
+        "rejectionReason": "No defensible 1:1 from raw input to ESRS. Use derivation layer instead (2026-07-16 review)."
+      }
+    ],
+    "electricity_renewable_pct": [
+      {
+        "metricKey": "electricity_renewable_pct",
+        "framework": "CSRD_SET1",
+        "dpId": "E1-5_09",
+        "dpNameVerbatim": "Percentage of renewable sources in total energy consumption",
+        "sourceSheet": "ESRS E1",
+        "sourceRow": 92,
+        "paragraph": "AR 34",
+        "relatedAr": null,
+        "dataType": "percent",
+        "voluntary": null,
+        "phaseInUnder750Employees": null,
+        "phaseInAllUndertakings": null,
+        "conditional": null,
+        "matchBasis": "DR E1-5 AR 34 name is \"Percentage of renewable sources in total energy consumption\" and dataType is percent (matches a % field), but the denominator is total energy, not electricity alone.",
+        "confidence": "weak",
+        "approved": false,
+        "rejectionReason": "No defensible 1:1 from raw input to ESRS. Use derivation layer instead (2026-07-16 review)."
+      }
+    ]
+  },
+  "reviewDecision": {
+    "decidedAt": "2026-07-16T22:12:00.000Z",
+    "outcome": "all_rejected",
+    "note": "Raw MetricDefinition keys must not carry frameworkMappings. Derived metrics in lib/derive map to E1-5."
+  }
+}

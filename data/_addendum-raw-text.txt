@@ -1,0 +1,113 @@
+20 December 2024
+Addendum to IG3: Technical adjustments Page 1 of 2
+Addendum to IG3: Technical adjustments to the List of Datapoints
+Background information and purpose of this document
+1. EFRAG released the IG 3: List of ESRS Datapoints in May 2024 with the aim of supporting
+undertakings in their preparation of the first sustainability statement according to the ESRS
+Set 1. Since then, many users have already successfully applied the list as a tool, and as a
+consequence, a small number of suggestions, questions and confirmations have been
+communicated to EFRAG.
+2. EFRAG is grateful for the remarks and comments received from stakeholders through EFRAGs
+Q&A platform (as indicated in the Q&A ID columns below) and is therefore publishing this
+document with a limited number of clarifications and corrections which do not justify a full
+update at this stage (see paragraph 4 below).
+3. Table 1 and 2 below show the list of datapoints added/removed or amended in IG 3, as a
+result of the clarifications and corrections collected so far.
+4. EFRAG plans to provide an updated version of the IG 3 Excel Workbook that will reflect these
+clarifications and corrections, in the spring of 2025, after the first cycle of ESRS reporting
+including clarifications stemming from possible additional Q&As that might be raised during
+the reporting season.
+5. EFRAG takes this opportunity to reiterate and emphasize the message that IG3 List of
+datapoints is there to support the definition of the content of the ESRS sustainability
+statement, but should not be used in an automatic compliance check-list. Its use cannot be
+decoupled from the overall materiality exercise:
+(a) in general, only datapoints that meet the conditions in paragraph 31 of ESRS 1 are to
+be reported;
+(b) for topical disclosures, only datapoints that relate to material matters are to be
+considered in the analysis and reported if the undertaking concludes that their
+inclusion is needed, following paragraph 34 of ESRS 1.
+The final number of datapoints in the ESRS sustainability statement will critically depend on
+the specific circumstances of the undertaking, such as which matters are considered material,
+or how many policies, targets and actions the undertaking has in place for material matters
+(they are to be reported only if they are in place), how many dimensions are applicable for
+disaggregation (e.g. number of countries of operations, etc.).
+6. In this context it is also worth recalling the mapping of sustainability matters to topical
+disclosures (Q&A ID 177), released on the 6 December 2024, as an additional tool to support
+the overall exercise of assessing the materiality of information (ESRS 1 paragraph 34 for
+metrics).
+7. As a reminder, it is worth noting that the number of datapoints identified through IG3 in
+relation to the 82 disclosure objectives and requirements is related to:
+(a) the treatment of narrative information (more than 50%), for which the ESRS provide
+a detailed structure of content in order to foster relevance and comparability;
+(b) the onboarding of information (approx. 15%) required under other EU regulations
+(SFDR, Pillar III, Benchmarking, EU Climate Law).
+
+-- 1 of 2 --
+
+Addendum to IG3: Technical adjustments Page 2 of 2
+TABLE 1 - Datapoints added/removed in IG 3
+Added/
+removed
+Q&A
+ID
+DP ID ESRS Paragraph Related AR Name Data type Conditional/
+Alternative
+May
+(V)
+Phase-
+in
+Added 1051 E1-8_10* E1 63 d AR 65-AR 66 Volume of gross Scope 1 greenhouse gas emissions covered by internal carbon pricing scheme Table/volume -
+Added 1051 E1-8_11* E1 63 d AR 65-AR 66 Volume of gross Scope 2 greenhouse gas emissions covered by internal carbon pricing scheme Table/volume -
+Added 1051 E1-8_12* E1 63 d AR 65-AR 66 Volume of gross Scope 3 greenhouse gas emissions covered by internal carbon pricing scheme Table/volume Conditional -
+Added 1101 MDR-T_20 ESRS 2 72 AR 24-AR 26 Sustainability matter(s) for which targets have not been adopted Semi-narrative Conditional -
+Added 1101 MDR-T_21 ESRS 2 72 AR 24-AR 26 Disclosure of reason for not having adopted targets Narrative Conditional -
+Added MDR-P_09 ESRS 2 62 AR 20-AR 21 Sustainability matter(s) for which policies have not been adopted Semi-narrative Conditional -
+Added MDR-A_15 ESRS 2 62 AR 22-AR 23 Sustainability matter(s) for which actions have not been adopted Semi-narrative Conditional -
+Added E1-8_13 E1 62 AR 65-AR 66 Internal carbon pricing schemes are applied Boolean -
+Added E1.IRO-1_17 E1 20 (b) (i) AR 11, AR 13-AR 15 Description of process in relation to identification of climate-related hazards, considering at least high emission climate scenarios Narrative -
+Added E1.IRO-1_18 E1 20 (b) (ii) AR 11, AR 13-AR 15 Description of process in relation to assessment of how assets and business activities may be exposed and are sensitive to climate-related
+hazards, creating gross physical risks for undertaking
+Narrative -
+Added E1.IRO-1_19 E1 20 (c) (i) AR 11-AR 15 Description of process in relation to identification of climate-related transition events, considering at least climate scenario in line with limiting
+global warming to 1.5 °C with no or limited overshoot
+Narrative -
+Added E1.IRO-1_20 E1 20 (c) (ii) AR 11-AR 15 Description of process in relation to assessment of how assets and business activities may be exposed to climate-related transition events,
+creating gross transition risks or opportunities for undertaking
+Narrative -
+Added G1-1_13 G1 10 (c) (i) AR 1 Information about establishment of internal whistleblower reporting channels Narrative -
+Added G1-1_14 G1 10 (c) (ii) AR 1 Information about measures to protect against retaliation to own workers who are whistleblowers in accordance with applicable law
+transposing Directive (EU) 2019/1937
+Narrative -
+Added E1-4_25 E1 AR 24 - GHGs covered by the target Semi-narrative -
+Added E1-7_26 E1 AR 57 a AR 56 Type of GHGs concerned for removal and storage activity Semi-narrative -
+Added E1-7_27 E1 AR 57 b AR 56 Description of GHGs concerned for removal and storage activity, technological details about GHG removal, type of storage and transport of
+removed GHGs, whether activity qualifies as nature-based solution and how risk of non-permanence is managed
+Narrative -
+Removed 1028 E1-5_19
+Table 2 – Existing datapoints amended in IG 3
+Q&A ID DP ID Nature of the amendment Old version Adjusted version
+1011 SBM-1_16 Renamed ‘Revenue from chemical production’ ‘Revenue from chemical production, i.e., its activities fall under
+Division 20.2 of Annex I to Regulation (EC) No 1893/2006’
+1014 E1-1_09, E1-1_10 and E1-1_11 Change of AR reference AR 5 No AR reference
+1014 E1-1_12 Change of AR reference No AR reference AR 5
+1015 E1.SBM-3_04 Renamed ‘Disclosure of how resilience analysis has been conducted’ ‘Disclosure of when resilience analysis has been conducted’
+1018 E1-5_02 Change of AR reference AR 33 AR 34
+1028 E1-5_18 Change of data type Percentage Intensity
+1035 E1-6_06 Classified as voluntary Mandatory Voluntary
+1036 E1-6_04 Change of paragraph reference AR 46 d Paragraph 51
+1036 E1-6_05 Change of paragraph reference AR 50 Paragraph 51
+1038 MDR-T_15 Classified as mandatory Voluntary Mandatory
+1065 E1-4_03 through E1-4_17 Classified as ‘conditional/alternative’ Conditional Conditional/Alternative
+1085/1250 S1-8_08 Renamed ‘Own workforce in region (non-EEA) covered by collective bargaining and social
+dialogue agreements by coverage rate and by region’
+‘Collective bargaining coverage and social dialogue disaggregated
+by country and/or region’
+SBM-1_03* Renamed and classified as alternative ‘Total number of employees (head count)’ ‘Number of employees (head count), at end of period’
+SBM-1_04* Renamed and classified as alternative ‘Number of employees (head count)’ ‘Number of employees (head count), during period’
+G1-4_03 Moved to G1-3
+1379 All MDR related DPs in G1 Moved to the top of the table, to illustrate that they are not tied to any specific
+DP, but instead apply at a general level to all DPs under G1
+* IDs amended on 7 January 2025
+
+-- 2 of 2 --
+

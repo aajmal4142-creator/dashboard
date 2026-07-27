@@ -1,0 +1,44 @@
+---
+description: ClearESG binding constraints — design tokens, auth, calc engine, copy
+alwaysApply: true
+---
+
+# ClearESG — binding rules
+
+Single source of truth: `BUILD_PLAN.md`. Follow phases 0→14 in order. Do not skip or reorder.
+
+## Design (§3) — non-negotiable
+
+- **Editorial aesthetic:** warm paper report / financial newspaper. Authority, not austerity. Colour is chrome (oxblood `--accent`); data colours are louder still.
+- **Tokens only:** every colour references a CSS variable. **Zero hex in components** (exception: white-label `--accent` injection; React-PDF light tokens).
+- **Token names:** canvas, surface-1/2, ink, ink-muted, rule, rule-strong | accent, accent-hover, accent-quiet | signal, amber, rust, cobalt.
+- **Dual theme:** light/cream `#FBF9F5` is the **forced primary default** (the report). Dark `#14120F` is secondary opt-in via cookie only — never inferred from `prefers-color-scheme`. Cookie `clearesg-theme`; no flash.
+- **Type:** Fraunces (display/headings, opsz + SOFT/WONK on display), Inter Tight (UI), JetBrains Mono (**every number** — tabular + slashed-zero).
+- **Layout:** editorial density, 8px grid, rules over boxes. Radius 6px panels / 4px controls / 2px chips.
+- **Gauge:** 240° printed dial — marketing hero, dashboard, PDF page 1 only. Underdamped needle. No glow.
+- **Motion:** printed-report assembly via `lib/motion.ts` — `spring` / `springSoft` / `springSnap` + `useInkReveal` / `useRuleDraw` / `useCountUp` / `useMotionSafe()`. Compose from `@/components/motion`. Honour `prefers-reduced-motion`.
+- **PDF:** always light theme cover. Flagship artefact.
+- **Copy:** direct, technical, calm. No exclamation marks. No "Oops". Errors state what happened and what to do. Verbs keep their names through the flow.
+
+## Auth (§2 / Phase 2)
+
+- Clerk = identity. Payload Membership = authorisation. **Login ≠ access.**
+- Every read/write resolves through Membership server-side. Never gate in the UI alone.
+- Never trust the active-org cookie without revalidating against Membership.
+- `getCurrentContext()` is the only way to read auth state.
+
+## Calculation engine (§5)
+
+- Lives in `lib/calc/`. **Pure. Zero I/O. Zero Next/Payload imports. 100% test coverage.**
+- Factors from the DB registry — never hardcoded. Missing factor → throw, never silent fallback.
+- Missing data is `quality: 'missing'`, never silently zero.
+- Implement formulas exactly as written in the plan. Do not "improve" them.
+
+## Quality floor (§9)
+
+- `pnpm build` clean. Zero `any`. Monospaced numbers. Loading / empty / error states.
+- Server-side auth on every mutation. Mobile 375→1920. Keyboard + reduced-motion.
+
+## Open decisions (§11)
+
+Ask the human — do not assume: factor licensing, INR/Razorpay, DPDP/Atlas region, assurance disclaimer, benchmark consent.

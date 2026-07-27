@@ -1,0 +1,1116 @@
+{
+  "source": "EFRAG Addendum to IG3: Technical adjustments (20 December 2024)",
+  "extractedAt": "2026-07-16T22:07:06.375Z",
+  "parseNotes": [
+    "PDF getTable() returned zero tables — using page-2 text extraction.",
+    "Table 1 line not parsed: Added/ removed",
+    "Table 1 add E1-8_10: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add E1-8_11: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add E1-8_12: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add MDR-T_20: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add MDR-T_21: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add MDR-P_09: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add MDR-A_15: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add E1-8_13: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add E1.IRO-1_17: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add E1.IRO-1_18: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add E1.IRO-1_19: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add E1.IRO-1_20: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add G1-1_13: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add G1-1_14: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add E1-4_25: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add E1-7_26: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "Table 1 add E1-7_27: paragraph/relatedAr left null — PDF text does not cleanly separate them from Name. Name field holds remaining verbatim text after standard.",
+    "* IDs amended on 7 January 2025"
+  ],
+  "summary": {
+    "operations": 50,
+    "applied": 49,
+    "notApplied": 1,
+    "byAction": {
+      "add": 17,
+      "remove": 1,
+      "amend": 31,
+      "skipped": 1
+    }
+  },
+  "diff": [
+    {
+      "action": "add",
+      "dpId": "E1-8_10",
+      "qaId": "1051",
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "E1-8_10",
+        "name": "63 d AR 65-AR 66 Volume of gross Scope 1 greenhouse gas emissions covered by internal carbon pricing scheme",
+        "dataType": "Table/volume",
+        "standard": "E1"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "E1-8_11",
+      "qaId": "1051",
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "E1-8_11",
+        "name": "63 d AR 65-AR 66 Volume of gross Scope 2 greenhouse gas emissions covered by internal carbon pricing scheme",
+        "dataType": "Table/volume",
+        "standard": "E1"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "E1-8_12",
+      "qaId": "1051",
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "E1-8_12",
+        "name": "63 d AR 65-AR 66 Volume of gross Scope 3 greenhouse gas emissions covered by internal carbon pricing scheme",
+        "dataType": "Table/volume",
+        "standard": "E1"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "MDR-T_20",
+      "qaId": "1101",
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "MDR-T_20",
+        "name": "72 AR 24-AR 26 Sustainability matter(s) for which targets have not been adopted",
+        "dataType": "Semi-narrative",
+        "standard": "ESRS 2"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "MDR-T_21",
+      "qaId": "1101",
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "MDR-T_21",
+        "name": "72 AR 24-AR 26 Disclosure of reason for not having adopted targets",
+        "dataType": "Narrative",
+        "standard": "ESRS 2"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "MDR-P_09",
+      "qaId": null,
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "MDR-P_09",
+        "name": "62 AR 20-AR 21 Sustainability matter(s) for which policies have not been adopted",
+        "dataType": "Semi-narrative",
+        "standard": "ESRS 2"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "MDR-A_15",
+      "qaId": null,
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "MDR-A_15",
+        "name": "62 AR 22-AR 23 Sustainability matter(s) for which actions have not been adopted",
+        "dataType": "Semi-narrative",
+        "standard": "ESRS 2"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "E1-8_13",
+      "qaId": null,
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "E1-8_13",
+        "name": "62 AR 65-AR 66 Internal carbon pricing schemes are applied",
+        "dataType": "Boolean",
+        "standard": "E1"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "E1.IRO-1_17",
+      "qaId": null,
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "E1.IRO-1_17",
+        "name": "20 (b) (i) AR 11, AR 13-AR 15 Description of process in relation to identification of climate-related hazards, considering at least high emission climate scenarios",
+        "dataType": "Narrative",
+        "standard": "E1"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "E1.IRO-1_18",
+      "qaId": null,
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "E1.IRO-1_18",
+        "name": "20 (b) (ii) AR 11, AR 13-AR 15 Description of process in relation to assessment of how assets and business activities may be exposed and are sensitive to climate-related hazards, creating gross physical risks for undertaking",
+        "dataType": "Narrative",
+        "standard": "E1"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "E1.IRO-1_19",
+      "qaId": null,
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "E1.IRO-1_19",
+        "name": "20 (c) (i) AR 11-AR 15 Description of process in relation to identification of climate-related transition events, considering at least climate scenario in line with limiting global warming to 1.5 °C with no or limited overshoot",
+        "dataType": "Narrative",
+        "standard": "E1"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "E1.IRO-1_20",
+      "qaId": null,
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "E1.IRO-1_20",
+        "name": "20 (c) (ii) AR 11-AR 15 Description of process in relation to assessment of how assets and business activities may be exposed to climate-related transition events, creating gross transition risks or opportunities for undertaking",
+        "dataType": "Narrative",
+        "standard": "E1"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "G1-1_13",
+      "qaId": null,
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "G1-1_13",
+        "name": "10 (c) (i) AR 1 Information about establishment of internal whistleblower reporting channels",
+        "dataType": "Narrative",
+        "standard": "G1"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "G1-1_14",
+      "qaId": null,
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "G1-1_14",
+        "name": "10 (c) (ii) AR 1 Information about measures to protect against retaliation to own workers who are whistleblowers in accordance with applicable law transposing Directive (EU) 2019/1937",
+        "dataType": "Narrative",
+        "standard": "G1"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "E1-4_25",
+      "qaId": null,
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "E1-4_25",
+        "name": "AR 24 - GHGs covered by the target",
+        "dataType": "Semi-narrative",
+        "standard": "E1"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "E1-7_26",
+      "qaId": null,
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "E1-7_26",
+        "name": "AR 57 a AR 56 Type of GHGs concerned for removal and storage activity",
+        "dataType": "Semi-narrative",
+        "standard": "E1"
+      }
+    },
+    {
+      "action": "add",
+      "dpId": "E1-7_27",
+      "qaId": null,
+      "detail": "Added from Addendum Table 1",
+      "applied": true,
+      "after": {
+        "dpId": "E1-7_27",
+        "name": "AR 57 b AR 56 Description of GHGs concerned for removal and storage activity, technological details about GHG removal, type of storage and transport of removed GHGs, whether activity qualifies as nature-based solution and how risk of non-permanence is managed",
+        "dataType": "Narrative",
+        "standard": "E1"
+      }
+    },
+    {
+      "action": "remove",
+      "dpId": "E1-5_19",
+      "qaId": "1028",
+      "detail": "Removed per Addendum Table 1",
+      "applied": true,
+      "before": {
+        "dpId": "E1-5_19",
+        "name": "Total energy consumption from activities in high climate impact sectors"
+      },
+      "after": null
+    },
+    {
+      "action": "amend",
+      "dpId": "SBM-1_16",
+      "qaId": "1011",
+      "detail": "Renamed: Revenue from chemical production → Revenue from chemical production, i.e., its activities fall under Division 20.2 of Annex I to Regulation (EC) No 1893/2006",
+      "applied": true,
+      "before": {
+        "name": "Revenue from chemicals production",
+        "relatedAr": "AR 12-13",
+        "paragraph": "40 d ii",
+        "dataType": "Monetary",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Revenue from chemical production, i.e., its activities fall under Division 20.2 of Annex I to Regulation (EC) No 1893/2006",
+        "relatedAr": "AR 12-13",
+        "paragraph": "40 d ii",
+        "dataType": "Monetary",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-1_09",
+      "qaId": "1014",
+      "detail": "Change of AR reference: AR 5 → No AR reference",
+      "applied": true,
+      "before": {
+        "name": "Significant CapEx for coal-related economic activities",
+        "relatedAr": "AR 5",
+        "paragraph": "16 f",
+        "dataType": "monetary",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Significant CapEx for coal-related economic activities",
+        "relatedAr": null,
+        "paragraph": "16 f",
+        "dataType": "monetary",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-1_10",
+      "qaId": "1014",
+      "detail": "Change of AR reference: AR 5 → No AR reference",
+      "applied": true,
+      "before": {
+        "name": "Significant CapEx for oil-related economic activities",
+        "relatedAr": "AR 5",
+        "paragraph": "16 f",
+        "dataType": "monetary",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Significant CapEx for oil-related economic activities",
+        "relatedAr": null,
+        "paragraph": "16 f",
+        "dataType": "monetary",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-1_11",
+      "qaId": "1014",
+      "detail": "Change of AR reference: AR 5 → No AR reference",
+      "applied": true,
+      "before": {
+        "name": "Significant CapEx for gas-related economic activities",
+        "relatedAr": "AR 5",
+        "paragraph": "16 f",
+        "dataType": "monetary",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Significant CapEx for gas-related economic activities",
+        "relatedAr": null,
+        "paragraph": "16 f",
+        "dataType": "monetary",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-1_12",
+      "qaId": "1014",
+      "detail": "Change of AR reference: No AR reference → AR 5",
+      "applied": true,
+      "before": {
+        "name": "Undertaking is excluded from EU Paris-aligned Benchmarks",
+        "relatedAr": null,
+        "paragraph": "16 g",
+        "dataType": "semi-narrative",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": null,
+        "conditional": null
+      },
+      "after": {
+        "name": "Undertaking is excluded from EU Paris-aligned Benchmarks",
+        "relatedAr": "AR 5",
+        "paragraph": "16 g",
+        "dataType": "semi-narrative",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": null,
+        "conditional": null
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1.SBM-3_04",
+      "qaId": "1015",
+      "detail": "Renamed: Disclosure of how resilience analysis has been conducted → Disclosure of when resilience analysis has been conducted",
+      "applied": true,
+      "before": {
+        "name": "Disclosure of how resilience analysis has been conducted",
+        "relatedAr": "AR 7a, AR 13",
+        "paragraph": "19 b",
+        "dataType": "date",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": null,
+        "conditional": null
+      },
+      "after": {
+        "name": "Disclosure of when resilience analysis has been conducted",
+        "relatedAr": "AR 7a, AR 13",
+        "paragraph": "19 b",
+        "dataType": "date",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": null,
+        "conditional": null
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-5_02",
+      "qaId": "1018",
+      "detail": "Change of AR reference: AR 33 → AR 34",
+      "applied": true,
+      "before": {
+        "name": "Total energy consumption from fossil sources",
+        "relatedAr": "AR 33, AR 32",
+        "paragraph": "37 a",
+        "dataType": "energy",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": null,
+        "conditional": null
+      },
+      "after": {
+        "name": "Total energy consumption from fossil sources",
+        "relatedAr": "AR 34",
+        "paragraph": "37 a",
+        "dataType": "energy",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": null,
+        "conditional": null
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-5_18",
+      "qaId": "1028",
+      "detail": "Change of data type: Percentage → Intensity",
+      "applied": true,
+      "before": {
+        "name": "Energy intensity from activities in high climate impact sectors (total energy consumption per net revenue)",
+        "relatedAr": "AR 36",
+        "paragraph": "40",
+        "dataType": "percent",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Energy intensity from activities in high climate impact sectors (total energy consumption per net revenue)",
+        "relatedAr": "AR 36",
+        "paragraph": "40",
+        "dataType": "Intensity",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-6_06",
+      "qaId": "1035",
+      "detail": "Classified as voluntary: Mandatory → Voluntary",
+      "applied": true,
+      "before": {
+        "name": "Gross Scopes 1, 2, 3 and Total GHG emissions - total GHG emissions - value chain [table]",
+        "relatedAr": null,
+        "paragraph": "AR 52",
+        "dataType": "Table",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": null,
+        "conditional": null
+      },
+      "after": {
+        "name": "Gross Scopes 1, 2, 3 and Total GHG emissions - total GHG emissions - value chain [table]",
+        "relatedAr": null,
+        "paragraph": "AR 52",
+        "dataType": "Table",
+        "voluntary": true,
+        "mayVoluntaryRaw": "V",
+        "conditionalOrAlternative": null,
+        "conditional": null
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-6_04",
+      "qaId": "1036",
+      "detail": "Change of paragraph reference: AR 46 d → Paragraph 51",
+      "applied": true,
+      "before": {
+        "name": "Gross Scopes 1, 2, 3 and Total GHG emissions - Scope 3 GHG emissions (GHG Protocol) [table]",
+        "relatedAr": null,
+        "paragraph": "AR 46 d",
+        "dataType": "Table",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Alternative",
+        "conditional": true
+      },
+      "after": {
+        "name": "Gross Scopes 1, 2, 3 and Total GHG emissions - Scope 3 GHG emissions (GHG Protocol) [table]",
+        "relatedAr": null,
+        "paragraph": "51",
+        "dataType": "Table",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-6_05",
+      "qaId": "1036",
+      "detail": "Change of paragraph reference: AR 50 → Paragraph 51",
+      "applied": true,
+      "before": {
+        "name": "Gross Scopes 1, 2, 3 and Total GHG emissions - Scope 3 GHG emissions (ISO 14064-1) [table]",
+        "relatedAr": null,
+        "paragraph": "AR 50",
+        "dataType": "Table",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Alternative",
+        "conditional": true
+      },
+      "after": {
+        "name": "Gross Scopes 1, 2, 3 and Total GHG emissions - Scope 3 GHG emissions (ISO 14064-1) [table]",
+        "relatedAr": null,
+        "paragraph": "51",
+        "dataType": "Table",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "MDR-T_15",
+      "qaId": "1038",
+      "detail": "Classified as mandatory: Voluntary → Mandatory",
+      "applied": true,
+      "before": {
+        "name": "Description of reasons why there are no plans to set measurable outcome-oriented targets",
+        "relatedAr": null,
+        "paragraph": "81 a",
+        "dataType": "narrative",
+        "voluntary": true,
+        "mayVoluntaryRaw": "V",
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Description of reasons why there are no plans to set measurable outcome-oriented targets",
+        "relatedAr": null,
+        "paragraph": "81 a",
+        "dataType": "narrative",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_03",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Absolute value of total Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/ghgEmissions",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Absolute value of total Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/ghgEmissions",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_04",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Percentage of total Greenhouse gas emissions reduction (as of emissions of base year)",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/percent",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Percentage of total Greenhouse gas emissions reduction (as of emissions of base year)",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/percent",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_05",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Intensity value of total Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/decimal",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Intensity value of total Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/decimal",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_06",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Absolute value of Scope 1 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/ghgEmissions",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Absolute value of Scope 1 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/ghgEmissions",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_07",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Percentage of Scope 1 Greenhouse gas emissions reduction (as of emissions of base year)",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/percent",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Percentage of Scope 1 Greenhouse gas emissions reduction (as of emissions of base year)",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/percent",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_08",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Intensity value of Scope 1 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/decimal",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Intensity value of Scope 1 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/decimal",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_09",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Absolute value of location-based Scope 2 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/ghgEmissions",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Absolute value of location-based Scope 2 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/ghgEmissions",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_10",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Percentage of location-based Scope 2 Greenhouse gas emissions reduction (as of emissions of base year)",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/percent",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Percentage of location-based Scope 2 Greenhouse gas emissions reduction (as of emissions of base year)",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/percent",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_11",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Intensity value of location-based Scope 2 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/decimal",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Intensity value of location-based Scope 2 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/decimal",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_12",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Absolute value of market-based Scope 2 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/ghgEmissions",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Absolute value of market-based Scope 2 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/ghgEmissions",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_13",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Percentage of market-based Scope 2 Greenhouse gas emissions reduction (as of emissions of base year)",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/percent",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Percentage of market-based Scope 2 Greenhouse gas emissions reduction (as of emissions of base year)",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/percent",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_14",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Intensity value of market-based Scope 2 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/decimal",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Intensity value of market-based Scope 2 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/decimal",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_15",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Absolute value of Scope 3 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/ghgEmissions",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Absolute value of Scope 3 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/ghgEmissions",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_16",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Percentage of Scope 3 Greenhouse gas emissions reduction (as of emissions of base year)",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/percent",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Percentage of Scope 3 Greenhouse gas emissions reduction (as of emissions of base year)",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/percent",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "E1-4_17",
+      "qaId": "1065",
+      "detail": "Classified as ‘conditional/alternative’: Conditional → Conditional/Alternative",
+      "applied": true,
+      "before": {
+        "name": "Intensity value of Scope 3 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/decimal",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional",
+        "conditional": true
+      },
+      "after": {
+        "name": "Intensity value of Scope 3 Greenhouse gas emissions reduction",
+        "relatedAr": null,
+        "paragraph": "34 a + 34 b",
+        "dataType": "Table/decimal",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Conditional/Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "S1-8_08",
+      "qaId": "1085/1250",
+      "detail": "Renamed: Own workforce in region (non-EEA) covered by collective bargaining and social dialogue agreements by coverage rate and by region → Collective bargaining coverage and social dialogue disaggregated by country and/or region",
+      "applied": true,
+      "before": {
+        "name": "Own workforce in region (non-EEA) covered by collective bargaining and social dialogue agreements by coverage rate and by region",
+        "relatedAr": null,
+        "paragraph": "AR 70",
+        "dataType": "Table /Semi-Narrative",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": null,
+        "conditional": null
+      },
+      "after": {
+        "name": "Collective bargaining coverage and social dialogue disaggregated by country and/or region",
+        "relatedAr": null,
+        "paragraph": "AR 70",
+        "dataType": "Table /Semi-Narrative",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": null,
+        "conditional": null
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "SBM-1_03",
+      "qaId": null,
+      "detail": "Renamed and classified as alternative: Total number of employees (head count) → Number of employees (head count), at end of period",
+      "applied": true,
+      "before": {
+        "name": "Total number of employees (head count)",
+        "relatedAr": "AR 12-13",
+        "paragraph": "40 a iii",
+        "dataType": "Integer",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": null,
+        "conditional": null
+      },
+      "after": {
+        "name": "Number of employees (head count), at end of period",
+        "relatedAr": "AR 12-13",
+        "paragraph": "40 a iii",
+        "dataType": "Integer",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "SBM-1_04",
+      "qaId": null,
+      "detail": "Renamed and classified as alternative: Number of employees (head count) → Number of employees (head count), during period",
+      "applied": true,
+      "before": {
+        "name": "Number of employees (head count)",
+        "relatedAr": "AR 12-13",
+        "paragraph": "40 a iii",
+        "dataType": "Integer",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": null,
+        "conditional": null
+      },
+      "after": {
+        "name": "Number of employees (head count), during period",
+        "relatedAr": "AR 12-13",
+        "paragraph": "40 a iii",
+        "dataType": "Integer",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": "Alternative",
+        "conditional": true
+      }
+    },
+    {
+      "action": "amend",
+      "dpId": "G1-4_03",
+      "qaId": null,
+      "detail": "Moved to G1-3: ? → ?",
+      "applied": true,
+      "before": {
+        "name": "Prevention and detection of corruption or bribery - anti-corruption and bribery training table",
+        "relatedAr": "AR 8",
+        "paragraph": "24 b",
+        "dataType": "Table",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": null,
+        "conditional": null
+      },
+      "after": {
+        "name": "Prevention and detection of corruption or bribery - anti-corruption and bribery training table",
+        "relatedAr": "AR 8",
+        "paragraph": "24 b",
+        "dataType": "Table",
+        "voluntary": null,
+        "mayVoluntaryRaw": null,
+        "conditionalOrAlternative": null,
+        "conditional": null
+      }
+    },
+    {
+      "action": "skipped",
+      "dpId": "(structural)",
+      "qaId": "1379",
+      "detail": "All MDR related DPs in G1 — moved to top of table (structural, not a field edit)",
+      "applied": false
+    }
+  ]
+}

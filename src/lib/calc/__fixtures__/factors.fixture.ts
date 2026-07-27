@@ -1,0 +1,133 @@
+/**
+ * Shared factor registry for calc engine tests. Mirrors the shape of
+ * src/seed/emission-factors.seed.ts but is self-contained — tests never depend
+ * on the real seed so they stay stable if the seed data changes.
+ *
+ * Deliberately includes two publication years for GB grid electricity, and a
+ * GLOBAL-region diesel factor, so resolveFactor's fallback ladder has real
+ * candidates to exercise (region+latest, GLOBAL+year).
+ */
+import type { FactorRecord } from "../types";
+
+export const FACTORS_FIXTURE: FactorRecord[] = [
+  {
+    id: "f-diesel-gb-2024",
+    key: "diesel",
+    value: 2.51233,
+    unit: "kgCO2e/L",
+    source: "DEFRA",
+    publicationYear: 2024,
+    region: "GB",
+    validFrom: "2024-01-01",
+    validUntil: "2024-12-31",
+  },
+  {
+    id: "f-diesel-global-2024",
+    key: "diesel",
+    value: 2.6,
+    unit: "kgCO2e/L",
+    source: "GHGProtocol",
+    publicationYear: 2024,
+    region: "GLOBAL",
+    validFrom: "2024-01-01",
+    validUntil: "2024-12-31",
+  },
+  {
+    id: "f-gas-gb-2024",
+    key: "natural_gas",
+    value: 2.04572,
+    unit: "kgCO2e/m3",
+    source: "DEFRA",
+    publicationYear: 2024,
+    region: "GB",
+    validFrom: "2024-01-01",
+    validUntil: "2024-12-31",
+  },
+  {
+    id: "f-petrol-gb-2024",
+    key: "petrol",
+    value: 2.0844,
+    unit: "kgCO2e/L",
+    source: "DEFRA",
+    publicationYear: 2024,
+    region: "GB",
+    validFrom: "2024-01-01",
+    validUntil: "2024-12-31",
+  },
+  {
+    id: "f-grid-gb-2023",
+    key: "grid_electricity",
+    value: 0.233,
+    unit: "kgCO2e/kWh",
+    source: "DEFRA",
+    publicationYear: 2023,
+    region: "GB",
+    validFrom: "2023-01-01",
+    validUntil: "2023-12-31",
+  },
+  {
+    id: "f-grid-gb-2024",
+    key: "grid_electricity",
+    value: 0.207,
+    unit: "kgCO2e/kWh",
+    source: "DEFRA",
+    publicationYear: 2024,
+    region: "GB",
+    validFrom: "2024-01-01",
+    validUntil: "2024-12-31",
+  },
+  {
+    id: "f-grid-us-2024",
+    key: "grid_electricity",
+    value: 0.385,
+    unit: "kgCO2e/kWh",
+    source: "EPA",
+    publicationYear: 2024,
+    region: "US",
+    validFrom: "2024-01-01",
+    validUntil: "2024-12-31",
+  },
+  {
+    id: "f-grid-in-2024",
+    key: "grid_electricity",
+    value: 0.727,
+    unit: "kgCO2e/kWh",
+    source: "CEA_India",
+    publicationYear: 2024,
+    region: "IN",
+    validFrom: "2024-01-01",
+    validUntil: "2024-12-31",
+  },
+  {
+    id: "f-grid-eu-2024",
+    key: "grid_electricity",
+    value: 0.251,
+    unit: "kgCO2e/kWh",
+    source: "EEA",
+    publicationYear: 2024,
+    region: "EU",
+    validFrom: "2024-01-01",
+    validUntil: "2024-12-31",
+  },
+  {
+    id: "f-spend-gb-2024",
+    key: "spend_purchased_goods",
+    value: 0.45,
+    unit: "kgCO2e/GBP",
+    source: "DEFRA",
+    publicationYear: 2024,
+    region: "GB",
+    validFrom: "2024-01-01",
+    validUntil: "2024-12-31",
+  },
+  {
+    id: "f-travel-gb-2024",
+    key: "business_travel_avg",
+    value: 0.17,
+    unit: "kgCO2e/km",
+    source: "DEFRA",
+    publicationYear: 2024,
+    region: "GB",
+    // No validity window declared — exercises the publicationYear-only branch of coversYear().
+  },
+];
