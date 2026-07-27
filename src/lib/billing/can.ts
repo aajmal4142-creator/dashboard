@@ -34,9 +34,7 @@ export class BillingDeniedError extends Error {
   readonly code = "BILLING_DENIED" as const;
 
   constructor(plan: PlanId, entitlement: Entitlement) {
-    super(
-      `Plan "${plan}" does not include "${entitlement}". Upgrade at /dashboard/billing.`,
-    );
+    super(`Plan "${plan}" does not include "${entitlement}". Upgrade at /billing.`);
     this.name = "BillingDeniedError";
     this.plan = plan;
     this.entitlement = entitlement;
@@ -55,6 +53,6 @@ export function billingDeniedResponse(error: BillingDeniedError): {
     code: error.code,
     plan: error.plan,
     entitlement: error.entitlement,
-    upgradePath: "/dashboard/billing",
+    upgradePath: "/billing",
   };
 }

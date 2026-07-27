@@ -10,10 +10,10 @@ test("app runway loads when authenticated via bypass", async ({ page }) => {
     "Requires CLEARESG_DEV_BYPASS or local session",
   );
 
-  await page.goto("/dashboard");
+  await page.goto("/");
   // Either runway or onboarding or sign-in depending on env
-  const url = page.url();
+  const path = new URL(page.url()).pathname;
   const ok =
-    url.includes("/dashboard") || url.includes("/sign-in") || url.includes("/onboarding");
+    path === "/" || path.startsWith("/sign-in") || path.startsWith("/onboarding");
   expect(ok).toBeTruthy();
 });

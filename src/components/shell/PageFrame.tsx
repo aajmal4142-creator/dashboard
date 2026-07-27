@@ -21,7 +21,7 @@ type PageFrameProps = {
 };
 
 /**
- * Shared /dashboard page chrome — matches Metrics / Runway:
+ * Shared app page chrome — matches Metrics / Runway:
  * accent eyebrow → bold H1 → help → accent rule → content.
  */
 export function PageFrame({

@@ -10,22 +10,20 @@ test.describe("app product polish", () => {
   );
 
   test("runway / data / questionnaires shells load", async ({ page }) => {
-    await page.goto("/dashboard");
-    const url = page.url();
+    await page.goto("/");
+    const path = new URL(page.url()).pathname;
     expect(
-      url.includes("/dashboard") ||
-        url.includes("/sign-in") ||
-        url.includes("/onboarding"),
+      path === "/" || path.startsWith("/sign-in") || path.startsWith("/onboarding"),
     ).toBeTruthy();
 
-    await page.goto("/dashboard/data");
+    await page.goto("/data");
     await expect(
       page.getByRole("heading", { name: /Enter figures|Sign in|Baseline/i }),
     ).toBeVisible({
       timeout: 15_000,
     });
 
-    await page.goto("/dashboard/questionnaires");
+    await page.goto("/questionnaires");
     await expect(
       page.getByRole("heading", { name: /Buyer questionnaire|Sign in|Baseline/i }),
     ).toBeVisible({ timeout: 15_000 });

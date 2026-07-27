@@ -103,29 +103,29 @@ export async function GET(req: Request) {
       ? [
           {
             label: "Enter measured electricity (moves intensity)",
-            href: "/dashboard/data#electricity_kwh",
+            href: "/data#electricity_kwh",
           },
           {
             label: "Raise renewable share",
-            href: "/dashboard/data#electricity_renewable_pct",
+            href: "/data#electricity_renewable_pct",
           },
-          { label: "Request supplier primary data", href: "/dashboard/suppliers" },
+          { label: "Request supplier primary data", href: "/suppliers" },
         ]
       : rank !== null && rank <= 50
         ? [
             {
               label: "Close remaining Data gaps",
-              href: "/dashboard/data",
+              href: "/data",
             },
             {
               label: "Confirm renewable share is measured",
-              href: "/dashboard/data#electricity_renewable_pct",
+              href: "/data#electricity_renewable_pct",
             },
-            { label: "Publish living report", href: "/dashboard/reports" },
+            { label: "Publish living report", href: "/reports" },
           ]
         : [
-            { label: "Review material topics", href: "/dashboard/materiality" },
-            { label: "Publish living report", href: "/dashboard/reports" },
+            { label: "Review material topics", href: "/materiality" },
+            { label: "Publish living report", href: "/reports" },
           ];
 
   return NextResponse.json({

@@ -37,45 +37,45 @@ export function buildNavGroups(opts: {
   onboarded: boolean;
 }): NavGroup[] {
   const work: NavItem[] = [
-    { href: "/dashboard", label: "Runway", icon: Gauge, exact: true },
+    { href: "/", label: "Runway", icon: Gauge, exact: true },
     { href: METRICS_HREF, label: METRICS_LABEL, icon: ClipboardList },
-    { href: "/dashboard/suppliers", label: "Suppliers", icon: Truck },
-    { href: "/dashboard/materiality", label: "Materiality", icon: Target },
-    { href: "/dashboard/reports", label: "Reports", icon: FileText },
+    { href: "/suppliers", label: "Suppliers", icon: Truck },
+    { href: "/materiality", label: "Materiality", icon: Target },
+    { href: "/reports", label: "Reports", icon: FileText },
   ];
 
   const collaborate: NavItem[] = [
     {
-      href: "/dashboard/requests",
+      href: "/requests",
       label: "Requests",
       icon: Inbox,
       badgeKey: "requests",
     },
     {
-      href: "/dashboard/questionnaires",
+      href: "/questionnaires",
       label: "Questionnaires",
       icon: ClipboardList,
       badgeKey: "questionnaires",
     },
   ];
   if (opts.orgType === "consultancy") {
-    collaborate.push({ href: "/dashboard/consultant", label: "Clients", icon: Users });
+    collaborate.push({ href: "/consultant", label: "Clients", icon: Users });
   }
 
   const assure: NavItem[] = [
-    { href: "/dashboard/guide", label: "Guide", icon: BookOpen },
-    { href: "/dashboard/assurance", label: "Assurance", icon: ClipboardCheck },
-    { href: "/dashboard/audit", label: "Audit", icon: ShieldCheck },
-    { href: "/dashboard/benchmarks", label: "Benchmarks", icon: BarChart3 },
+    { href: "/guide", label: "Guide", icon: BookOpen },
+    { href: "/assurance", label: "Assurance", icon: ClipboardCheck },
+    { href: "/audit", label: "Audit", icon: ShieldCheck },
+    { href: "/benchmarks", label: "Benchmarks", icon: BarChart3 },
   ];
 
   const account: NavItem[] = [
-    { href: "/dashboard/settings", label: "Settings", icon: Settings },
-    { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
+    { href: "/settings", label: "Settings", icon: Settings },
+    { href: "/billing", label: "Billing", icon: CreditCard },
   ];
   if (!opts.onboarded) {
     account.push({
-      href: "/dashboard/onboarding",
+      href: "/onboarding",
       label: "Baseline",
       icon: ListChecks,
     });

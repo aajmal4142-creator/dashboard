@@ -6,7 +6,7 @@ import {
 
 /**
  * Injects org dashboard branding CSS variables.
- * Scoped via [data-app-shell] — never touches marketing frontend.
+ * Scoped via [data-app-shell] — does not affect auth or public token pages.
  * Does not override data colours (--signal, --amber, --rust, --cobalt).
  */
 export function BrandVars({ branding }: { branding: Partial<OrgBranding> | null }) {

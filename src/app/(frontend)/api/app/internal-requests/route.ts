@@ -116,7 +116,7 @@ export async function POST(req: Request) {
   await sendTransactionalEmail({
     to: assignee.email,
     subject: `Data request: ${body.title.trim()}`,
-    html: `<p>You have been asked to complete a data request for <strong>${ctx.activeOrg.name}</strong>.</p><p><a href="${origin}/dashboard/requests">Open requests</a></p>`,
+    html: `<p>You have been asked to complete a data request for <strong>${ctx.activeOrg.name}</strong>.</p><p><a href="${origin}/requests">Open requests</a></p>`,
   });
 
   await writeAuditLog(payload, {

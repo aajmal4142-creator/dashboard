@@ -43,7 +43,7 @@ const fraunces = Fraunces({
   axes: ["SOFT", "WONK", "opsz"],
 });
 
-/** Design A (Acid Climate) marketing — geometric sans, scoped via [data-design="acid"] */
+/** Available to org branding (settings font picker). */
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   subsets: ["latin"],
@@ -57,8 +57,7 @@ export const metadata: Metadata = {
     default: "ClearESG",
     template: "%s · ClearESG",
   },
-  description:
-    "Enterprise ESG software costs six figures and takes six months. ClearESG gets you audit-ready this quarter.",
+  description: "ClearESG — compliance runway and audit-ready ESG disclosure.",
   icons: {
     icon: [{ url: "/icon", type: "image/png" }],
     apple: [{ url: "/apple-icon", type: "image/png" }],
@@ -101,7 +100,7 @@ export default async function RootLayout({
   const theme: Theme = isTheme(raw) ? raw : "light";
 
   const content = hasClerk ? (
-    <ClerkProvider appearance={clerkAppearance} afterSignOutUrl="/">
+    <ClerkProvider appearance={clerkAppearance} afterSignOutUrl="/sign-in">
       {children}
     </ClerkProvider>
   ) : (

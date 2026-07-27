@@ -60,7 +60,7 @@ export function AppShell({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const panelId = useId();
   const pathname = usePathname();
-  const focused = pathname.startsWith("/dashboard/onboarding");
+  const focused = pathname.startsWith("/onboarding");
   const orgName =
     activeOrgName ?? orgs.find((o) => o.id === activeOrgId)?.name ?? "Organisation";
 
@@ -75,7 +75,7 @@ export function AppShell({
           )}
         >
           <Link
-            href="/dashboard"
+            href="/"
             className={cn(
               "label-caps min-w-0 truncate text-ink focus-visible:outline-accent",
               railCollapsed && "text-center text-[10px]",
@@ -200,12 +200,12 @@ export function AppShell({
         className="fixed inset-0 flex min-h-0 flex-col overflow-hidden bg-canvas text-ink"
       >
         <header className="flex shrink-0 items-center justify-between border-b border-rule px-4 py-3">
-          <Link href="/dashboard" className="label-caps text-ink">
+          <Link href="/" className="label-caps text-ink">
             ClearESG
           </Link>
           <div className="flex items-center gap-3">
             <Link
-              href="/dashboard"
+              href="/"
               className="text-xs text-ink-muted underline-offset-2 hover:text-ink hover:underline"
             >
               Exit to runway
@@ -265,7 +265,7 @@ export function AppShell({
             >
               {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
             </button>
-            <Link href="/dashboard" className="label-caps text-ink">
+            <Link href="/" className="label-caps text-ink">
               ClearESG
             </Link>
           </div>

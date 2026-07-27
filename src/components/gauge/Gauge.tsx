@@ -77,7 +77,7 @@ function needlePath(cx: number, cy: number, length: number): string {
 }
 
 /**
- * Printed dial on good paper — three placements: marketing hero, dashboard, PDF page 1.
+ * Printed dial on good paper — placements: app home, PDF page 1.
  * Ink on cream (dark: warm-paper-on-black). Engraved ticks. Oxblood needle.
  * Underdamped oscillation is a SPEC, not a bug.
  */

@@ -1,13 +1,19 @@
 import type { MetadataRoute } from "next";
 
-import { siteUrl } from "@/lib/marketing/site";
+function siteUrl(path = "/"): string {
+  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "https://clearesg.com").replace(
+    /\/$/,
+    "",
+  );
+  return `${base}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
+/** App-only — no public marketing index. */
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: "*",
-      allow: "/",
-      disallow: ["/dashboard/", "/admin/", "/api/", "/sign-in", "/sign-up", "/s/", "/r/"],
+      disallow: "/",
     },
     sitemap: siteUrl("/sitemap.xml"),
   };

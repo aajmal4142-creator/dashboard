@@ -79,7 +79,7 @@ export async function POST(req: Request) {
       {
         error: `Client seat limit reached (${maxClients}). Upgrade or archive a client.`,
         code: "BILLING_DENIED",
-        upgradePath: "/dashboard/billing",
+        upgradePath: "/billing",
       },
       { status: 402 },
     );
