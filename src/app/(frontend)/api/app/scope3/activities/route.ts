@@ -1,4 +1,4 @@
-import { getPayload, type CollectionSlug } from "payload";
+import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
@@ -8,17 +8,42 @@ import { EmissionsFactorService } from "@/lib/scope3/emissionsFactorService";
 import type { ActivityDataField, EmissionsFactor } from "@/lib/scope3/types";
 import config from "@/payload.config";
 
-const SCOPE3_SOURCES = "scope3-sources" as CollectionSlug;
-const SCOPE3_ACTIVITIES = "scope3-activities" as CollectionSlug;
-
 interface ImportActivity {
   activityData: Record<string, string | number>;
 }
 
-interface Scope3SourceDoc {
-  organisation: string | { id: string };
-  activityDataFields: ActivityDataField[];
-  emissionsFactor: EmissionsFactor;
+function asActivityFields(value: unknown): ActivityDataField[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (field): field is ActivityDataField =>
+      typeof field === "object" &&
+      field !== null &&
+      "name" in field &&
+      "unit" in field &&
+      "required" in field,
+  );
+}
+
+function asEmissionsFactor(value: unknown): EmissionsFactor | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null;
+  }
+  const factor = value as Record<string, unknown>;
+  if (typeof factor.value !== "number" || typeof factor.unit !== "string") {
+    return null;
+  }
+  return {
+    value: factor.value,
+    unit: factor.unit,
+    source: typeof factor.source === "string" ? factor.source : "Custom",
+    year: typeof factor.year === "number" ? factor.year : new Date().getFullYear(),
+    confidence:
+      factor.confidence === "high" ||
+      factor.confidence === "medium" ||
+      factor.confidence === "low"
+        ? factor.confidence
+        : "medium",
+  };
 }
 
 export async function POST(req: Request) {
@@ -66,14 +91,26 @@ export async function POST(req: Request) {
 
   // Fetch source
   const source = await payload.findByID({
-    collection: SCOPE3_SOURCES,
+    collection: "scope3-sources",
     id: sourceId,
     overrideAccess: true,
   });
 
-  const sourceDoc = source as unknown as Scope3SourceDoc;
-  if (!source || String(sourceDoc.organisation) !== ctx.activeOrg.id) {
+  const organisationId =
+    typeof source.organisation === "object"
+      ? source.organisation.id
+      : source.organisation;
+  if (organisationId !== ctx.activeOrg.id) {
     return NextResponse.json({ error: "Source not found" }, { status: 404 });
+  }
+
+  const activityDataFields = asActivityFields(source.activityDataFields);
+  const emissionsFactor = asEmissionsFactor(source.emissionsFactor);
+  if (!emissionsFactor) {
+    return NextResponse.json(
+      { error: "Source emissions factor is invalid" },
+      { status: 400 },
+    );
   }
 
   // Fetch period
@@ -83,7 +120,11 @@ export async function POST(req: Request) {
     overrideAccess: true,
   });
 
-  if (!period || String(period.organisation) !== ctx.activeOrg.id) {
+  const periodOrgId =
+    typeof period.organisation === "object"
+      ? period.organisation.id
+      : period.organisation;
+  if (periodOrgId !== ctx.activeOrg.id) {
     return NextResponse.json({ error: "Period not found" }, { status: 404 });
   }
 
@@ -98,7 +139,7 @@ export async function POST(req: Request) {
     const activity = activities[i];
     const validation = await validator.validateActivity(
       activity.activityData,
-      sourceDoc.activityDataFields,
+      activityDataFields,
     );
 
     if (!validation.valid) {
@@ -114,20 +155,17 @@ export async function POST(req: Request) {
     if (activityValues.length === 0) continue;
 
     const activityValue = activityValues.reduce((a, b) => a + b, 0);
-    const emissions = factorService.calculateEmissions(
-      activityValue,
-      sourceDoc.emissionsFactor,
-    );
+    const emissions = factorService.calculateEmissions(activityValue, emissionsFactor);
 
     if (!dryRun) {
       try {
         const doc = await payload.create({
-          collection: SCOPE3_ACTIVITIES,
+          collection: "scope3-activities",
           data: {
             organisation: ctx.activeOrg.id,
             source: sourceId,
             period: periodId,
-            activityData: validation.normalizedData,
+            activityData: validation.normalizedData ?? {},
             calculatedEmissions: emissions,
             status: "draft",
             enteredBy: ctx.user.id,

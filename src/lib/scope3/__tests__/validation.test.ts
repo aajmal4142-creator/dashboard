@@ -6,8 +6,18 @@ describe("Scope3Validator", () => {
   const validator = new Scope3Validator();
 
   const requiredFields: ActivityDataField[] = [
-    { name: "quantity", unit: "tonnes", required: true },
-    { name: "distance", unit: "miles", required: false },
+    {
+      name: "quantity",
+      unit: "tonnes",
+      description: "Quantity of material",
+      required: true,
+    },
+    {
+      name: "distance",
+      unit: "miles",
+      description: "Distance travelled",
+      required: false,
+    },
   ];
 
   describe("validateActivity", () => {

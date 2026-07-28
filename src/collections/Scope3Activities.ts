@@ -1,4 +1,4 @@
-import type { CollectionConfig, CollectionSlug } from "payload";
+import type { CollectionConfig } from "payload";
 import { tenantAccess } from "@/lib/access";
 
 export const Scope3Activities: CollectionConfig = {
@@ -36,7 +36,7 @@ export const Scope3Activities: CollectionConfig = {
     {
       name: "source",
       type: "relationship",
-      relationTo: "scope3-sources" as CollectionSlug,
+      relationTo: "scope3-sources",
       required: true,
     },
     {

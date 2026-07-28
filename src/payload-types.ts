@@ -80,6 +80,8 @@ export interface Config {
     datapoints: Datapoint;
     evidence: Evidence;
     suppliers: Supplier;
+    'scope3-sources': Scope3Source;
+    'scope3-activities': Scope3Activity;
     'internal-data-requests': InternalDataRequest;
     'materiality-assessments': MaterialityAssessment;
     reports: Report;
@@ -107,6 +109,8 @@ export interface Config {
     datapoints: DatapointsSelect<false> | DatapointsSelect<true>;
     evidence: EvidenceSelect<false> | EvidenceSelect<true>;
     suppliers: SuppliersSelect<false> | SuppliersSelect<true>;
+    'scope3-sources': Scope3SourcesSelect<false> | Scope3SourcesSelect<true>;
+    'scope3-activities': Scope3ActivitiesSelect<false> | Scope3ActivitiesSelect<true>;
     'internal-data-requests': InternalDataRequestsSelect<false> | InternalDataRequestsSelect<true>;
     'materiality-assessments': MaterialityAssessmentsSelect<false> | MaterialityAssessmentsSelect<true>;
     reports: ReportsSelect<false> | ReportsSelect<true>;
@@ -643,6 +647,103 @@ export interface Evidence {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scope3-sources".
+ */
+export interface Scope3Source {
+  id: string;
+  organisation: string | Organisation;
+  type: 'supplier' | 'investment' | 'waste' | 'business_travel' | 'employee_commute';
+  name: string;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Emissions factor: value (number), unit (string), source (DEFRA/IPCC/CDP/Custom), year (number), confidence (high/medium/low)
+   */
+  emissionsFactor:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Array of activity fields: name (string), unit (string), description (string), required (boolean)
+   */
+  activityDataFields:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scope3-activities".
+ */
+export interface Scope3Activity {
+  id: string;
+  organisation: string | Organisation;
+  source: string | Scope3Source;
+  period: string | ReportingPeriod;
+  /**
+   * JSON object with activity field values
+   */
+  activityData:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Calculated tonnes CO2e (readonly, auto-calculated)
+   */
+  calculatedEmissions: number;
+  status: 'draft' | 'validated' | 'approved';
+  /**
+   * Supporting documents for audit trail
+   */
+  evidence?: (string | Evidence)[] | null;
+  /**
+   * User who created this activity
+   */
+  enteredBy?: (string | null) | User;
+  /**
+   * User who approved this activity
+   */
+  approvedBy?: (string | null) | User;
+  approvedAt?: string | null;
+  /**
+   * Notes from validation process
+   */
+  validationNotes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "internal-data-requests".
  */
 export interface InternalDataRequest {
@@ -988,6 +1089,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'suppliers';
         value: string | Supplier;
+      } | null)
+    | ({
+        relationTo: 'scope3-sources';
+        value: string | Scope3Source;
+      } | null)
+    | ({
+        relationTo: 'scope3-activities';
+        value: string | Scope3Activity;
       } | null)
     | ({
         relationTo: 'internal-data-requests';
@@ -1372,6 +1481,39 @@ export interface SuppliersSelect<T extends boolean = true> {
   lastReminderAt?: T;
   submittedData?: T;
   reminderCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scope3-sources_select".
+ */
+export interface Scope3SourcesSelect<T extends boolean = true> {
+  organisation?: T;
+  type?: T;
+  name?: T;
+  description?: T;
+  emissionsFactor?: T;
+  activityDataFields?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scope3-activities_select".
+ */
+export interface Scope3ActivitiesSelect<T extends boolean = true> {
+  organisation?: T;
+  source?: T;
+  period?: T;
+  activityData?: T;
+  calculatedEmissions?: T;
+  status?: T;
+  evidence?: T;
+  enteredBy?: T;
+  approvedBy?: T;
+  approvedAt?: T;
+  validationNotes?: T;
   updatedAt?: T;
   createdAt?: T;
 }

@@ -1,4 +1,4 @@
-import { getPayload, type CollectionSlug } from "payload";
+import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
@@ -9,8 +9,6 @@ import type {
   Scope3Category,
   EmissionsFactor,
 } from "@/lib/scope3/types";
-
-const SCOPE3_SOURCES = "scope3-sources" as CollectionSlug;
 
 export async function GET() {
   const ctx = await getCurrentContext();
@@ -32,7 +30,7 @@ export async function GET() {
 
   const payload = await getPayload({ config });
   const result = await payload.find({
-    collection: SCOPE3_SOURCES,
+    collection: "scope3-sources",
     where: { organisation: { equals: ctx.activeOrg.id } },
     limit: 500,
     sort: "-updatedAt",
@@ -78,7 +76,7 @@ export async function POST(req: Request) {
     activityDataFields?: ActivityDataField[];
   };
 
-  const { type, name, description, emissionsFactor, activityDataFields } = body;
+  const { type, name, emissionsFactor, activityDataFields } = body;
 
   // Validation
   const SCOPE3_CATEGORIES: Scope3Category[] = [
@@ -132,12 +130,11 @@ export async function POST(req: Request) {
   const payload = await getPayload({ config });
 
   const doc = await payload.create({
-    collection: SCOPE3_SOURCES,
+    collection: "scope3-sources",
     data: {
       organisation: ctx.activeOrg.id,
       type,
       name: name.trim(),
-      description: description || undefined,
       emissionsFactor: {
         value: emissionsFactor.value,
         unit: emissionsFactor.unit,

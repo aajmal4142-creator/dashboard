@@ -1,4 +1,4 @@
-import { getPayload, type CollectionSlug } from "payload";
+import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
@@ -7,11 +7,16 @@ import { Scope3Validator } from "@/lib/scope3/validation";
 import type { ActivityDataField } from "@/lib/scope3/types";
 import config from "@/payload.config";
 
-const SCOPE3_SOURCES = "scope3-sources" as CollectionSlug;
-
-interface Scope3SourceDoc {
-  organisation: string | { id: string };
-  activityDataFields: ActivityDataField[];
+function asActivityFields(value: unknown): ActivityDataField[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (field): field is ActivityDataField =>
+      typeof field === "object" &&
+      field !== null &&
+      "name" in field &&
+      "unit" in field &&
+      "required" in field,
+  );
 }
 
 export async function POST(req: Request) {
@@ -51,19 +56,17 @@ export async function POST(req: Request) {
 
   // Fetch source
   const source = await payload.findByID({
-    collection: SCOPE3_SOURCES,
+    collection: "scope3-sources",
     id: sourceId,
     overrideAccess: true,
   });
 
-  if (!source) {
-    return NextResponse.json({ error: "Source not found" }, { status: 404 });
-  }
-
-  const sourceDoc = source as unknown as Scope3SourceDoc;
-
   // Check org access
-  if (String(sourceDoc.organisation) !== ctx.activeOrg.id) {
+  const organisationId =
+    typeof source.organisation === "object"
+      ? source.organisation.id
+      : source.organisation;
+  if (organisationId !== ctx.activeOrg.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -71,7 +74,7 @@ export async function POST(req: Request) {
   const validator = new Scope3Validator();
   const result = await validator.validateActivity(
     activityData,
-    sourceDoc.activityDataFields,
+    asActivityFields(source.activityDataFields),
   );
 
   return NextResponse.json({

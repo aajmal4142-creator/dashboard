@@ -1,22 +1,11 @@
-import { getPayload, type CollectionSlug } from "payload";
+import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
 import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 import type { Scope3Category } from "@/lib/scope3/types";
-
-const SCOPE3_ACTIVITIES = "scope3-activities" as CollectionSlug;
-
-interface Scope3ActivityDoc {
-  calculatedEmissions?: number | null;
-  source:
-    | string
-    | {
-        id?: string;
-        type?: Scope3Category;
-      };
-}
+import type { Scope3Activity, Scope3Source } from "@/payload-types";
 
 export async function GET(
   _req: Request,
@@ -53,13 +42,17 @@ export async function GET(
     overrideAccess: true,
   });
 
-  if (!period || String(period.organisation) !== ctx.activeOrg.id) {
+  const periodOrgId =
+    typeof period.organisation === "object"
+      ? period.organisation.id
+      : period.organisation;
+  if (periodOrgId !== ctx.activeOrg.id) {
     return NextResponse.json({ error: "Period not found" }, { status: 404 });
   }
 
   // Fetch activities for this period
   const result = await payload.find({
-    collection: SCOPE3_ACTIVITIES,
+    collection: "scope3-activities",
     where: {
       and: [
         { organisation: { equals: ctx.activeOrg.id } },
@@ -72,20 +65,15 @@ export async function GET(
     depth: 1,
   });
 
-  const activities = result.docs as unknown as Scope3ActivityDoc[];
+  const activities = result.docs as Scope3Activity[];
 
   // Aggregate by category
-  const categoryMap = new Map<Scope3Category, Scope3ActivityDoc[]>();
+  const categoryMap = new Map<Scope3Category, Scope3Activity[]>();
 
   for (const activity of activities) {
     const source = activity.source;
-    if (
-      typeof source === "object" &&
-      source !== null &&
-      "type" in source &&
-      source.type
-    ) {
-      const category = source.type;
+    if (typeof source === "object" && source !== null && "type" in source) {
+      const category = (source as Scope3Source).type;
       if (!categoryMap.has(category)) {
         categoryMap.set(category, []);
       }
@@ -106,7 +94,7 @@ export async function GET(
         emissions,
         sourceCount: new Set(
           categoryActivities.map((a) =>
-            typeof a.source === "object" ? (a.source.id ?? a.source) : a.source,
+            typeof a.source === "object" ? a.source.id : a.source,
           ),
         ).size,
       };
