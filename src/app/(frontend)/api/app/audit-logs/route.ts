@@ -3,6 +3,7 @@ import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
+import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 
 /** Filterable immutable change log. §15.2 */
@@ -16,8 +17,17 @@ export async function GET(req: Request) {
       { status: 403 },
     );
   }
-  if (ctx.role === "viewer" || ctx.role === "contributor") {
-    return NextResponse.json({ error: "Admin required" }, { status: 403 });
+
+  const allowed = await requirePermission(
+    ctx.user.id,
+    ctx.activeOrg.id,
+    "view",
+    "policy",
+    ctx.activeOrg.id,
+    "organisation",
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const url = new URL(req.url);

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit/write";
+import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 
 /** Admin/owner approve or reject a datapoint. §15.1.2 */
@@ -10,9 +11,6 @@ export async function POST(req: Request) {
   const ctx = await getCurrentContext();
   if (!ctx.activeOrg || !ctx.role) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-  if (ctx.role !== "owner" && ctx.role !== "admin") {
-    return NextResponse.json({ error: "Admin required" }, { status: 403 });
   }
 
   const body = (await req.json()) as {
@@ -26,6 +24,19 @@ export async function POST(req: Request) {
       { status: 400 },
     );
   }
+
+  const allowed = await requirePermission(
+    ctx.user.id,
+    ctx.activeOrg.id,
+    "approve",
+    "datapoint",
+    body.datapointId,
+    "organisation",
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   if (body.approvalState === "rejected" && !body.reason?.trim()) {
     return NextResponse.json(
       { error: "A reason is required when rejecting a datapoint" },

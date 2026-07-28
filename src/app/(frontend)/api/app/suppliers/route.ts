@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getCurrentContext } from "@/lib/auth";
 import { limits } from "@/lib/billing";
 import { responseRatePct, spendCoveragePct } from "@/lib/suppliers";
+import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 
 const CATEGORIES = [
@@ -19,6 +20,18 @@ export async function GET() {
   const ctx = await getCurrentContext();
   if (!ctx.activeOrg) {
     return NextResponse.json({ error: "No active organisation" }, { status: 403 });
+  }
+
+  const allowed = await requirePermission(
+    ctx.user.id,
+    ctx.activeOrg.id,
+    "view",
+    "supplier",
+    ctx.activeOrg.id,
+    "organisation",
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const payload = await getPayload({ config });
@@ -56,8 +69,17 @@ export async function POST(req: Request) {
   if (!ctx.activeOrg || !ctx.role) {
     return NextResponse.json({ error: "No active organisation" }, { status: 403 });
   }
-  if (ctx.role === "viewer") {
-    return NextResponse.json({ error: "Viewers cannot add suppliers" }, { status: 403 });
+
+  const allowed = await requirePermission(
+    ctx.user.id,
+    ctx.activeOrg.id,
+    "create",
+    "supplier",
+    ctx.activeOrg.id,
+    "organisation",
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const body = (await req.json()) as {

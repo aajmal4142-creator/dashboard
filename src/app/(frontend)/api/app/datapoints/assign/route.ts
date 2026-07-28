@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit/write";
+import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 
 /** Assign datapoint ownership + due date. §18.1.2 */
@@ -10,9 +11,6 @@ export async function POST(req: Request) {
   const ctx = await getCurrentContext();
   if (!ctx.activeOrg || !ctx.role) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-  if (ctx.role === "viewer") {
-    return NextResponse.json({ error: "Insufficient role" }, { status: 403 });
   }
 
   const body = (await req.json()) as {
@@ -23,6 +21,18 @@ export async function POST(req: Request) {
   };
   if (!body.datapointId) {
     return NextResponse.json({ error: "datapointId required" }, { status: 400 });
+  }
+
+  const allowed = await requirePermission(
+    ctx.user.id,
+    ctx.activeOrg.id,
+    "edit",
+    "datapoint",
+    body.datapointId,
+    "organisation",
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const payload = await getPayload({ config });

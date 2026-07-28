@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { writeAuditLog } from "@/lib/audit/write";
 import { getCurrentContext } from "@/lib/auth";
+import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 
 /**
@@ -14,12 +15,6 @@ export async function POST(req: Request) {
   if (!ctx.activeOrg || !ctx.role) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  if (ctx.role === "viewer") {
-    return NextResponse.json(
-      { error: "Viewers cannot re-bind evidence" },
-      { status: 403 },
-    );
-  }
 
   const body = (await req.json()) as {
     evidenceId?: string;
@@ -30,6 +25,18 @@ export async function POST(req: Request) {
       { error: "evidenceId and datapointId required" },
       { status: 400 },
     );
+  }
+
+  const allowed = await requirePermission(
+    ctx.user.id,
+    ctx.activeOrg.id,
+    "edit",
+    "evidence",
+    body.evidenceId,
+    "organisation",
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const payload = await getPayload({ config });

@@ -2,6 +2,7 @@ import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
+import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 
 /** Membership teammates for people-picker (same org). */
@@ -12,6 +13,18 @@ export async function GET() {
       { error: "No active organisation. Finish onboarding or switch organisation." },
       { status: 403 },
     );
+  }
+
+  const allowed = await requirePermission(
+    ctx.user.id,
+    ctx.activeOrg.id,
+    "view",
+    "user",
+    ctx.activeOrg.id,
+    "organisation",
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const payload = await getPayload({ config });

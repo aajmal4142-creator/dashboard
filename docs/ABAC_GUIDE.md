@@ -434,3 +434,207 @@ Planned for later phases:
 - Time-based access (e.g., "can edit until deadline")
 - Delegation (e.g., "manager can grant limited permissions")
 - Group policies (e.g., "all dept leads get this role")
+
+---
+
+## Integration into API Routes
+
+As of Day 2-3, ABAC checks have been integrated into 8 high-priority API routes. This section documents the integration patterns and provides examples.
+
+### Integration Pattern
+
+Every protected route follows this pattern:
+
+```typescript
+import { requirePermission } from "@/lib/policy/protect";
+import { getCurrentContext } from "@/lib/auth";
+
+export async function POST(request: Request) {
+  const ctx = await getCurrentContext();
+
+  // 1. Verify user is authenticated and has an active org
+  if (!ctx.activeOrg || !ctx.user) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // 2. Parse and validate request body
+  const body = await request.json();
+  if (!body.resourceId) {
+    return NextResponse.json({ error: "resourceId required" }, { status: 400 });
+  }
+
+  // 3. Check ABAC permission (this logs automatically)
+  const allowed = await requirePermission(
+    ctx.user.id,
+    ctx.activeOrg.id,
+    "action", // e.g., "view", "create", "edit", "delete", "approve"
+    "resource", // e.g., "datapoint", "report", "supplier"
+    body.resourceId, // specific resource ID
+    "organisation", // scope: "own" | "team" | "organisation" | "all"
+  );
+
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // 4. Proceed with operation (audit already logged by requirePermission)
+  const payload = await getPayload({ config });
+  // ... perform operation ...
+
+  return NextResponse.json({ ok: true });
+}
+```
+
+### Integrated Routes (8 Total)
+
+#### 1. Datapoints Approve
+
+- **Route**: `POST /api/app/datapoints/approve`
+- **Action**: `approve`
+- **Resource**: `datapoint`
+- **Scope**: `organisation` (approving is an org-level decision)
+- **Required Capability**: Admin role (via `approve:datapoint:organisation`)
+
+#### 2. Datapoints Assign
+
+- **Route**: `POST /api/app/datapoints/assign`
+- **Action**: `edit`
+- **Resource**: `datapoint`
+- **Scope**: `organisation`
+- **Required Capability**: Contributor+ (can edit org datapoints)
+
+#### 3. Reports List
+
+- **Route**: `GET /api/app/reports`
+- **Action**: `view`
+- **Resource**: `report`
+- **Scope**: `organisation`
+- **Required Capability**: Viewer+ (can view org reports)
+
+#### 4. Reports Create
+
+- **Route**: `POST /api/app/reports`
+- **Action**: `create`
+- **Resource**: `report`
+- **Scope**: `organisation`
+- **Required Capability**: Admin role (via `create:report:organisation`)
+
+#### 5. Suppliers List
+
+- **Route**: `GET /api/app/suppliers`
+- **Action**: `view`
+- **Resource**: `supplier`
+- **Scope**: `organisation`
+- **Required Capability**: Viewer+ (can view org suppliers)
+
+#### 6. Suppliers Create
+
+- **Route**: `POST /api/app/suppliers`
+- **Action**: `create`
+- **Resource**: `supplier`
+- **Scope**: `organisation`
+- **Required Capability**: Contributor+ (can create org suppliers)
+
+#### 7. Teammates List
+
+- **Route**: `GET /api/app/teammates`
+- **Action**: `view`
+- **Resource**: `user`
+- **Scope**: `organisation`
+- **Required Capability**: Viewer+ (can view org team members)
+
+#### 8. Audit Logs
+
+- **Route**: `GET /api/app/audit-logs`
+- **Action**: `view`
+- **Resource**: `policy`
+- **Scope**: `organisation`
+- **Required Capability**: Admin role (via `view:policy:organisation`)
+
+### Using Scope Detection
+
+For routes where you need to distinguish between "own" and "organisation" scope:
+
+```typescript
+import { detectScopeCached } from "@/lib/policy/scope";
+
+export async function POST(request: Request) {
+  const ctx = await getCurrentContext();
+  if (!ctx.activeOrg) return 403;
+
+  const body = await request.json();
+
+  // Detect scope: "own" if user created it, else "organisation"
+  const scope = await detectScopeCached(
+    ctx.user.id,
+    ctx.activeOrg.id,
+    "datapoint",
+    body.datapointId,
+  );
+
+  const allowed = await requirePermission(
+    ctx.user.id,
+    ctx.activeOrg.id,
+    "edit",
+    "datapoint",
+    body.datapointId,
+    scope,
+  );
+
+  if (!allowed) return 403;
+  // ... proceed ...
+}
+```
+
+### Audit Log Verification
+
+Every permission check automatically creates an audit log entry in the `policy-evaluations` collection:
+
+```json
+{
+  "userId": "user-123",
+  "organisationId": "org-456",
+  "action": "approve",
+  "resource": "datapoint",
+  "resourceId": "dp-789",
+  "decision": "allowed",
+  "reason": "User role 'Admin' can approve datapoint within organisation",
+  "userRole": "Admin",
+  "evaluatedAt": "2026-07-28T20:47:43Z"
+}
+```
+
+Query audit logs via the API:
+
+```bash
+# View all access decisions for a user
+GET /api/app/policies/audit-logs?userId=USER_ID&organisationId=ORG_ID
+
+# View denied access attempts only
+GET /api/app/policies/audit-logs?organisationId=ORG_ID&decision=denied
+
+# Filter by resource and action
+GET /api/app/policies/audit-logs?organisationId=ORG_ID&resource=datapoint&action=approve
+```
+
+### Performance Considerations
+
+- **Scope Detection Caching**: `detectScopeCached()` caches results for 1 hour to prevent N+1 DB queries
+- **Permission Checks**: Each check is ~2-5ms (one DB query to fetch user's role and capabilities)
+- **Audit Logging**: Non-blocking (failures don't affect the main operation)
+- **Recommended**: For endpoints called frequently, consider caching effective capabilities per user at the application level
+
+---
+
+## Migration Guide (Remaining Routes)
+
+To integrate ABAC into the remaining 32 routes:
+
+1. **Import requirePermission**: Add `import { requirePermission } from "@/lib/policy/protect"`
+2. **Remove old role checks**: Replace `if (ctx.role === "viewer") { return 403; }` with the ABAC check
+3. **Choose action/resource/scope**:
+   - Action: `view`, `create`, `edit`, `delete`, `approve`, `export`, `manage-users`, `manage-policies`
+   - Resource: `datapoint`, `report`, `supplier`, `user`, `evidence`, etc.
+   - Scope: Use `"organisation"` as default, use `detectScopeCached()` for "own" vs "organisation" distinction
+4. **Test end-to-end**: Verify the endpoint still works and audit logs appear
+5. **Verify capabilities**: Check that default roles have the required capabilities in `src/lib/policy/defaultRoles.ts`

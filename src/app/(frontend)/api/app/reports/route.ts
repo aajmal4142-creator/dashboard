@@ -11,6 +11,7 @@ import { ensureOpenPeriod } from "@/lib/org/period";
 import { buildReportSnapshot, diffSnapshots, type ReportSnapshot } from "@/lib/reports";
 import { ensureAssuranceToken } from "@/lib/reports/ensureAssuranceToken";
 import { recordJourneyEvent } from "@/lib/telemetry/journey";
+import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 
 async function withPeriod<T>(run: () => Promise<T>): Promise<T | NextResponse> {
@@ -28,6 +29,18 @@ export async function GET() {
   const ctx = await getCurrentContext();
   if (!ctx.activeOrg) {
     return NextResponse.json({ error: "No active organisation" }, { status: 403 });
+  }
+
+  const allowed = await requirePermission(
+    ctx.user.id,
+    ctx.activeOrg.id,
+    "view",
+    "report",
+    ctx.activeOrg.id,
+    "organisation",
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   return withPeriod(async () => {
     const payload = await getPayload({ config });
@@ -73,11 +86,17 @@ export async function POST(req: Request) {
   if (!ctx.activeOrg || !ctx.role) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  if (ctx.role === "viewer" || ctx.role === "contributor") {
-    return NextResponse.json(
-      { error: "Admin required to publish reports" },
-      { status: 403 },
-    );
+
+  const allowed = await requirePermission(
+    ctx.user.id,
+    ctx.activeOrg.id,
+    "create",
+    "report",
+    ctx.activeOrg.id,
+    "organisation",
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const body = (await req.json()) as {
