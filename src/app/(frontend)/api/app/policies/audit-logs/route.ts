@@ -1,4 +1,5 @@
 import { getPayload } from "payload";
+import config from "@/payload.config";
 
 /**
  * GET /api/app/policies/audit-logs
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
       return Response.json({ error: "organisationId is required" }, { status: 400 });
     }
 
-    const payload = await getPayload();
+    const payload = await getPayload({ config });
 
     // Build where clause
     const whereConditions = [];

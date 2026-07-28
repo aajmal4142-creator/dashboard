@@ -1,4 +1,5 @@
 import { getPayload } from "payload";
+import config from "@/payload.config";
 
 /**
  * GET /api/app/policies/roles
@@ -7,7 +8,7 @@ import { getPayload } from "payload";
 
 export async function GET() {
   try {
-    const payload = await getPayload();
+    const payload = await getPayload({ config });
 
     const roles = await payload.find({
       collection: "policy-roles",
@@ -28,7 +29,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const payload = await getPayload();
+    const payload = await getPayload({ config });
     const body = await request.json();
 
     const { name, description, defaultCapabilities } = body;

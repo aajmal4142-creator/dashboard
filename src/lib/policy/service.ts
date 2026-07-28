@@ -1,5 +1,5 @@
 import type { Payload } from "payload";
-import type { EffectiveCapabilities, PolicyRole, UserPolicy } from "./types";
+import type { Capability, EffectiveCapabilities, PolicyRole, UserPolicy } from "./types";
 import { mergeCapabilities } from "./evaluator";
 
 /**
@@ -41,7 +41,8 @@ export class PolicyService {
       if (!policyObj) return null;
 
       const role = policyObj.role as PolicyRole;
-      const customCapabilities = (policyObj.customCapabilities as unknown[]) || [];
+      const customCapabilities = ((policyObj.customCapabilities as unknown[]) ||
+        []) as unknown as Capability[];
 
       const merged = mergeCapabilities(role.defaultCapabilities, customCapabilities);
 

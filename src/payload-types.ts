@@ -71,6 +71,8 @@ export interface Config {
     media: Media;
     organisations: Organisation;
     memberships: Membership;
+    'policy-roles': PolicyRole;
+    'user-policies': UserPolicy;
     'reporting-periods': ReportingPeriod;
     'metric-definitions': MetricDefinition;
     'derived-metric-definitions': DerivedMetricDefinition;
@@ -84,6 +86,7 @@ export interface Config {
     'audit-logs': AuditLog;
     'benchmark-stats': BenchmarkStat;
     'compliance-obligations': ComplianceObligation;
+    'policy-evaluations': PolicyEvaluation;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -95,6 +98,8 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     organisations: OrganisationsSelect<false> | OrganisationsSelect<true>;
     memberships: MembershipsSelect<false> | MembershipsSelect<true>;
+    'policy-roles': PolicyRolesSelect<false> | PolicyRolesSelect<true>;
+    'user-policies': UserPoliciesSelect<false> | UserPoliciesSelect<true>;
     'reporting-periods': ReportingPeriodsSelect<false> | ReportingPeriodsSelect<true>;
     'metric-definitions': MetricDefinitionsSelect<false> | MetricDefinitionsSelect<true>;
     'derived-metric-definitions': DerivedMetricDefinitionsSelect<false> | DerivedMetricDefinitionsSelect<true>;
@@ -108,6 +113,7 @@ export interface Config {
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     'benchmark-stats': BenchmarkStatsSelect<false> | BenchmarkStatsSelect<true>;
     'compliance-obligations': ComplianceObligationsSelect<false> | ComplianceObligationsSelect<true>;
+    'policy-evaluations': PolicyEvaluationsSelect<false> | PolicyEvaluationsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -293,6 +299,85 @@ export interface Membership {
   invitedBy?: (string | null) | User;
   invitedAt?: string | null;
   acceptedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policy-roles".
+ */
+export interface PolicyRole {
+  id: string;
+  /**
+   * Role name (e.g., Admin, Contributor, Viewer)
+   */
+  name: string;
+  /**
+   * Human-readable description of this role
+   */
+  description: string;
+  defaultCapabilities: {
+    /**
+     * Action the role can perform
+     */
+    action: 'view' | 'create' | 'edit' | 'delete' | 'approve' | 'export' | 'manage-users' | 'manage-policies';
+    /**
+     * Resource type (e.g., datapoint, report, organisation)
+     */
+    resource: string;
+    /**
+     * Scope of access (own data, team, org-wide, or all)
+     */
+    scope: 'own' | 'team' | 'organisation' | 'all';
+    id?: string | null;
+  }[];
+  /**
+   * System roles (Admin, Contributor, Viewer) cannot be deleted
+   */
+  isSystem?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-policies".
+ */
+export interface UserPolicy {
+  id: string;
+  /**
+   * User this policy assignment applies to
+   */
+  user: string | User;
+  /**
+   * Organisation context for this policy (user may have different roles per org)
+   */
+  organisation: string | Organisation;
+  /**
+   * Assigned role (determines default capabilities)
+   */
+  role: string | PolicyRole;
+  /**
+   * Custom capability overrides. Admin can add/remove capabilities beyond the role
+   */
+  customCapabilities?:
+    | {
+        action: 'view' | 'create' | 'edit' | 'delete' | 'approve' | 'export' | 'manage-users' | 'manage-policies';
+        /**
+         * Resource type (e.g., datapoint, report)
+         */
+        resource: string;
+        scope: 'own' | 'team' | 'organisation' | 'all';
+        /**
+         * TRUE = grant this capability, FALSE = deny/revoke
+         */
+        isGrant?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Admin notes about why this custom policy was set
+   */
+  notes?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -783,6 +868,53 @@ export interface ComplianceObligation {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policy-evaluations".
+ */
+export interface PolicyEvaluation {
+  id: string;
+  /**
+   * User ID who attempted the action
+   */
+  userId: string;
+  /**
+   * Organisation context
+   */
+  organisationId: string;
+  /**
+   * Action attempted (view, create, edit, delete, etc)
+   */
+  action: string;
+  /**
+   * Resource type (datapoint, report, organisation, etc)
+   */
+  resource: string;
+  /**
+   * ID of the specific resource
+   */
+  resourceId: string;
+  /**
+   * Whether the action was allowed or denied
+   */
+  decision: 'allowed' | 'denied';
+  /**
+   * Brief explanation of decision (e.g., 'role does not have permission')
+   */
+  reason?: string | null;
+  /**
+   * User's role at time of evaluation
+   */
+  userRole?: string | null;
+  /**
+   * When this action was evaluated
+   */
+  evaluatedAt: string;
+  /**
+   * IP address of the request
+   */
+  ip?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -820,6 +952,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'memberships';
         value: string | Membership;
+      } | null)
+    | ({
+        relationTo: 'policy-roles';
+        value: string | PolicyRole;
+      } | null)
+    | ({
+        relationTo: 'user-policies';
+        value: string | UserPolicy;
       } | null)
     | ({
         relationTo: 'reporting-periods';
@@ -872,6 +1012,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'compliance-obligations';
         value: string | ComplianceObligation;
+      } | null)
+    | ({
+        relationTo: 'policy-evaluations';
+        value: string | PolicyEvaluation;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1017,6 +1161,46 @@ export interface MembershipsSelect<T extends boolean = true> {
   invitedBy?: T;
   invitedAt?: T;
   acceptedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policy-roles_select".
+ */
+export interface PolicyRolesSelect<T extends boolean = true> {
+  name?: T;
+  description?: T;
+  defaultCapabilities?:
+    | T
+    | {
+        action?: T;
+        resource?: T;
+        scope?: T;
+        id?: T;
+      };
+  isSystem?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-policies_select".
+ */
+export interface UserPoliciesSelect<T extends boolean = true> {
+  user?: T;
+  organisation?: T;
+  role?: T;
+  customCapabilities?:
+    | T
+    | {
+        action?: T;
+        resource?: T;
+        scope?: T;
+        isGrant?: T;
+        id?: T;
+      };
+  notes?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1346,6 +1530,22 @@ export interface ComplianceObligationsSelect<T extends boolean = true> {
       };
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policy-evaluations_select".
+ */
+export interface PolicyEvaluationsSelect<T extends boolean = true> {
+  userId?: T;
+  organisationId?: T;
+  action?: T;
+  resource?: T;
+  resourceId?: T;
+  decision?: T;
+  reason?: T;
+  userRole?: T;
+  evaluatedAt?: T;
+  ip?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

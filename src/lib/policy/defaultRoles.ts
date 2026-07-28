@@ -3,7 +3,20 @@
  * Admin can create custom roles, but these 4 are always available.
  */
 
-export const DEFAULT_ROLES = [
+import type { Action, Scope } from "./types";
+
+interface DefaultRole {
+  name: string;
+  description: string;
+  isSystem: boolean;
+  defaultCapabilities: Array<{
+    action: Action;
+    resource: string;
+    scope: Scope;
+  }>;
+}
+
+export const DEFAULT_ROLES: DefaultRole[] = [
   {
     name: "Admin",
     description: "Full access to all resources and settings",

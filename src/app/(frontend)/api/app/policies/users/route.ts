@@ -1,17 +1,25 @@
 import { getPayload } from "payload";
+import config from "@/payload.config";
 
 /**
- * GET /api/app/policies/users/:userId/organisations/:organisationId
+ * GET /api/app/policies/users?userId=...&organisationId=...
  * Get user's policy for an organisation.
  */
 
-export async function GET(
-  request: Request,
-  { params }: { params: { userId: string; organisationId: string } },
-) {
+export async function GET(request: Request) {
   try {
-    const payload = await getPayload();
-    const { userId, organisationId } = params;
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+    const organisationId = searchParams.get("organisationId");
+
+    if (!userId || !organisationId) {
+      return Response.json(
+        { error: "userId and organisationId query parameters required" },
+        { status: 400 },
+      );
+    }
+
+    const payload = await getPayload({ config });
 
     const userPolicy = await payload.find({
       collection: "user-policies",
@@ -39,7 +47,7 @@ export async function GET(
 
 export async function POST(request: Request) {
   try {
-    const payload = await getPayload();
+    const payload = await getPayload({ config });
     const body = await request.json();
 
     const { userId, organisationId, roleId, customCapabilities, notes } = body;

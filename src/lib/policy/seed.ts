@@ -6,7 +6,8 @@ import { DEFAULT_ROLES } from "./defaultRoles";
  * Call this on app startup or in a migration.
  */
 
-export async function seedDefaultRoles(payload: Payload) {
+export async function seedDefaultRoles(payload: Payload | null) {
+  if (!payload) return;
   try {
     // Check if roles already exist
     const existing = await payload.find({
@@ -26,7 +27,7 @@ export async function seedDefaultRoles(payload: Payload) {
       const exists = existing.docs.some((doc) => {
         const docName =
           typeof doc === "object" && doc !== null && "name" in doc
-            ? (doc as Record<string, unknown>).name
+            ? (doc as unknown as Record<string, unknown>).name
             : undefined;
         return docName === role.name;
       });

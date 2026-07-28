@@ -2,6 +2,7 @@ import { getPayload } from "payload";
 import { PolicyService, evaluatePolicy } from "@/lib/policy";
 import { AuditLogger } from "@/lib/policy/audit";
 import type { Action } from "@/lib/policy/types";
+import config from "@/payload.config";
 
 /**
  * POST /api/app/policies/evaluate
@@ -10,7 +11,7 @@ import type { Action } from "@/lib/policy/types";
 
 export async function POST(request: Request) {
   try {
-    const payload = await getPayload();
+    const payload = await getPayload({ config });
     const body = await request.json();
 
     const {

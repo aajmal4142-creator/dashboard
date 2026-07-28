@@ -2,6 +2,7 @@ import { getPayload } from "payload";
 import type { Action } from "./types";
 import { PolicyService, evaluatePolicy } from "@/lib/policy";
 import { AuditLogger } from "@/lib/policy/audit";
+import config from "@/payload.config";
 
 /**
  * Middleware to protect API routes with policy checks.
@@ -19,7 +20,7 @@ export async function requirePermission(
   scope: "own" | "team" | "organisation" | "all" = "organisation",
 ): Promise<boolean> {
   try {
-    const payload = await getPayload();
+    const payload = await getPayload({ config });
     const policyService = new PolicyService(payload);
     const auditLogger = new AuditLogger(payload);
 
@@ -68,7 +69,7 @@ export async function requirePermission(
  */
 export async function getUserCapabilities(userId: string, organisationId: string) {
   try {
-    const payload = await getPayload();
+    const payload = await getPayload({ config });
     const policyService = new PolicyService(payload);
     return await policyService.getUserCapabilities(userId, organisationId);
   } catch (error) {

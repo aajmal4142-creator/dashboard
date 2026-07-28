@@ -7,14 +7,8 @@ import type { CollectionConfig } from "payload";
 export const UserPolicies: CollectionConfig = {
   slug: "user-policies",
   admin: {
-    useAsTitle: "userId",
-    defaultColumns: [
-      "user",
-      "organisation",
-      "role",
-      "customCapabilityCount",
-      "createdAt",
-    ],
+    useAsTitle: "user",
+    defaultColumns: ["user", "organisation", "role", "createdAt"],
   },
   fields: [
     {

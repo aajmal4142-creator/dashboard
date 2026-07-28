@@ -27,7 +27,7 @@ export class AuditLogger {
           reason: entry.reason,
           userRole: entry.userRole,
           ip: entry.ip,
-          evaluatedAt: entry.evaluatedAt,
+          evaluatedAt: entry.evaluatedAt.toISOString(),
         },
       });
     } catch (error) {
@@ -59,7 +59,7 @@ export class AuditLogger {
         sort: "-evaluatedAt",
       });
 
-      return result.docs as AuditLogEntry[];
+      return result.docs as unknown as AuditLogEntry[];
     } catch (error) {
       console.error("Failed to fetch audit logs:", error);
       return [];
@@ -89,7 +89,7 @@ export class AuditLogger {
         sort: "-evaluatedAt",
       });
 
-      return result.docs as AuditLogEntry[];
+      return result.docs as unknown as AuditLogEntry[];
     } catch (error) {
       console.error("Failed to fetch audit logs:", error);
       return [];
@@ -118,7 +118,7 @@ export class AuditLogger {
         sort: "-evaluatedAt",
       });
 
-      return result.docs as AuditLogEntry[];
+      return result.docs as unknown as AuditLogEntry[];
     } catch (error) {
       console.error("Failed to fetch denied attempts:", error);
       return [];
