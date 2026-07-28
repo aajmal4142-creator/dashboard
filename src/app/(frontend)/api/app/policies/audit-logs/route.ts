@@ -1,31 +1,46 @@
 import { getPayload } from "payload";
+import { NextResponse } from "next/server";
+import { getCurrentContext } from "@/lib/auth";
+import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 
 /**
  * GET /api/app/policies/audit-logs
- * Query: userId, organisationId, resource, action, decision, limit, offset
+ * Query: userId, resource, action, decision, limit, offset
+ * Admin only - filtered to current organisation.
  */
-
 export async function GET(request: Request) {
   try {
+    const ctx = await getCurrentContext();
+    if (!ctx.activeOrg || !ctx.role) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const allowed = await requirePermission(
+      ctx.user.id,
+      ctx.activeOrg.id,
+      "manage-policies",
+      "policies",
+      ctx.activeOrg.id,
+      "organisation",
+    );
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
-    const organisationId = searchParams.get("organisationId");
     const resource = searchParams.get("resource");
     const action = searchParams.get("action");
     const decision = searchParams.get("decision");
-    const limit = parseInt(searchParams.get("limit") || "50");
+    const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
     const offset = parseInt(searchParams.get("offset") || "0");
-
-    if (!organisationId) {
-      return Response.json({ error: "organisationId is required" }, { status: 400 });
-    }
 
     const payload = await getPayload({ config });
 
-    // Build where clause
+    // Build where clause - always filter to current organisation
     const whereConditions = [];
-    whereConditions.push({ organisationId: { equals: organisationId } });
+    whereConditions.push({ organisationId: { equals: ctx.activeOrg.id } });
 
     if (userId) {
       whereConditions.push({ userId: { equals: userId } });
@@ -48,7 +63,7 @@ export async function GET(request: Request) {
       sort: "-evaluatedAt",
     });
 
-    return Response.json({
+    return NextResponse.json({
       docs: result.docs,
       totalDocs: result.totalDocs,
       limit,
@@ -56,6 +71,6 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error("Error fetching audit logs:", error);
-    return Response.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

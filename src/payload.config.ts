@@ -22,6 +22,8 @@ import { PolicyEvaluations } from "./collections/PolicyEvaluations";
 import { PolicyRoles } from "./collections/PolicyRoles";
 import { ReportingPeriods } from "./collections/ReportingPeriods";
 import { Reports } from "./collections/Reports";
+import { Scope3Sources } from "./collections/Scope3Sources";
+import { Scope3Activities } from "./collections/Scope3Activities";
 import { Suppliers } from "./collections/Suppliers";
 import { UserPolicies } from "./collections/UserPolicies";
 import { Users } from "./collections/Users";
@@ -62,6 +64,8 @@ export default buildConfig({
     Datapoints,
     Evidence,
     Suppliers,
+    Scope3Sources,
+    Scope3Activities,
     InternalDataRequests,
     MaterialityAssessments,
     Reports,
