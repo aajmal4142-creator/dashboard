@@ -15,6 +15,7 @@ import {
 import type { Quality } from "@/lib/calc";
 import { BillingDeniedError, billingDeniedResponse } from "@/lib/billing";
 import { ensureOpenPeriod } from "@/lib/org/period";
+import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 
 async function loadExisting(
@@ -126,6 +127,22 @@ export async function POST(req: Request) {
   const gate = await requireWriteContext();
   if ("response" in gate) return gate.response;
   const { ctx } = gate;
+
+  // ABAC check: user must have create:datapoint:organisation permission
+  const allowed = await requirePermission(
+    ctx.user.id,
+    ctx.activeOrg!.id,
+    "create",
+    "datapoint",
+    ctx.activeOrg!.id,
+    "organisation",
+  );
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "Permission denied: you do not have permission to import datapoints" },
+      { status: 403 },
+    );
+  }
 
   const contentType = req.headers.get("content-type") ?? "";
   let mode: "dry-run" | "commit" = "dry-run";
