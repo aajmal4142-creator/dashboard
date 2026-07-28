@@ -8,10 +8,13 @@ import sharp from "sharp";
 import { AuditLogs } from "./collections/AuditLogs";
 import { BenchmarkStats } from "./collections/BenchmarkStats";
 import { ComplianceObligations } from "./collections/ComplianceObligations";
+import { ComplianceTargets } from "./collections/ComplianceTargets";
 import { Datapoints } from "./collections/Datapoints";
 import { DerivedMetricDefinitions } from "./collections/DerivedMetricDefinitions";
 import { EmissionFactors } from "./collections/EmissionFactors";
 import { Evidence } from "./collections/Evidence";
+import { FrameworkMappings } from "./collections/FrameworkMappings";
+import { FrameworkMetrics } from "./collections/FrameworkMetrics";
 import { InternalDataRequests } from "./collections/InternalDataRequests";
 import { MaterialityAssessments } from "./collections/MaterialityAssessments";
 import { Media } from "./collections/Media";
@@ -73,6 +76,9 @@ export default buildConfig({
     BenchmarkStats,
     ComplianceObligations,
     PolicyEvaluations,
+    FrameworkMetrics,
+    ComplianceTargets,
+    FrameworkMappings,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,

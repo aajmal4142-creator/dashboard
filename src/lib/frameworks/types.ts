@@ -82,3 +82,141 @@ export type FrameworkCoverageSummary = {
   pctPartial: number;
   pctGap: number;
 };
+
+// ─────────────────────────────────────────────────────────────────────
+// Days 16-25: ESG Frameworks & Compliance Types
+// ─────────────────────────────────────────────────────────────────────
+
+export type ESGFramework = "csrd" | "brsr" | "gri" | "sasb";
+
+export interface FrameworkMetric {
+  id: string;
+  framework: ESGFramework;
+  metricKey: string; // e.g., "csrd_scope1_intensity"
+  label: string;
+  unit: string; // "tCO2e", "tCO2e/€M revenue", "kg CO2e/unit"
+  description?: string;
+  dataType: "emissions" | "intensity" | "percentage" | "custom";
+  required: boolean;
+}
+
+export interface FrameworkMetricValue {
+  metricKey: string;
+  value: number;
+  unit: string;
+  confidence: "high" | "medium" | "low";
+  calculatedAt: Date;
+}
+
+export interface ComplianceTarget {
+  id: string;
+  framework: ESGFramework;
+  metricKey: string;
+  targetValue: number;
+  baselineYear: number;
+  targetYear: number;
+  status: "on-track" | "at-risk" | "off-track";
+}
+
+export interface FrameworkMapping {
+  id: string;
+  framework: ESGFramework;
+  periodId: string;
+  organisationId: string;
+  emissionsData: {
+    scope1: number;
+    scope2: number;
+    scope3: number;
+    total: number;
+  };
+  metadata?: {
+    revenue?: number;
+    employees?: number;
+    units?: number;
+  };
+  metrics: FrameworkMetricValue[];
+  complianceStatus?: string;
+  calculatedAt: Date;
+}
+
+export interface ComplianceScore {
+  framework: ESGFramework;
+  score: number; // 0-100
+  metricsProvided: number;
+  metricsRequired: number;
+  status: "compliant" | "partial" | "non-compliant";
+}
+
+export interface AuditResult {
+  framework: ESGFramework;
+  missingMetrics: string[];
+  dataGaps: DataGap[];
+  anomalies: Anomaly[];
+  confidenceLevel: number; // 0-100
+}
+
+export interface DataGap {
+  metricKey: string;
+  label: string;
+  impact: "high" | "medium" | "low";
+  estimatedImpactOnScore: number; // 0-100
+}
+
+export interface Anomaly {
+  metricKey: string;
+  value: number;
+  expected: number;
+  deviation: number;
+  severity: "low" | "medium" | "high";
+}
+
+export interface TrajectoryAnalysis {
+  framework: ESGFramework;
+  currentValue: number;
+  targetValue: number;
+  targetYear: number;
+  projectedValue: number;
+  onTrack: boolean;
+  yearsUntilTarget?: number;
+  trendPercentChange: number; // year-over-year %
+}
+
+export interface ChecklistItem {
+  id: string;
+  category: string;
+  task: string;
+  required: boolean;
+  completed: boolean;
+  priority: "high" | "medium" | "low";
+  estimatedEffort?: string; // e.g., "2 hours", "1 day"
+}
+
+export interface FrameworkReport {
+  framework: ESGFramework;
+  periodId: string;
+  generatedAt: Date;
+  metrics: FrameworkMetricValue[];
+  complianceScore: ComplianceScore;
+  targets: ComplianceTarget[];
+  trajectory: TrajectoryAnalysis;
+  dataGaps: DataGap[];
+  checklist: ChecklistItem[];
+}
+
+export interface ComplianceStatement {
+  framework: ESGFramework;
+  periodId: string;
+  statement: string;
+  score: number;
+  status: string;
+  nextSteps: string[];
+}
+
+export interface SummaryReport {
+  periodId: string;
+  generatedAt: Date;
+  overallCompliance: number; // average across frameworks
+  frameworks: Record<ESGFramework, ComplianceScore>;
+  highlights: string[];
+  recommendations: string[];
+}

@@ -89,6 +89,9 @@ export interface Config {
     'benchmark-stats': BenchmarkStat;
     'compliance-obligations': ComplianceObligation;
     'policy-evaluations': PolicyEvaluation;
+    'framework-metrics': FrameworkMetric;
+    'compliance-targets': ComplianceTarget;
+    'framework-mappings': FrameworkMapping;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -118,6 +121,9 @@ export interface Config {
     'benchmark-stats': BenchmarkStatsSelect<false> | BenchmarkStatsSelect<true>;
     'compliance-obligations': ComplianceObligationsSelect<false> | ComplianceObligationsSelect<true>;
     'policy-evaluations': PolicyEvaluationsSelect<false> | PolicyEvaluationsSelect<true>;
+    'framework-metrics': FrameworkMetricsSelect<false> | FrameworkMetricsSelect<true>;
+    'compliance-targets': ComplianceTargetsSelect<false> | ComplianceTargetsSelect<true>;
+    'framework-mappings': FrameworkMappingsSelect<false> | FrameworkMappingsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -1016,6 +1022,214 @@ export interface PolicyEvaluation {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "framework-metrics".
+ */
+export interface FrameworkMetric {
+  id: string;
+  framework: 'csrd' | 'brsr' | 'gri' | 'sasb';
+  /**
+   * Unique identifier, e.g., csrd_scope1_intensity, brsr_total_emissions
+   */
+  metricKey: string;
+  /**
+   * Human-readable metric name
+   */
+  label: string;
+  /**
+   * Unit of measurement, e.g., tCO2e, tCO2e/€M revenue, kg CO2e/unit
+   */
+  unit: string;
+  /**
+   * Detailed metric definition and calculation methodology
+   */
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Type of data this metric represents
+   */
+  dataType: 'emissions' | 'intensity' | 'percentage' | 'custom';
+  /**
+   * Whether this metric is required for framework compliance
+   */
+  required: boolean;
+  /**
+   * Calculation details: formula (string), dependencies (string[]), parameters (object)
+   */
+  calculationMethod?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "compliance-targets".
+ */
+export interface ComplianceTarget {
+  id: string;
+  organisation: string | Organisation;
+  framework: 'csrd' | 'brsr' | 'gri' | 'sasb';
+  /**
+   * Reference to FrameworkMetrics.metricKey
+   */
+  metricKey: string;
+  /**
+   * Cached metric label for readability
+   */
+  metricLabel?: string | null;
+  /**
+   * Target value for this metric
+   */
+  targetValue: number;
+  /**
+   * Year from which emissions are measured
+   */
+  baselineYear: number;
+  /**
+   * Year by which target should be achieved
+   */
+  targetYear: number;
+  /**
+   * Current status relative to trajectory
+   */
+  status: 'on-track' | 'at-risk' | 'off-track';
+  /**
+   * Internal notes about this target
+   */
+  notes?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Approval workflow status
+   */
+  approvalStatus?: ('draft' | 'submitted' | 'approved' | 'rejected') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "framework-mappings".
+ */
+export interface FrameworkMapping {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Reporting period for this mapping
+   */
+  period: string | ReportingPeriod;
+  framework: 'csrd' | 'brsr' | 'gri' | 'sasb';
+  /**
+   * Emissions snapshot: scope1 (number), scope2 (number), scope3 (number), total (number)
+   */
+  emissionsData:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Additional context: revenue (number), employees (number), units (number), currency (string), etc.
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Array of calculated metrics: metricKey (string), value (number), unit (string), confidence (high/medium/low), calculatedAt (ISO string)
+   */
+  metrics:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Compliance status summary (compliant, partial, non-compliant)
+   */
+  complianceStatus?: string | null;
+  /**
+   * Array of identified gaps: metricKey (string), label (string), impact (high/medium/low), estimatedImpactOnScore (number)
+   */
+  dataGaps?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Array of detected anomalies: metricKey (string), value (number), expected (number), deviation (number), severity (low/medium/high)
+   */
+  anomalies?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Overall confidence in this mapping (0-100)
+   */
+  confidenceLevel?: number | null;
+  /**
+   * When this mapping was calculated
+   */
+  calculatedAt: string;
+  /**
+   * User who triggered the calculation
+   */
+  calculatedBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -1125,6 +1339,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'policy-evaluations';
         value: string | PolicyEvaluation;
+      } | null)
+    | ({
+        relationTo: 'framework-metrics';
+        value: string | FrameworkMetric;
+      } | null)
+    | ({
+        relationTo: 'compliance-targets';
+        value: string | ComplianceTarget;
+      } | null)
+    | ({
+        relationTo: 'framework-mappings';
+        value: string | FrameworkMapping;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1688,6 +1914,60 @@ export interface PolicyEvaluationsSelect<T extends boolean = true> {
   userRole?: T;
   evaluatedAt?: T;
   ip?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "framework-metrics_select".
+ */
+export interface FrameworkMetricsSelect<T extends boolean = true> {
+  framework?: T;
+  metricKey?: T;
+  label?: T;
+  unit?: T;
+  description?: T;
+  dataType?: T;
+  required?: T;
+  calculationMethod?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "compliance-targets_select".
+ */
+export interface ComplianceTargetsSelect<T extends boolean = true> {
+  organisation?: T;
+  framework?: T;
+  metricKey?: T;
+  metricLabel?: T;
+  targetValue?: T;
+  baselineYear?: T;
+  targetYear?: T;
+  status?: T;
+  notes?: T;
+  approvalStatus?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "framework-mappings_select".
+ */
+export interface FrameworkMappingsSelect<T extends boolean = true> {
+  organisation?: T;
+  period?: T;
+  framework?: T;
+  emissionsData?: T;
+  metadata?: T;
+  metrics?: T;
+  complianceStatus?: T;
+  dataGaps?: T;
+  anomalies?: T;
+  confidenceLevel?: T;
+  calculatedAt?: T;
+  calculatedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
