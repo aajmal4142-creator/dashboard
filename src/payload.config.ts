@@ -18,9 +18,12 @@ import { Media } from "./collections/Media";
 import { Memberships } from "./collections/Memberships";
 import { MetricDefinitions } from "./collections/MetricDefinitions";
 import { Organisations } from "./collections/Organisations";
+import { PolicyEvaluations } from "./collections/PolicyEvaluations";
+import { PolicyRoles } from "./collections/PolicyRoles";
 import { ReportingPeriods } from "./collections/ReportingPeriods";
 import { Reports } from "./collections/Reports";
 import { Suppliers } from "./collections/Suppliers";
+import { UserPolicies } from "./collections/UserPolicies";
 import { Users } from "./collections/Users";
 
 const filename = fileURLToPath(import.meta.url);
@@ -50,6 +53,8 @@ export default buildConfig({
     Media,
     Organisations,
     Memberships,
+    PolicyRoles,
+    UserPolicies,
     ReportingPeriods,
     MetricDefinitions,
     DerivedMetricDefinitions,
@@ -63,6 +68,7 @@ export default buildConfig({
     AuditLogs,
     BenchmarkStats,
     ComplianceObligations,
+    PolicyEvaluations,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,
