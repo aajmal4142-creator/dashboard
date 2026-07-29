@@ -1,6 +1,5 @@
 import { getPayload } from "payload";
 import config from "@/payload.config";
-import { calculateCompletion } from "./questionnaireService";
 
 /**
  * Supplier Risk Scoring Engine
@@ -30,9 +29,7 @@ export interface RiskScoreBreakdown {
  * 50-80% = 20-40 risk (medium)
  * <50% = 40-100 risk (high)
  */
-function calculateQuestionnnaireCompleteFactor(
-  completionPercent: number
-): number {
+function calculateQuestionnnaireCompleteFactor(completionPercent: number): number {
   if (completionPercent >= 80) return 0;
   if (completionPercent >= 50) return 20;
   return 40;
@@ -67,7 +64,7 @@ function calculateCertificationsFactor(certifications: string[]): number {
   ];
 
   const hasCert = certifications.some((cert) =>
-    recognizedCerts.some((rec) => cert.toLowerCase().includes(rec))
+    recognizedCerts.some((rec) => cert.toLowerCase().includes(rec)),
   );
 
   return hasCert ? -10 : 10;
@@ -81,7 +78,7 @@ function calculateCertificationsFactor(certifications: string[]): number {
  */
 function calculateGovernmentDataFactor(
   hasGovtData: boolean,
-  emissionsTrend?: "declining" | "stable" | "increasing"
+  emissionsTrend?: "declining" | "stable" | "increasing",
 ): number {
   if (!hasGovtData) return 0;
   if (emissionsTrend === "declining") return -10;
@@ -92,7 +89,7 @@ function calculateGovernmentDataFactor(
  * Calculate overall risk score (0-100, higher = worse)
  */
 export async function calculateRiskScore(
-  supplierId: string
+  supplierId: string,
 ): Promise<RiskScoreBreakdown | null> {
   try {
     const payload = await getPayload({ config });
@@ -120,14 +117,15 @@ export async function calculateRiskScore(
     const completionPercent = questionnaire
       ? (questionnaire.completionPercent as number) || 0
       : 0;
-    const responses = questionnaire ? (questionnaire.responses as any) : {};
 
-    const unGcSignatory = (supplier.esgData as any)?.unGcSignatory || false;
-    const certifications = (supplier.esgData as any)?.certifications || [];
+    const esgData = supplier.esgData as unknown as Record<string, unknown>;
+    const unGcSignatory = (esgData?.unGcSignatory as boolean) || false;
+    const certifications = (esgData?.certifications as unknown[]) || [];
 
     // Check for government data
     const hasGovtData = dataSourcesResult.docs.some(
-      (ds) => (ds.source as string) === "eu_ets" || (ds.source as string) === "sec_filing"
+      (ds) =>
+        (ds.source as string) === "eu_ets" || (ds.source as string) === "sec_filing",
     );
     const govtDataTrend = "stable"; // Would be calculated from historical data
 
@@ -135,11 +133,11 @@ export async function calculateRiskScore(
     const qFactor = calculateQuestionnnaireCompleteFactor(completionPercent);
     const unGcFactor = calculateUnGcFactor(unGcSignatory);
     const certFactor = calculateCertificationsFactor(
-      certifications.map((c: any) => c.name)
+      certifications.map((c: unknown) => (c as Record<string, unknown>).name as string),
     );
     const govtFactor = calculateGovernmentDataFactor(
       hasGovtData,
-      govtDataTrend as any
+      govtDataTrend as "declining" | "stable" | "increasing",
     );
 
     // Weighted calculation
@@ -152,8 +150,8 @@ export async function calculateRiskScore(
           qFactor * 0.4 +
           unGcFactor * 0.2 +
           certFactor * 0.2 +
-          govtFactor * 0.2
-      )
+          govtFactor * 0.2,
+      ),
     );
 
     // Determine risk tier
@@ -209,7 +207,7 @@ export async function calculateRiskScore(
  */
 export async function recalculateRiskScoresForOrganisation(
   orgId: string,
-  parallel: number = 5
+  parallel: number = 5,
 ): Promise<{
   processed: number;
   succeeded: number;
@@ -217,7 +215,12 @@ export async function recalculateRiskScoresForOrganisation(
   errors: string[];
 }> {
   const payload = await getPayload({ config });
-  const results: { processed: number; succeeded: number; failed: number; errors: string[] } = {
+  const results: {
+    processed: number;
+    succeeded: number;
+    failed: number;
+    errors: string[];
+  } = {
     processed: 0,
     succeeded: 0,
     failed: 0,
@@ -238,10 +241,10 @@ export async function recalculateRiskScoresForOrganisation(
       const promises = batch.map((supplier) =>
         calculateRiskScore(supplier.id as string).catch((error) => {
           results.errors.push(
-            `Error for ${supplier.name}: ${error instanceof Error ? error.message : "Unknown error"}`
+            `Error for ${supplier.name}: ${error instanceof Error ? error.message : "Unknown error"}`,
           );
           results.failed++;
-        })
+        }),
       );
 
       await Promise.all(promises);
@@ -251,9 +254,7 @@ export async function recalculateRiskScoresForOrganisation(
 
     return results;
   } catch (error) {
-    results.errors.push(
-      error instanceof Error ? error.message : "Unknown error"
-    );
+    results.errors.push(error instanceof Error ? error.message : "Unknown error");
     return results;
   }
 }
@@ -264,13 +265,12 @@ export async function recalculateRiskScoresForOrganisation(
  */
 export async function hasMovedToHighRisk(
   supplierId: string,
-  previousTier: "low" | "medium" | "high" | "critical" | null
+  previousTier: "low" | "medium" | "high" | "critical" | null,
 ): Promise<boolean> {
   const breakdown = await calculateRiskScore(supplierId);
   if (!breakdown) return false;
 
-  const isNowHighRisk =
-    breakdown.tier === "high" || breakdown.tier === "critical";
+  const isNowHighRisk = breakdown.tier === "high" || breakdown.tier === "critical";
   const wasLowerRisk = previousTier === "low" || previousTier === "medium";
 
   return isNowHighRisk && wasLowerRisk;
@@ -279,9 +279,7 @@ export async function hasMovedToHighRisk(
 /**
  * Get risk score with explanation
  */
-export async function getRiskScoreWithExplanation(
-  supplierId: string
-): Promise<{
+export async function getRiskScoreWithExplanation(supplierId: string): Promise<{
   score: RiskScoreBreakdown;
   explanation: string;
 } | null> {

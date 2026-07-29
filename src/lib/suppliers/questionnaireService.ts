@@ -79,8 +79,7 @@ export function generateQuestionnaireTemplate(): QuestionnaireTemplate {
       {
         id: "scope1_tracked",
         section: "B",
-        question:
-          "Does your company track Scope 1 emissions (direct combustion)?",
+        question: "Does your company track Scope 1 emissions (direct combustion)?",
         type: "yes_no",
         required: true,
       },
@@ -98,8 +97,7 @@ export function generateQuestionnaireTemplate(): QuestionnaireTemplate {
         question: "Scope 1 emission sources (select all that apply)",
         type: "text",
         required: false,
-        placeholder:
-          "e.g., Vehicles, Equipment, Facilities, Manufacturing processes",
+        placeholder: "e.g., Vehicles, Equipment, Facilities, Manufacturing processes",
       },
       {
         id: "scope1_methodology",
@@ -242,8 +240,7 @@ export function generateQuestionnaireTemplate(): QuestionnaireTemplate {
       {
         id: "governance_training",
         section: "E",
-        question:
-          "Do you provide compliance/ethics training to all employees?",
+        question: "Do you provide compliance/ethics training to all employees?",
         type: "yes_no",
         required: false,
       },
@@ -270,8 +267,7 @@ export function generateQuestionnaireTemplate(): QuestionnaireTemplate {
         question: "Describe your emissions reduction target",
         type: "textarea",
         required: false,
-        placeholder:
-          "e.g., Reduce 50% by 2030 vs 2024 baseline, Net zero by 2050",
+        placeholder: "e.g., Reduce 50% by 2030 vs 2024 baseline, Net zero by 2050",
       },
       {
         id: "sbt_aligned",
@@ -295,13 +291,14 @@ export function generateQuestionnaireTemplate(): QuestionnaireTemplate {
 /**
  * Calculate questionnaire completion percentage
  */
-export function calculateCompletion(responses: Record<string, any>): number {
+export function calculateCompletion(responses: Record<string, unknown>): number {
   if (!responses || Object.keys(responses).length === 0) return 0;
 
   const template = generateQuestionnaireTemplate();
   const totalQuestions = template.questions.length;
   const answeredQuestions = Object.keys(responses).filter(
-    (key) => responses[key] !== null && responses[key] !== undefined && responses[key] !== ""
+    (key) =>
+      responses[key] !== null && responses[key] !== undefined && responses[key] !== "",
   ).length;
 
   return Math.round((answeredQuestions / totalQuestions) * 100);
@@ -314,7 +311,7 @@ export async function sendQuestionnaire(
   supplierId: string,
   supplierEmail: string,
   inviteToken: string,
-  _orgName: string
+  _orgName: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const payload = await getPayload({ config });
@@ -325,9 +322,7 @@ export async function sendQuestionnaire(
 
     // Send email (implement via your email service)
     // For now, just log
-    console.log(
-      `[questionnaire] Sending to ${supplierEmail}: ${questionnaireLink}`
-    );
+    console.log(`[questionnaire] Sending to ${supplierEmail}: ${questionnaireLink}`);
 
     // Update supplier with sent timestamp
     await payload.update({
@@ -354,7 +349,7 @@ export async function sendQuestionnaire(
  */
 export async function submitQuestionnaire(
   supplierId: string,
-  responses: Record<string, any>
+  responses: Record<string, unknown>,
 ): Promise<{ success: boolean; completionPercent: number; error?: string }> {
   try {
     const payload = await getPayload({ config });
@@ -381,9 +376,7 @@ export async function submitQuestionnaire(
       });
     } else {
       // This shouldn't happen in normal flow, but handle it
-      console.warn(
-        `No questionnaire found for supplier ${supplierId}, creating new`
-      );
+      console.warn(`No questionnaire found for supplier ${supplierId}, creating new`);
     }
 
     return { success: true, completionPercent };
@@ -454,7 +447,7 @@ export async function remindSupplier(
   supplierEmail: string,
   reminderCount: number,
   inviteToken: string,
-  orgName: string
+  _orgName: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const payload = await getPayload({ config });
@@ -462,14 +455,10 @@ export async function remindSupplier(
     const questionnaireLink = `${baseUrl}/supplier/questionnaire/${inviteToken}`;
 
     // Send reminder email
-    const reminderMessages: Record<number, string> = {
-      1: `Friendly reminder: We haven't heard from you yet. Please complete the ESG questionnaire at your earliest convenience: ${questionnaireLink}`,
-      2: `Second reminder: ESG questionnaire response needed. Click here to complete: ${questionnaireLink}`,
-      3: `Final reminder: We need your response by tomorrow to meet our deadline. Complete here: ${questionnaireLink}`,
-    };
-
-    const message = reminderMessages[Math.min(reminderCount, 3)];
-    console.log(`[questionnaire-reminder] Day ${reminderCount * 7}: ${supplierEmail}`);
+    // TODO: Send email reminder using actual email service
+    console.log(
+      `[questionnaire-reminder] Day ${reminderCount * 7}: ${supplierEmail} | Link: ${questionnaireLink}`,
+    );
 
     // Update reminder count
     await payload.update({
@@ -497,13 +486,13 @@ export async function remindSupplier(
 export function needsReminder(
   sentAt: Date | undefined,
   lastReminderAt: Date | undefined,
-  reminderCount: number
+  _reminderCount: number,
 ): boolean {
   if (!sentAt) return false;
 
   const lastContactDate = lastReminderAt || sentAt;
   const daysSinceContact = Math.floor(
-    (Date.now() - lastContactDate.getTime()) / (1000 * 60 * 60 * 24)
+    (Date.now() - lastContactDate.getTime()) / (1000 * 60 * 60 * 24),
   );
 
   // Remind at days 14, 21, 30
