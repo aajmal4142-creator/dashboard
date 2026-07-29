@@ -21,3 +21,4 @@ export { getUsageMeters, type UsageMeters } from "./usage";
 export * from "./types";
 export { createUsageTracker, UsageTracker } from "./usageTracker";
 export { createQuotaEnforcer, QuotaEnforcer } from "./quotaEnforcer";
+export { createInvoiceGenerator, InvoiceGenerator } from "./invoiceGenerator";
