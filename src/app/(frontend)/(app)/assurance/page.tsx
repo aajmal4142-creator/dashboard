@@ -23,6 +23,7 @@ export default async function AssuranceDashboardPage() {
     },
     sort: "-version",
     limit: 1,
+    depth: 1,
     overrideAccess: true,
   });
   const report = reports.docs[0];
@@ -41,7 +42,16 @@ export default async function AssuranceDashboardPage() {
     );
   }
 
-  const data = await loadAssurancePayload(payload, report);
+  const data = await loadAssurancePayload(
+    payload,
+    report as unknown as {
+      id: string;
+      version: number;
+      snapshot?: unknown;
+      organisation: string | { id: string };
+      period: string | { id: string };
+    },
+  );
   if (!data) {
     return (
       <PageFrame eyebrow="Assurance" title="Assurance Room">

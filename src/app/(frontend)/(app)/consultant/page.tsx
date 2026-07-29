@@ -81,7 +81,7 @@ export default async function ConsultantPage() {
 
     const required = 18;
     rows.push({
-      id: child.id,
+      id: String(child.id),
       name: child.name,
       slug: child.slug,
       sector: child.sector,

@@ -23,9 +23,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const cert = await payload.findByID({
       collection: "carbon-trust-certifications",
       id,
+      depth: 1,
     });
 
-    if (!cert || (cert.organisation as { id: string }).id !== auth.activeOrg.id) {
+    const certOrgId =
+      typeof cert.organisation === "object"
+        ? cert.organisation.id
+        : String(cert.organisation);
+
+    if (certOrgId !== auth.activeOrg.id) {
       return NextResponse.json({ error: "Certification not found" }, { status: 404 });
     }
 
@@ -60,10 +66,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       id: auth.activeOrg.id,
     });
 
-    const orgName = (org.name as string) || "Unknown Organization";
+    const orgName = org.name || "Unknown Organization";
 
     // Get auditor info
     const auditorName = cert.auditor?.name || "Carbon Trust Auditor";
+
+    // Scope lives on the certificate, not the certification — default to all scopes.
+    const scope = "all" as const;
+    const reportingPeriod =
+      typeof cert.reportingPeriod === "object" ? cert.reportingPeriod : null;
+    const baselineYear = reportingPeriod?.endDate
+      ? new Date(reportingPeriod.endDate).getFullYear()
+      : 2024;
 
     // Generate certificate
     const issuedDate = new Date();
@@ -76,9 +90,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       certificateNumber,
       issuedDate,
       expiresDate,
-      scope: cert.scope || "all",
+      scope,
       auditorName,
-      baselineYear: cert.scope || 2024,
+      baselineYear,
       verifiedEmissions: 0, // Would be calculated from actual data
     });
 
@@ -97,8 +111,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         status: "active",
         verificationToken,
         verificationUrl: `/verify/${verificationToken}`,
-        scope: cert.scope || "all",
-        emissionBaselineYear: cert.scope || 2024,
+        scope,
+        emissionBaselineYear: baselineYear,
         baselineEmissions: 0,
         verifiedEmissions: 0,
         publiclyListed: true,

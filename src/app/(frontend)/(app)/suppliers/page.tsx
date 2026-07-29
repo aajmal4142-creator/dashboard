@@ -24,7 +24,7 @@ export default async function SuppliersPage() {
   });
 
   const initialSuppliers: SupplierRow[] = result.docs.map((s) => ({
-    id: s.id,
+    id: String(s.id),
     name: s.name,
     contactEmail: s.contactEmail,
     category: s.category,

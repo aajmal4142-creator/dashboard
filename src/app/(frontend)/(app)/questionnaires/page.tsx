@@ -42,7 +42,7 @@ export default function QuestionnairesPage() {
     const res = await fetch("/api/app/questionnaires/respond", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ questionnaireId: "ecovadis-lite" }),
+      body: JSON.stringify({ questionnaireId: "supplier-esg-questionnaire" }),
     });
     const data = await res.json().catch(() => ({}));
     setBusy(false);
@@ -78,7 +78,7 @@ export default function QuestionnairesPage() {
     <PageFrame
       eyebrow="Inbound questionnaire"
       title="Buyer questionnaire response"
-      help="Fills a buyer questionnaire (EcoVadis-lite) from the metrics you already entered. Same numbers every time — no AI. This is a response pack, not a filing."
+      help="Fills a supplier ESG questionnaire from the metrics you already entered. Same numbers every time — no AI. This is a response pack, not a filing."
       actions={
         <Button type="button" size="sm" disabled={busy} onClick={() => void generate()}>
           {busy ? "Generating…" : "Generate evidenced export"}

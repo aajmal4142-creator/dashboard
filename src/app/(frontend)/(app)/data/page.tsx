@@ -50,7 +50,7 @@ export default async function DataPage() {
       const def = DATA_METRICS.find((m) => m.key === dp.metricKey);
       const provenance = dp.provenance as DatapointProvenance | null | undefined;
       initialRows.push({
-        id: dp.id,
+        id: String(dp.id),
         metricKey: dp.metricKey,
         value: typeof dp.value === "number" ? dp.value : null,
         quality: dp.quality as Quality,
@@ -88,7 +88,7 @@ export default async function DataPage() {
     overrideAccess: true,
   });
   const factors: FactorRecord[] = factorsResult.docs.map((f) => ({
-    id: f.id,
+    id: String(f.id),
     key: f.key,
     value: f.value,
     unit: f.unit,

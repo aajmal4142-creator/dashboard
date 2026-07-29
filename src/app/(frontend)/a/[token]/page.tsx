@@ -60,7 +60,16 @@ export default async function AssuranceTokenPage({
     );
   }
 
-  const data = await loadAssurancePayload(payload, report);
+  const data = await loadAssurancePayload(
+    payload,
+    report as unknown as {
+      id: string;
+      version: number;
+      snapshot?: unknown;
+      organisation: string | { id: string };
+      period: string | { id: string };
+    },
+  );
   if (!data) notFound();
 
   return (

@@ -202,7 +202,7 @@ export default async function RunwayPage() {
   // Live calc — never hardcode Gauge or stack widths
   const { metrics, composition: scope3Composition } = metricsAndCompositionFromDatapoints(
     dps.docs.map((d) => ({
-      id: d.id,
+      id: String(d.id),
       metricKey: d.metricKey,
       value: d.value,
       quality: d.quality,
@@ -211,7 +211,7 @@ export default async function RunwayPage() {
       supplierKey: d.supplierKey,
       supplier: d.supplier,
     })),
-    suppliers.docs.map((s) => s.id),
+    suppliers.docs.map((s) => String(s.id)),
   );
   const year = period
     ? new Date(String(period.endDate)).getFullYear()
@@ -223,7 +223,7 @@ export default async function RunwayPage() {
     overrideAccess: true,
   });
   const factors: FactorRecord[] = factorsResult.docs.map((f) => ({
-    id: f.id,
+    id: String(f.id),
     key: f.key,
     value: f.value,
     unit: f.unit,
@@ -292,13 +292,13 @@ export default async function RunwayPage() {
       approvalByMetric={approvalByMetric}
       anomalies={anomalies.map((a) => ({ metricKey: a.metricKey, reason: a.reason }))}
       secondary={secondary.map((o) => ({
-        id: o.id,
+        id: String(o.id),
         standardVersion: o.standardVersion,
         filingDeadline: o.filingDeadline ? String(o.filingDeadline) : null,
       }))}
       derivationReason={obligation?.derivationReason ?? null}
       hasObligation={Boolean(obligation)}
-      obligationId={obligation?.id ?? null}
+      obligationId={obligation?.id ? String(obligation.id) : null}
       canManage={canManage}
       needsConfirmation={Boolean(
         obligation &&

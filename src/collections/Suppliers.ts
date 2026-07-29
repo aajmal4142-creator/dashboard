@@ -138,25 +138,6 @@ export const Suppliers: CollectionConfig = {
       ],
     },
     {
-      name: "ecovadis",
-      type: "group",
-      fields: [
-        { name: "score", type: "number", min: 0, max: 100 },
-        { name: "assessmentDate", type: "date" },
-        {
-          name: "categories",
-          type: "json",
-          admin: {
-            description:
-              "Environment, Labor, Ethics, Procurement scores and trend",
-          },
-        },
-        { name: "lastAssessed", type: "date" },
-        { name: "trend", type: "text" },
-        { name: "ecoVadisUrl", type: "text" },
-      ],
-    },
-    {
       name: "riskMetrics",
       type: "group",
       fields: [

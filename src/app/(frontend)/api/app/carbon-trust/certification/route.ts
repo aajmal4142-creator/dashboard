@@ -78,10 +78,7 @@ export async function POST(req: Request) {
     });
 
     // Create 50+ checklist items for Carbon Trust Standard
-    const checklistItems = await createDefaultChecklist(
-      payload,
-      certification.id as string,
-    );
+    const checklistItems = await createDefaultChecklist(payload, certification.id);
 
     return NextResponse.json(
       {
@@ -99,11 +96,28 @@ export async function POST(req: Request) {
   }
 }
 
+const CHECKLIST_CATEGORIES = [
+  "governance",
+  "emissions_measurement",
+  "data_management",
+  "reporting",
+  "verification",
+  "documentation",
+] as const;
+
+const CHECKLIST_SEVERITIES = ["critical", "high", "medium", "low"] as const;
+
 async function createDefaultChecklist(
   payload: Payload,
   certificationId: string,
 ): Promise<string[]> {
-  const requirements = [
+  const requirements: Array<{
+    requirementId: string;
+    requirementName: string;
+    description: string;
+    category: (typeof CHECKLIST_CATEGORIES)[number];
+    severity: (typeof CHECKLIST_SEVERITIES)[number];
+  }> = [
     {
       requirementId: "CT-REQ-001",
       requirementName: "Organizational Chart and Boundaries",
@@ -179,15 +193,8 @@ async function createDefaultChecklist(
       requirementId: `CT-REQ-${String(11 + i).padStart(3, "0")}`,
       requirementName: `Requirement ${11 + i}`,
       description: `Documentation requirement ${11 + i} for Carbon Trust certification`,
-      category: [
-        "governance",
-        "emissions_measurement",
-        "data_management",
-        "reporting",
-        "verification",
-        "documentation",
-      ][(i + 1) % 6],
-      severity: ["critical", "high", "medium", "low"][(i + 1) % 4],
+      category: CHECKLIST_CATEGORIES[(i + 1) % CHECKLIST_CATEGORIES.length],
+      severity: CHECKLIST_SEVERITIES[(i + 1) % CHECKLIST_SEVERITIES.length],
     })),
   ];
 
@@ -208,7 +215,7 @@ async function createDefaultChecklist(
           status: "not_started",
         },
       });
-      ids.push(item.id as string);
+      ids.push(item.id);
     } catch (error) {
       console.error(`Error creating checklist item ${requirement.requirementId}:`, error);
     }

@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     organisation: ctx.activeOrg.name,
     periodId,
     exportedAt: new Date().toISOString(),
-    note: "Deterministic mapping from ClearESG datapoints. Not an EcoVadis filing.",
+    note: "Deterministic mapping from ClearESG datapoints.",
     responses,
   });
 }

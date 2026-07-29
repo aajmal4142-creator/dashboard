@@ -309,7 +309,10 @@ export class AuditorWorkflow {
     userId: string,
     action: string,
     entityType: string,
-    changes: { before?: unknown; after?: unknown },
+    changes: {
+      before?: { [k: string]: unknown } | unknown[] | string | number | boolean | null;
+      after?: { [k: string]: unknown } | unknown[] | string | number | boolean | null;
+    },
     description: string,
   ): Promise<void> {
     await this.payload.create({

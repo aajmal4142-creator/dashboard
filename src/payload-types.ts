@@ -108,7 +108,11 @@ export interface Config {
     'payment-history': PaymentHistory;
     'webhook-registrations': WebhookRegistration;
     'webhook-logs': WebhookLog;
-    'ecovadis-connections': EcovadisConnection;
+    'carbon-trust-certifications': CarbonTrustCertification;
+    'carbon-trust-checklist-items': CarbonTrustChecklistItem;
+    'carbon-trust-documents': CarbonTrustDocument;
+    'carbon-trust-certificates': CarbonTrustCertificate;
+    'carbon-trust-audit-trail': CarbonTrustAuditTrail;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -157,7 +161,11 @@ export interface Config {
     'payment-history': PaymentHistorySelect<false> | PaymentHistorySelect<true>;
     'webhook-registrations': WebhookRegistrationsSelect<false> | WebhookRegistrationsSelect<true>;
     'webhook-logs': WebhookLogsSelect<false> | WebhookLogsSelect<true>;
-    'ecovadis-connections': EcovadisConnectionsSelect<false> | EcovadisConnectionsSelect<true>;
+    'carbon-trust-certifications': CarbonTrustCertificationsSelect<false> | CarbonTrustCertificationsSelect<true>;
+    'carbon-trust-checklist-items': CarbonTrustChecklistItemsSelect<false> | CarbonTrustChecklistItemsSelect<true>;
+    'carbon-trust-documents': CarbonTrustDocumentsSelect<false> | CarbonTrustDocumentsSelect<true>;
+    'carbon-trust-certificates': CarbonTrustCertificatesSelect<false> | CarbonTrustCertificatesSelect<true>;
+    'carbon-trust-audit-trail': CarbonTrustAuditTrailSelect<false> | CarbonTrustAuditTrailSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -683,25 +691,6 @@ export interface Supplier {
      * When ESG data was last updated from any source
      */
     lastDataUpdateAt?: string | null;
-  };
-  ecovadis?: {
-    score?: number | null;
-    assessmentDate?: string | null;
-    /**
-     * Environment, Labor, Ethics, Procurement scores and trend
-     */
-    categories?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-    lastAssessed?: string | null;
-    trend?: string | null;
-    ecoVadisUrl?: string | null;
   };
   riskMetrics?: {
     score?: number | null;
@@ -2376,21 +2365,361 @@ export interface WebhookLog {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "ecovadis-connections".
+ * via the `definition` "carbon-trust-certifications".
  */
-export interface EcovadisConnection {
+export interface CarbonTrustCertification {
   id: string;
   organisation: string | Organisation;
-  status: 'connected' | 'disconnected' | 'error';
-  accessToken?: string | null;
-  refreshToken?: string | null;
+  reportingPeriod: string | ReportingPeriod;
+  /**
+   * Unique certification identifier (e.g., CT-2024-001)
+   */
+  certificationId: string;
+  status:
+    | 'draft'
+    | 'submitted'
+    | 'under_review'
+    | 'additional_info_requested'
+    | 'approved'
+    | 'rejected'
+    | 'certified'
+    | 'expired';
+  /**
+   * Overall checklist completion %
+   */
+  completionPercentage?: number | null;
+  validityPeriod?: {
+    /**
+     * When certification was issued
+     */
+    issuedAt?: string | null;
+    /**
+     * When certification expires (3 years from issued)
+     */
+    expiresAt?: string | null;
+    /**
+     * When renewal reminder was sent (at 2yr 9m)
+     */
+    reminderSentAt?: string | null;
+  };
+  auditor?: {
+    /**
+     * Assigned auditor name
+     */
+    name?: string | null;
+    /**
+     * Auditor contact email
+     */
+    email?: string | null;
+    /**
+     * Auditor organisation
+     */
+    organisation?: string | null;
+    /**
+     * Associated Payload user account
+     */
+    userId?: (string | null) | User;
+  };
+  /**
+   * When certification was submitted for review
+   */
+  submittedAt?: string | null;
+  /**
+   * When organization approved findings
+   */
+  approvedAt?: string | null;
+  /**
+   * Auditor review notes and feedback
+   */
+  reviewNotes?: string | null;
+  /**
+   * Reason for rejection if applicable
+   */
+  rejectionReason?: string | null;
+  /**
+   * User who initiated certification
+   */
+  createdBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "carbon-trust-checklist-items".
+ */
+export interface CarbonTrustChecklistItem {
+  id: string;
+  certification: string | CarbonTrustCertification;
+  /**
+   * Unique requirement identifier (e.g., CT-REQ-001)
+   */
+  requirementId: string;
+  /**
+   * Name of the requirement
+   */
+  requirementName: string;
+  /**
+   * Detailed description of what's required
+   */
+  description: string;
+  /**
+   * Types of evidence needed (e.g., reports, invoices, calculations)
+   */
+  evidenceRequired?: string | null;
+  status: 'not_started' | 'in_progress' | 'submitted' | 'additional_info_requested' | 'approved' | 'not_applicable';
+  /**
+   * Organization's response/evidence description
+   */
+  response?: string | null;
+  /**
+   * Evidence documents linked to this requirement
+   */
+  attachedDocuments?: (string | CarbonTrustDocument)[] | null;
+  /**
+   * Auditor comments or requested changes
+   */
+  auditorFeedback?: string | null;
+  /**
+   * When auditor approved this item
+   */
+  auditorApprovedAt?: string | null;
+  /**
+   * Importance level of this requirement
+   */
+  severity?: ('critical' | 'high' | 'medium' | 'low') | null;
+  /**
+   * Requirement category
+   */
+  category?:
+    | ('governance' | 'emissions_measurement' | 'data_management' | 'reporting' | 'verification' | 'documentation')
+    | null;
+  /**
+   * Internal notes
+   */
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "carbon-trust-documents".
+ */
+export interface CarbonTrustDocument {
+  id: string;
+  certification: string | CarbonTrustCertification;
+  /**
+   * Original file name
+   */
+  fileName: string;
+  /**
+   * File size in bytes
+   */
+  fileSize?: number | null;
+  /**
+   * MIME type (e.g., application/pdf)
+   */
+  mimeType?: string | null;
+  /**
+   * S3 storage key/path
+   */
+  s3Key: string;
+  /**
+   * SHA256 hash for integrity verification
+   */
+  sha256Hash: string;
+  /**
+   * Version number (1, 2, 3...)
+   */
+  version?: number | null;
+  /**
+   * Mark as latest version
+   */
+  isLatest?: boolean | null;
+  /**
+   * Link to previous version of this document
+   */
+  previousVersion?: (string | null) | CarbonTrustDocument;
+  status: 'draft' | 'submitted' | 'under_review' | 'approved' | 'superseded' | 'deleted';
+  /**
+   * What this document contains
+   */
+  description?: string | null;
+  /**
+   * Summary of changes in this version
+   */
+  changeLog?: string | null;
+  /**
+   * User who uploaded the document
+   */
+  uploadedBy?: (string | null) | User;
+  /**
+   * Auditor feedback on this document
+   */
+  auditorComments?: string | null;
+  /**
+   * When auditor reviewed this document
+   */
+  reviewedAt?: string | null;
+  /**
+   * Optional expiration date for this evidence
+   */
   expiresAt?: string | null;
-  connectedAt?: string | null;
-  lastSyncAt?: string | null;
-  lastSyncStatus: 'success' | 'failed' | 'pending';
-  errorMessage?: string | null;
-  syncCount?: number | null;
-  totalSuppliersSynced?: number | null;
+  /**
+   * Tags for categorization and search
+   */
+  tags?:
+    | {
+        tag?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "carbon-trust-certificates".
+ */
+export interface CarbonTrustCertificate {
+  id: string;
+  organisation: string | Organisation;
+  certification: string | CarbonTrustCertification;
+  /**
+   * Unique certificate number for public verification
+   */
+  certificateNumber: string;
+  /**
+   * S3 URL to generated PDF certificate
+   */
+  pdfUrl: string;
+  /**
+   * S3 storage key for PDF
+   */
+  pdfS3Key: string;
+  /**
+   * Certificate issue date
+   */
+  issuedAt: string;
+  /**
+   * Certificate expiration date (3 years)
+   */
+  expiresAt: string;
+  status: 'active' | 'expiring_soon' | 'expired' | 'revoked';
+  /**
+   * Token for public verification link
+   */
+  verificationToken: string;
+  /**
+   * Public verification URL
+   */
+  verificationUrl?: string | null;
+  /**
+   * When certificate was revoked (if applicable)
+   */
+  revokedAt?: string | null;
+  /**
+   * Reason for revocation
+   */
+  revocationReason?: string | null;
+  /**
+   * Coverage scope of certification
+   */
+  scope: 'scope1' | 'scope2' | 'scope3' | 'all';
+  /**
+   * Baseline year for emissions reduction tracking
+   */
+  emissionBaselineYear?: number | null;
+  /**
+   * Baseline emissions in tCO2e
+   */
+  baselineEmissions?: number | null;
+  /**
+   * Currently verified emissions in tCO2e
+   */
+  verifiedEmissions?: number | null;
+  /**
+   * Whether this certificate is publicly searchable
+   */
+  publiclyListed?: boolean | null;
+  /**
+   * User who generated the certificate
+   */
+  createdBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "carbon-trust-audit-trail".
+ */
+export interface CarbonTrustAuditTrail {
+  id: string;
+  organisation: string | Organisation;
+  certification: string | CarbonTrustCertification;
+  /**
+   * User who performed the action
+   */
+  actor: string | User;
+  /**
+   * Action performed (e.g., created, submitted, approved, rejected, document_uploaded)
+   */
+  action: string;
+  /**
+   * Type of entity affected (certification, checklist_item, document)
+   */
+  entityType: string;
+  /**
+   * ID of the affected entity
+   */
+  entityId: string;
+  /**
+   * State before the action
+   */
+  before?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * State after the action
+   */
+  after?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Human-readable description of what changed
+   */
+  description?: string | null;
+  /**
+   * IP address of the actor
+   */
+  ipAddress?: string | null;
+  /**
+   * User agent string
+   */
+  userAgent?: string | null;
+  /**
+   * Additional context (e.g., document version, file hash)
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2583,8 +2912,24 @@ export interface PayloadLockedDocument {
         value: string | WebhookLog;
       } | null)
     | ({
-        relationTo: 'ecovadis-connections';
-        value: string | EcovadisConnection;
+        relationTo: 'carbon-trust-certifications';
+        value: string | CarbonTrustCertification;
+      } | null)
+    | ({
+        relationTo: 'carbon-trust-checklist-items';
+        value: string | CarbonTrustChecklistItem;
+      } | null)
+    | ({
+        relationTo: 'carbon-trust-documents';
+        value: string | CarbonTrustDocument;
+      } | null)
+    | ({
+        relationTo: 'carbon-trust-certificates';
+        value: string | CarbonTrustCertificate;
+      } | null)
+    | ({
+        relationTo: 'carbon-trust-audit-trail';
+        value: string | CarbonTrustAuditTrail;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -2952,16 +3297,6 @@ export interface SuppliersSelect<T extends boolean = true> {
         certifications?: T;
         dataCompletionPercent?: T;
         lastDataUpdateAt?: T;
-      };
-  ecovadis?:
-    | T
-    | {
-        score?: T;
-        assessmentDate?: T;
-        categories?: T;
-        lastAssessed?: T;
-        trend?: T;
-        ecoVadisUrl?: T;
       };
   riskMetrics?:
     | T
@@ -3645,20 +3980,131 @@ export interface WebhookLogsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "ecovadis-connections_select".
+ * via the `definition` "carbon-trust-certifications_select".
  */
-export interface EcovadisConnectionsSelect<T extends boolean = true> {
+export interface CarbonTrustCertificationsSelect<T extends boolean = true> {
   organisation?: T;
+  reportingPeriod?: T;
+  certificationId?: T;
   status?: T;
-  accessToken?: T;
-  refreshToken?: T;
+  completionPercentage?: T;
+  validityPeriod?:
+    | T
+    | {
+        issuedAt?: T;
+        expiresAt?: T;
+        reminderSentAt?: T;
+      };
+  auditor?:
+    | T
+    | {
+        name?: T;
+        email?: T;
+        organisation?: T;
+        userId?: T;
+      };
+  submittedAt?: T;
+  approvedAt?: T;
+  reviewNotes?: T;
+  rejectionReason?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "carbon-trust-checklist-items_select".
+ */
+export interface CarbonTrustChecklistItemsSelect<T extends boolean = true> {
+  certification?: T;
+  requirementId?: T;
+  requirementName?: T;
+  description?: T;
+  evidenceRequired?: T;
+  status?: T;
+  response?: T;
+  attachedDocuments?: T;
+  auditorFeedback?: T;
+  auditorApprovedAt?: T;
+  severity?: T;
+  category?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "carbon-trust-documents_select".
+ */
+export interface CarbonTrustDocumentsSelect<T extends boolean = true> {
+  certification?: T;
+  fileName?: T;
+  fileSize?: T;
+  mimeType?: T;
+  s3Key?: T;
+  sha256Hash?: T;
+  version?: T;
+  isLatest?: T;
+  previousVersion?: T;
+  status?: T;
+  description?: T;
+  changeLog?: T;
+  uploadedBy?: T;
+  auditorComments?: T;
+  reviewedAt?: T;
   expiresAt?: T;
-  connectedAt?: T;
-  lastSyncAt?: T;
-  lastSyncStatus?: T;
-  errorMessage?: T;
-  syncCount?: T;
-  totalSuppliersSynced?: T;
+  tags?:
+    | T
+    | {
+        tag?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "carbon-trust-certificates_select".
+ */
+export interface CarbonTrustCertificatesSelect<T extends boolean = true> {
+  organisation?: T;
+  certification?: T;
+  certificateNumber?: T;
+  pdfUrl?: T;
+  pdfS3Key?: T;
+  issuedAt?: T;
+  expiresAt?: T;
+  status?: T;
+  verificationToken?: T;
+  verificationUrl?: T;
+  revokedAt?: T;
+  revocationReason?: T;
+  scope?: T;
+  emissionBaselineYear?: T;
+  baselineEmissions?: T;
+  verifiedEmissions?: T;
+  publiclyListed?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "carbon-trust-audit-trail_select".
+ */
+export interface CarbonTrustAuditTrailSelect<T extends boolean = true> {
+  organisation?: T;
+  certification?: T;
+  actor?: T;
+  action?: T;
+  entityType?: T;
+  entityId?: T;
+  before?: T;
+  after?: T;
+  description?: T;
+  ipAddress?: T;
+  userAgent?: T;
+  metadata?: T;
   updatedAt?: T;
   createdAt?: T;
 }

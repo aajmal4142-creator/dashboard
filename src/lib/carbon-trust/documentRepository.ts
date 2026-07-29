@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import type { Payload } from "payload";
+import type { Payload, Where } from "payload";
 
 interface DocumentUploadRequest {
   certificationId: string;
@@ -99,7 +99,7 @@ export class DocumentRepository {
     certificationId: string,
     fileName?: string,
   ): Promise<DocumentVersion[]> {
-    const where = fileName
+    const where: Where = fileName
       ? {
           and: [
             { certification: { equals: certificationId } },
@@ -192,7 +192,7 @@ export class DocumentRepository {
     query: string,
     tags?: string[],
   ): Promise<DocumentVersion[]> {
-    const where =
+    const where: Where =
       tags && tags.length > 0
         ? {
             and: [
@@ -203,7 +203,7 @@ export class DocumentRepository {
                   { description: { contains: query } },
                 ],
               },
-              { tags: { some: { tag: { in: tags } } } },
+              { "tags.tag": { in: tags } },
               { status: { not_equals: "deleted" } },
             ],
           }

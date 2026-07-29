@@ -10,10 +10,10 @@ export type QuestionnaireDef = {
   fields: QuestionnaireField[];
 };
 
-/** Deterministic EcoVadis-lite field map — no AI. §13.2 */
-export const ECOVADIS_LITE: QuestionnaireDef = {
-  id: "ecovadis-lite",
-  name: "EcoVadis-lite / buyer ESG questionnaire",
+/** Deterministic supplier ESG questionnaire field map — no AI. §13.2 */
+export const SUPPLIER_ESG_QUESTIONNAIRE: QuestionnaireDef = {
+  id: "supplier-esg-questionnaire",
+  name: "Supplier ESG questionnaire",
   fields: [
     {
       id: "energy_kwh",
@@ -43,7 +43,7 @@ export const ECOVADIS_LITE: QuestionnaireDef = {
   ],
 };
 
-export const QUESTIONNAIRES: QuestionnaireDef[] = [ECOVADIS_LITE];
+export const QUESTIONNAIRES: QuestionnaireDef[] = [SUPPLIER_ESG_QUESTIONNAIRE];
 
 export function questionnaireById(id: string): QuestionnaireDef | undefined {
   return QUESTIONNAIRES.find((q) => q.id === id);

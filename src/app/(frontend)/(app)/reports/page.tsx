@@ -42,7 +42,7 @@ export default async function ReportsPage() {
 
   const initial = await Promise.all(
     reports.docs.map(async (r) => ({
-      id: r.id,
+      id: String(r.id),
       version: r.version,
       status: r.status,
       framework: r.framework,
