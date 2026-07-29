@@ -122,6 +122,10 @@ export interface Config {
     'netsuite-connections': NetsuiteConnection;
     'accounting-connections': AccountingConnection;
     'integration-sync-logs': IntegrationSyncLog;
+    'sap-connections': SapConnection;
+    'datawarehouse-connections': DatawarehouseConnection;
+    'powerbi-connections': PowerbiConnection;
+    'tableau-connections': TableauConnection;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -184,6 +188,10 @@ export interface Config {
     'netsuite-connections': NetsuiteConnectionsSelect<false> | NetsuiteConnectionsSelect<true>;
     'accounting-connections': AccountingConnectionsSelect<false> | AccountingConnectionsSelect<true>;
     'integration-sync-logs': IntegrationSyncLogsSelect<false> | IntegrationSyncLogsSelect<true>;
+    'sap-connections': SapConnectionsSelect<false> | SapConnectionsSelect<true>;
+    'datawarehouse-connections': DatawarehouseConnectionsSelect<false> | DatawarehouseConnectionsSelect<true>;
+    'powerbi-connections': PowerbiConnectionsSelect<false> | PowerbiConnectionsSelect<true>;
+    'tableau-connections': TableauConnectionsSelect<false> | TableauConnectionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -2443,6 +2451,42 @@ export interface WebhookRegistration {
    * Count of retried deliveries
    */
   retry_count?: number | null;
+  /**
+   * Retry policy: { maxRetries, retryDelayMs, exponentialBackoff }
+   */
+  retry_policy?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Custom HTTP headers for outbound delivery
+   */
+  headers?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Outbound auth: { type: bearer|apikey|basic, value, apiKeyHeader, username, password }
+   */
+  authentication?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3222,6 +3266,349 @@ export interface IntegrationSyncLog {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sap-connections".
+ */
+export interface SapConnection {
+  id: string;
+  organisationId: string | Organisation;
+  status?: ('pending' | 'connected' | 'failed' | 'expired') | null;
+  /**
+   * SAP environment type
+   */
+  environmentType: 'sandbox' | 'production';
+  /**
+   * SAP System ID (SID)
+   */
+  systemId: string;
+  /**
+   * SAP client number
+   */
+  clientNumber: string;
+  /**
+   * OAuth access token
+   */
+  accessToken?: string | null;
+  /**
+   * OAuth refresh token
+   */
+  refreshToken?: string | null;
+  /**
+   * Token expiration time
+   */
+  expiresAt?: string | null;
+  syncConfig?: {
+    /**
+     * Sync General Ledger balances
+     */
+    enableGlSync?: boolean | null;
+    /**
+     * Sync Bill of Materials
+     */
+    enableBomSync?: boolean | null;
+    /**
+     * Sync production orders and data
+     */
+    enableProductionSync?: boolean | null;
+    /**
+     * Materials to track for emissions
+     */
+    trackingMaterials?:
+      | {
+          materialId: string;
+          materialDescription?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    syncFrequency?: ('manual' | 'hourly' | 'daily' | 'weekly') | null;
+  };
+  lastSyncAt?: string | null;
+  lastSyncStatus?: string | null;
+  syncErrorCount?: number | null;
+  connectedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "datawarehouse-connections".
+ */
+export interface DatawarehouseConnection {
+  id: string;
+  organisationId: string | Organisation;
+  /**
+   * Data warehouse provider
+   */
+  provider: 'snowflake' | 'bigquery' | 'databricks';
+  /**
+   * Provider-specific configuration (Snowflake: account, warehouse, database, schema, role, username; BigQuery: projectId, datasetId, credentials; Databricks: instanceUrl, token, warehouseId, schemaName)
+   */
+  config:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  exportConfig: {
+    /**
+     * Prefix for exported tables
+     */
+    tablePrefix: string;
+    /**
+     * Automatic export frequency
+     */
+    frequency?: ('manual' | 'hourly' | 'daily' | 'weekly' | 'monthly') | null;
+    /**
+     * Only export changed records
+     */
+    incremental?: boolean | null;
+    /**
+     * Optional data transformations
+     */
+    transformations?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  /**
+   * Run test query to verify connection
+   */
+  testConnection?: boolean | null;
+  lastExportAt?: string | null;
+  lastExportStatus?: string | null;
+  lastExportRecords?: number | null;
+  connectedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "powerbi-connections".
+ */
+export interface PowerbiConnection {
+  id: string;
+  organisationId: string | Organisation;
+  /**
+   * Power BI workspace display name
+   */
+  workspaceName: string;
+  /**
+   * Power BI configuration: tenantId, clientId, clientSecret, workspaceId, reportId, refreshSchedule
+   */
+  config:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * OAuth access token
+   */
+  accessToken?: string | null;
+  /**
+   * OAuth refresh token
+   */
+  refreshToken?: string | null;
+  /**
+   * Token expiration time
+   */
+  expiresAt?: string | null;
+  /**
+   * Data source mappings for Power BI datasets
+   */
+  datasetMappings?:
+    | {
+        /**
+         * ClearESG collection name
+         */
+        sourceTable: string;
+        sourceFields?:
+          | {
+              field?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        /**
+         * Power BI dataset name
+         */
+        targetDataset: string;
+        targetFields?:
+          | {
+              field?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        refreshSchedule?: ('manual' | 'hourly' | 'daily' | 'weekly') | null;
+        id?: string | null;
+      }[]
+    | null;
+  syncConfig?: {
+    /**
+     * Enable automatic refresh of datasets
+     */
+    enableLiveDataRefresh?: boolean | null;
+    /**
+     * Calculate metrics in Power BI
+     */
+    enableMetricsCalculation?: boolean | null;
+    /**
+     * Enable embedded reports in ClearESG
+     */
+    embedReports?: boolean | null;
+  };
+  /**
+   * Scheduled refresh time and days
+   */
+  refreshSchedule?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  lastSyncAt?: string | null;
+  lastSyncStatus?: string | null;
+  lastSyncRecords?: number | null;
+  connectedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tableau-connections".
+ */
+export interface TableauConnection {
+  id: string;
+  organisationId: string | Organisation;
+  /**
+   * Tableau Server or Online base URL
+   */
+  serverUrl: string;
+  /**
+   * Tableau site/organization ID
+   */
+  siteId: string;
+  /**
+   * Tableau configuration: serverUrl, siteId, accessToken, userId, contentUrl, rowLevelSecurity
+   */
+  config:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Personal access token
+   */
+  accessToken?: string | null;
+  /**
+   * Tableau user ID
+   */
+  userId?: string | null;
+  /**
+   * Data source mappings for Tableau
+   */
+  datasetMappings?:
+    | {
+        /**
+         * ClearESG collection name
+         */
+        sourceTable: string;
+        sourceFields?:
+          | {
+              field?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        /**
+         * Tableau datasource name
+         */
+        targetDataset: string;
+        targetFields?:
+          | {
+              field?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        refreshSchedule?: ('manual' | 'hourly' | 'daily' | 'weekly') | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Row-level security configuration
+   */
+  rowLevelSecurity?: {
+    /**
+     * Enable row-level security
+     */
+    enabled?: boolean | null;
+    /**
+     * RLS column name
+     */
+    column?: string | null;
+    /**
+     * User-to-value mapping, e.g. {"user@org.com": ["value1", "value2"]}
+     */
+    mapping?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  syncConfig?: {
+    /**
+     * Use live connection instead of extract
+     */
+    enableLiveConnection?: boolean | null;
+    /**
+     * Apply RLS to workbooks
+     */
+    enableRowLevelSecurity?: boolean | null;
+    /**
+     * Auto-publish sample dashboards
+     */
+    publishDashboards?: boolean | null;
+  };
+  /**
+   * Scheduled refresh time and days
+   */
+  refreshSchedule?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  lastSyncAt?: string | null;
+  lastSyncStatus?: string | null;
+  lastSyncRecords?: number | null;
+  connectedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -3463,6 +3850,22 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'integration-sync-logs';
         value: string | IntegrationSyncLog;
+      } | null)
+    | ({
+        relationTo: 'sap-connections';
+        value: string | SapConnection;
+      } | null)
+    | ({
+        relationTo: 'datawarehouse-connections';
+        value: string | DatawarehouseConnection;
+      } | null)
+    | ({
+        relationTo: 'powerbi-connections';
+        value: string | PowerbiConnection;
+      } | null)
+    | ({
+        relationTo: 'tableau-connections';
+        value: string | TableauConnection;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -4532,6 +4935,9 @@ export interface WebhookRegistrationsSelect<T extends boolean = true> {
   status?: T;
   last_triggered_at?: T;
   retry_count?: T;
+  retry_policy?: T;
+  headers?: T;
+  authentication?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -4906,6 +5312,164 @@ export interface IntegrationSyncLogsSelect<T extends boolean = true> {
       };
   syncDurationMs?: T;
   triggeredBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sap-connections_select".
+ */
+export interface SapConnectionsSelect<T extends boolean = true> {
+  organisationId?: T;
+  status?: T;
+  environmentType?: T;
+  systemId?: T;
+  clientNumber?: T;
+  accessToken?: T;
+  refreshToken?: T;
+  expiresAt?: T;
+  syncConfig?:
+    | T
+    | {
+        enableGlSync?: T;
+        enableBomSync?: T;
+        enableProductionSync?: T;
+        trackingMaterials?:
+          | T
+          | {
+              materialId?: T;
+              materialDescription?: T;
+              id?: T;
+            };
+        syncFrequency?: T;
+      };
+  lastSyncAt?: T;
+  lastSyncStatus?: T;
+  syncErrorCount?: T;
+  connectedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "datawarehouse-connections_select".
+ */
+export interface DatawarehouseConnectionsSelect<T extends boolean = true> {
+  organisationId?: T;
+  provider?: T;
+  config?: T;
+  exportConfig?:
+    | T
+    | {
+        tablePrefix?: T;
+        frequency?: T;
+        incremental?: T;
+        transformations?: T;
+      };
+  testConnection?: T;
+  lastExportAt?: T;
+  lastExportStatus?: T;
+  lastExportRecords?: T;
+  connectedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "powerbi-connections_select".
+ */
+export interface PowerbiConnectionsSelect<T extends boolean = true> {
+  organisationId?: T;
+  workspaceName?: T;
+  config?: T;
+  accessToken?: T;
+  refreshToken?: T;
+  expiresAt?: T;
+  datasetMappings?:
+    | T
+    | {
+        sourceTable?: T;
+        sourceFields?:
+          | T
+          | {
+              field?: T;
+              id?: T;
+            };
+        targetDataset?: T;
+        targetFields?:
+          | T
+          | {
+              field?: T;
+              id?: T;
+            };
+        refreshSchedule?: T;
+        id?: T;
+      };
+  syncConfig?:
+    | T
+    | {
+        enableLiveDataRefresh?: T;
+        enableMetricsCalculation?: T;
+        embedReports?: T;
+      };
+  refreshSchedule?: T;
+  lastSyncAt?: T;
+  lastSyncStatus?: T;
+  lastSyncRecords?: T;
+  connectedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tableau-connections_select".
+ */
+export interface TableauConnectionsSelect<T extends boolean = true> {
+  organisationId?: T;
+  serverUrl?: T;
+  siteId?: T;
+  config?: T;
+  accessToken?: T;
+  userId?: T;
+  datasetMappings?:
+    | T
+    | {
+        sourceTable?: T;
+        sourceFields?:
+          | T
+          | {
+              field?: T;
+              id?: T;
+            };
+        targetDataset?: T;
+        targetFields?:
+          | T
+          | {
+              field?: T;
+              id?: T;
+            };
+        refreshSchedule?: T;
+        id?: T;
+      };
+  rowLevelSecurity?:
+    | T
+    | {
+        enabled?: T;
+        column?: T;
+        mapping?: T;
+      };
+  syncConfig?:
+    | T
+    | {
+        enableLiveConnection?: T;
+        enableRowLevelSecurity?: T;
+        publishDashboards?: T;
+      };
+  refreshSchedule?: T;
+  lastSyncAt?: T;
+  lastSyncStatus?: T;
+  lastSyncRecords?: T;
+  connectedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

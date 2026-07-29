@@ -59,3 +59,12 @@ export * from "./types";
 export { SalesforceService } from "./salesforce";
 export { NetSuiteService } from "./netsuite";
 export { AccountingService } from "./accounting";
+export { SAPService } from "./sap";
+export {
+  DataWarehouseService,
+  SnowflakeConnector,
+  BigQueryConnector,
+  DatabricksConnector,
+} from "./datawarehouse";
+export { WebhookManager } from "./webhooks";
+export { BIConnectorService, PowerBIConnector, TableauConnector } from "./biconnector";

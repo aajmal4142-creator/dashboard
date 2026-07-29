@@ -60,6 +60,10 @@ import { SalesforceConnections } from "./collections/SalesforceConnections";
 import { NetSuiteConnections } from "./collections/NetSuiteConnections";
 import { AccountingConnections } from "./collections/AccountingConnections";
 import { IntegrationSyncLogs } from "./collections/IntegrationSyncLogs";
+import { SAPConnections } from "./collections/SAPConnections";
+import { DataWarehouseConnections } from "./collections/DataWarehouseConnections";
+import { PowerBIConnections } from "./collections/PowerBIConnections";
+import { TableauConnections } from "./collections/TableauConnections";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -139,6 +143,10 @@ export default buildConfig({
     NetSuiteConnections,
     AccountingConnections,
     IntegrationSyncLogs,
+    SAPConnections,
+    DataWarehouseConnections,
+    PowerBIConnections,
+    TableauConnections,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,

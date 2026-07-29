@@ -76,6 +76,26 @@ export const WebhookRegistrations: CollectionConfig = {
       defaultValue: 0,
       admin: { description: "Count of retried deliveries" },
     },
+    {
+      name: "retry_policy",
+      type: "json",
+      admin: {
+        description: "Retry policy: { maxRetries, retryDelayMs, exponentialBackoff }",
+      },
+    },
+    {
+      name: "headers",
+      type: "json",
+      admin: { description: "Custom HTTP headers for outbound delivery" },
+    },
+    {
+      name: "authentication",
+      type: "json",
+      admin: {
+        description:
+          "Outbound auth: { type: bearer|apikey|basic, value, apiKeyHeader, username, password }",
+      },
+    },
   ],
   timestamps: true,
 };
