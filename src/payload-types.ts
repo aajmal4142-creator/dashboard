@@ -92,6 +92,9 @@ export interface Config {
     'framework-metrics': FrameworkMetric;
     'compliance-targets': ComplianceTarget;
     'framework-mappings': FrameworkMapping;
+    'assurance-engagements': AssuranceEngagement;
+    'verification-findings': VerificationFinding;
+    'assurance-reports': AssuranceReport;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -124,6 +127,9 @@ export interface Config {
     'framework-metrics': FrameworkMetricsSelect<false> | FrameworkMetricsSelect<true>;
     'compliance-targets': ComplianceTargetsSelect<false> | ComplianceTargetsSelect<true>;
     'framework-mappings': FrameworkMappingsSelect<false> | FrameworkMappingsSelect<true>;
+    'assurance-engagements': AssuranceEngagementsSelect<false> | AssuranceEngagementsSelect<true>;
+    'verification-findings': VerificationFindingsSelect<false> | VerificationFindingsSelect<true>;
+    'assurance-reports': AssuranceReportsSelect<false> | AssuranceReportsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -1230,6 +1236,250 @@ export interface FrameworkMapping {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "assurance-engagements".
+ */
+export interface AssuranceEngagement {
+  id: string;
+  organisation: string | Organisation;
+  reportingPeriod: string | ReportingPeriod;
+  provider: {
+    /**
+     * Assurance provider name
+     */
+    name: string;
+    /**
+     * Primary contact email
+     */
+    email: string;
+    /**
+     * Primary contact name
+     */
+    contactPerson?: string | null;
+    /**
+     * Provider organization name
+     */
+    providerOrg?: string | null;
+  };
+  scope: 'scope1' | 'scope2' | 'scope3' | 'all';
+  /**
+   * Optional framework focus
+   */
+  framework?: ('csrd' | 'brsr' | 'gri' | 'sasb') | null;
+  status: 'draft' | 'submitted' | 'reviewing' | 'findings_submitted' | 'approved' | 'signed_off';
+  /**
+   * When engagement was requested
+   */
+  requestedAt: string;
+  /**
+   * When engagement was formally submitted to provider
+   */
+  submittedAt?: string | null;
+  /**
+   * When findings were approved by organization
+   */
+  approvedAt?: string | null;
+  /**
+   * When provider signed off on assurance
+   */
+  signedOffAt?: string | null;
+  /**
+   * Data gaps identified for this engagement
+   */
+  dataGaps?:
+    | {
+        /**
+         * Missing metric or data point
+         */
+        metric: string;
+        severity: 'high' | 'medium' | 'low';
+        /**
+         * Why this metric is missing or incomplete
+         */
+        description: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Internal notes about engagement
+   */
+  notes?: string | null;
+  /**
+   * User who created engagement
+   */
+  createdBy?: (string | null) | User;
+  /**
+   * Provider user assigned to this engagement (external user)
+   */
+  assignedTo?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "verification-findings".
+ */
+export interface VerificationFinding {
+  id: string;
+  /**
+   * Associated assurance engagement
+   */
+  engagement: string | AssuranceEngagement;
+  /**
+   * Type of finding
+   */
+  category: 'data-quality' | 'methodology' | 'scope' | 'calculation' | 'completeness' | 'other';
+  severity: 'critical' | 'major' | 'minor' | 'info';
+  /**
+   * Brief finding title
+   */
+  title: string;
+  /**
+   * Detailed description of finding
+   */
+  description: string;
+  /**
+   * Which metric/datapoint this affects
+   */
+  affectedMetric?: string | null;
+  /**
+   * Supporting evidence links/references
+   */
+  evidence?:
+    | {
+        /**
+         * URL or reference to evidence
+         */
+        url?: string | null;
+        /**
+         * How this supports the finding
+         */
+        description?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Business impact of this finding
+   */
+  impact?: ('high' | 'medium' | 'low') | null;
+  /**
+   * Recommended action/resolution
+   */
+  recommendation?: string | null;
+  status: 'open' | 'acknowledged' | 'resolved' | 'closed';
+  /**
+   * Provider user who submitted this finding
+   */
+  submittedBy: string | User;
+  /**
+   * When finding was submitted
+   */
+  submittedAt: string;
+  /**
+   * When finding was resolved
+   */
+  resolvedAt?: string | null;
+  /**
+   * Notes on how finding was resolved
+   */
+  resolutionNotes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "assurance-reports".
+ */
+export interface AssuranceReport {
+  id: string;
+  /**
+   * Associated assurance engagement
+   */
+  engagement: string | AssuranceEngagement;
+  organisation: string | Organisation;
+  reportingPeriod: string | ReportingPeriod;
+  status: 'draft' | 'approved' | 'published';
+  /**
+   * Audit standard assurance level (limited vs reasonable)
+   */
+  assuranceLevel: 'limited' | 'reasonable';
+  /**
+   * Formal assurance statement text to be published
+   */
+  assuranceStatement: string;
+  /**
+   * High-level summary for stakeholders
+   */
+  executiveSummary?: string | null;
+  /**
+   * Count of findings by severity
+   */
+  findingsSummary: {
+    total: number;
+    critical: number;
+    major: number;
+    minor: number;
+    info: number;
+  };
+  /**
+   * Provider sign-off information
+   */
+  provider: {
+    /**
+     * Provider organization name
+     */
+    name: string;
+    /**
+     * Provider credentials/certifications
+     */
+    credentials?: string | null;
+    /**
+     * Date of provider signature
+     */
+    signatureDate: string;
+    /**
+     * Name of signatory from provider
+     */
+    signatureName: string;
+  };
+  /**
+   * When report was initially generated
+   */
+  generatedAt: string;
+  /**
+   * When report was published
+   */
+  publishedAt?: string | null;
+  /**
+   * User who published the report
+   */
+  publishedBy?: (string | null) | User;
+  /**
+   * Summary of data gaps identified and addressed
+   */
+  dataGapsSummary?:
+    | {
+        metric: string;
+        severity: 'high' | 'medium' | 'low';
+        /**
+         * How data gap was addressed
+         */
+        resolution?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Overall assurance confidence score (0-100)
+   */
+  assuranceScore?: number | null;
+  /**
+   * Generated PDF report (if exported)
+   */
+  pdf?: (string | null) | Media;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -1351,6 +1601,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'framework-mappings';
         value: string | FrameworkMapping;
+      } | null)
+    | ({
+        relationTo: 'assurance-engagements';
+        value: string | AssuranceEngagement;
+      } | null)
+    | ({
+        relationTo: 'verification-findings';
+        value: string | VerificationFinding;
+      } | null)
+    | ({
+        relationTo: 'assurance-reports';
+        value: string | AssuranceReport;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1966,6 +2228,115 @@ export interface FrameworkMappingsSelect<T extends boolean = true> {
   confidenceLevel?: T;
   calculatedAt?: T;
   calculatedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "assurance-engagements_select".
+ */
+export interface AssuranceEngagementsSelect<T extends boolean = true> {
+  organisation?: T;
+  reportingPeriod?: T;
+  provider?:
+    | T
+    | {
+        name?: T;
+        email?: T;
+        contactPerson?: T;
+        providerOrg?: T;
+      };
+  scope?: T;
+  framework?: T;
+  status?: T;
+  requestedAt?: T;
+  submittedAt?: T;
+  approvedAt?: T;
+  signedOffAt?: T;
+  dataGaps?:
+    | T
+    | {
+        metric?: T;
+        severity?: T;
+        description?: T;
+        id?: T;
+      };
+  notes?: T;
+  createdBy?: T;
+  assignedTo?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "verification-findings_select".
+ */
+export interface VerificationFindingsSelect<T extends boolean = true> {
+  engagement?: T;
+  category?: T;
+  severity?: T;
+  title?: T;
+  description?: T;
+  affectedMetric?: T;
+  evidence?:
+    | T
+    | {
+        url?: T;
+        description?: T;
+        id?: T;
+      };
+  impact?: T;
+  recommendation?: T;
+  status?: T;
+  submittedBy?: T;
+  submittedAt?: T;
+  resolvedAt?: T;
+  resolutionNotes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "assurance-reports_select".
+ */
+export interface AssuranceReportsSelect<T extends boolean = true> {
+  engagement?: T;
+  organisation?: T;
+  reportingPeriod?: T;
+  status?: T;
+  assuranceLevel?: T;
+  assuranceStatement?: T;
+  executiveSummary?: T;
+  findingsSummary?:
+    | T
+    | {
+        total?: T;
+        critical?: T;
+        major?: T;
+        minor?: T;
+        info?: T;
+      };
+  provider?:
+    | T
+    | {
+        name?: T;
+        credentials?: T;
+        signatureDate?: T;
+        signatureName?: T;
+      };
+  generatedAt?: T;
+  publishedAt?: T;
+  publishedBy?: T;
+  dataGapsSummary?:
+    | T
+    | {
+        metric?: T;
+        severity?: T;
+        resolution?: T;
+        id?: T;
+      };
+  assuranceScore?: T;
+  pdf?: T;
   updatedAt?: T;
   createdAt?: T;
 }

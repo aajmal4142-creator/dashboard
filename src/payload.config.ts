@@ -5,6 +5,8 @@ import { buildConfig, type PayloadEmailAdapter, type SharpDependency } from "pay
 import { fileURLToPath } from "url";
 import sharp from "sharp";
 
+import { AssuranceEngagements } from "./collections/AssuranceEngagements";
+import { AssuranceReports } from "./collections/AssuranceReports";
 import { AuditLogs } from "./collections/AuditLogs";
 import { BenchmarkStats } from "./collections/BenchmarkStats";
 import { ComplianceObligations } from "./collections/ComplianceObligations";
@@ -30,6 +32,7 @@ import { Scope3Activities } from "./collections/Scope3Activities";
 import { Suppliers } from "./collections/Suppliers";
 import { UserPolicies } from "./collections/UserPolicies";
 import { Users } from "./collections/Users";
+import { VerificationFindings } from "./collections/VerificationFindings";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -79,6 +82,9 @@ export default buildConfig({
     FrameworkMetrics,
     ComplianceTargets,
     FrameworkMappings,
+    AssuranceEngagements,
+    VerificationFindings,
+    AssuranceReports,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,
