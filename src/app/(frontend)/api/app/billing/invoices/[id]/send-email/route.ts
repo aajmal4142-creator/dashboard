@@ -58,6 +58,10 @@ export async function POST(
       id: subscriptionId,
     });
 
+    if (!subscription) {
+      return NextResponse.json({ error: "Subscription not found" }, { status: 404 });
+    }
+
     if (!subscription.sendInvoices) {
       return NextResponse.json(
         { error: "Invoice emails are disabled for this subscription" },
@@ -65,7 +69,15 @@ export async function POST(
       );
     }
 
-    const body = (await request.json()) as { email?: string };
+    let body: { email?: string };
+    try {
+      body = (await request.json()) as { email?: string };
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 },
+      );
+    }
     const recipientEmail = body.email || subscription.contactEmail;
 
     if (!recipientEmail) {

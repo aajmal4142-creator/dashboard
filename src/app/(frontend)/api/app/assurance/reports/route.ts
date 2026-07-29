@@ -74,7 +74,15 @@ export async function POST(req: Request) {
   }
 
   try {
-    const body = (await req.json()) as { engagementId: string };
+    let body: { engagementId: string };
+    try {
+      body = (await req.json()) as { engagementId: string };
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 },
+      );
+    }
 
     if (!body.engagementId) {
       return NextResponse.json({ error: "engagementId is required" }, { status: 400 });
@@ -88,6 +96,10 @@ export async function POST(req: Request) {
       id: body.engagementId,
       overrideAccess: true,
     });
+
+    if (!engagement) {
+      return NextResponse.json({ error: "Engagement not found" }, { status: 404 });
+    }
 
     const engagementOrgId =
       typeof engagement.organisation === "object"

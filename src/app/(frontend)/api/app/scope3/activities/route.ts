@@ -14,7 +14,7 @@ interface ImportActivity {
 
 function asActivityFields(value: unknown): ActivityDataField[] {
   if (!Array.isArray(value)) return [];
-  return value.filter(
+  const fields = value.filter(
     (field): field is ActivityDataField =>
       typeof field === "object" &&
       field !== null &&
@@ -22,6 +22,10 @@ function asActivityFields(value: unknown): ActivityDataField[] {
       "unit" in field &&
       "required" in field,
   );
+  if (fields.length === 0 && Array.isArray(value) && value.length > 0) {
+    throw new Error("No valid activity data fields found in source configuration");
+  }
+  return fields;
 }
 
 function asEmissionsFactor(value: unknown): EmissionsFactor | null {

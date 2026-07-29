@@ -35,7 +35,7 @@ export class UsageTracker {
   /**
    * Track API call (incremented but not persisted on every call - aggregated)
    */
-  async trackApiCall(organisationId: string, _endpoint?: string): Promise<void> {
+  async trackApiCall(organisationId: string): Promise<void> {
     try {
       await this.incrementDailyMetric(organisationId, "apiCallsCount", 1);
     } catch (error) {
@@ -56,8 +56,7 @@ export class UsageTracker {
 
       if (existingMetric) {
         await this.payload.update({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          collection: "usage-metrics" as any,
+          collection: "usage-metrics",
           id: existingMetric.id,
           data: {
             storageUsedGB: sizeGB,
@@ -70,8 +69,7 @@ export class UsageTracker {
           organisationId,
         );
         await this.payload.update({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          collection: "usage-metrics" as any,
+          collection: "usage-metrics",
           id: dailyMetric.id,
           data: {
             storageUsedGB: sizeGB,
@@ -96,8 +94,7 @@ export class UsageTracker {
 
       if (existingMetric) {
         await this.payload.update({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          collection: "usage-metrics" as any,
+          collection: "usage-metrics",
           id: existingMetric.id,
           data: {
             activeUsersCount: count,
@@ -109,8 +106,7 @@ export class UsageTracker {
           organisationId,
         );
         await this.payload.update({
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          collection: "usage-metrics" as any,
+          collection: "usage-metrics",
           id: dailyMetric.id,
           data: {
             activeUsersCount: count,

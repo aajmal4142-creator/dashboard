@@ -99,7 +99,7 @@ export class QuotaEnforcer {
 
     if (!result.allowed) {
       throw new Error(
-        `Quota exceeded for ${action}. Upgrade plan or wait for next billing cycle.`,
+        `Quota exceeded for ${action}: remaining=${result.remaining}, resetDate=${result.resetDate.toISOString()}. Upgrade plan or wait for next billing cycle.`,
       );
     }
   }
@@ -111,23 +111,21 @@ export class QuotaEnforcer {
     try {
       // Get subscription
       const subscriptionResult = await this.payload.find({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        collection: "subscriptions" as any,
+        collection: "subscriptions",
         where: {
           organisation: { equals: organisationId },
         },
         limit: 1,
       });
 
-      const subscription = subscriptionResult.docs?.[0] as Subscription;
+      const subscription = subscriptionResult.docs?.[0] as unknown as Subscription;
       if (!subscription) {
         throw new Error(`No subscription found for organisation ${organisationId}`);
       }
 
       // Get plan
       const plan = await this.payload.findByID({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        collection: "plans" as any,
+        collection: "plans",
         id: String(subscription.plan),
       });
 
@@ -163,7 +161,7 @@ export class QuotaEnforcer {
       return {
         organisation: organisationId,
         subscription: subscription.id,
-        plan: plan as Plan,
+        plan: plan as unknown as Plan,
         limits: {
           dataPoints: plan.dataPointsPerMonth,
           reports: plan.reportsPerMonth,

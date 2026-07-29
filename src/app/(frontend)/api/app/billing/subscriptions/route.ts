@@ -76,15 +76,35 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = (await request.json()) as {
+    let body: {
       planId?: string;
       billingCycle?: BillingCycle;
       seats?: number;
     };
+    try {
+      body = (await request.json()) as {
+        planId?: string;
+        billingCycle?: BillingCycle;
+        seats?: number;
+      };
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 },
+      );
+    }
+
     const { planId, billingCycle = "monthly", seats = 1 } = body;
 
     if (!planId) {
       return NextResponse.json({ error: "planId is required" }, { status: 400 });
+    }
+
+    if (!Number.isInteger(seats) || seats < 1 || seats > 1000) {
+      return NextResponse.json(
+        { error: "seats must be a number between 1 and 1000" },
+        { status: 400 },
+      );
     }
 
     const payload = await getPayload({ config });
@@ -96,6 +116,26 @@ export async function POST(request: Request) {
 
     if (!plan) {
       return NextResponse.json({ error: "Plan not found" }, { status: 404 });
+    }
+
+    // Check for idempotency (prevent duplicate subscriptions from retried requests)
+    const idempotencyKey = request.headers.get("idempotency-key");
+    if (idempotencyKey) {
+      // Try to find existing subscription created with same idempotency key
+      const idempotent = await payload.find({
+        collection: "subscriptions",
+        where: {
+          and: [
+            { organisation: { equals: ctx.activeOrg.id } },
+            { idempotencyKey: { equals: idempotencyKey } },
+          ],
+        },
+        limit: 1,
+      });
+
+      if (idempotent.docs?.length) {
+        return NextResponse.json(idempotent.docs[0], { status: 200 });
+      }
     }
 
     const existing = await payload.find({

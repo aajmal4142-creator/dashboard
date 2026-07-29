@@ -21,6 +21,7 @@ export const Reports: CollectionConfig = {
       type: "relationship",
       relationTo: "reporting-periods",
       required: true,
+      index: true,
     },
     {
       name: "framework",
@@ -34,6 +35,7 @@ export const Reports: CollectionConfig = {
         { label: "GRI", value: "GRI" },
         { label: "Custom", value: "CUSTOM" },
       ],
+      index: true,
     },
     { name: "version", type: "number", required: true, defaultValue: 1, min: 1 },
     {
@@ -45,6 +47,7 @@ export const Reports: CollectionConfig = {
         { label: "Draft", value: "draft" },
         { label: "Published", value: "published" },
       ],
+      index: true,
     },
     {
       name: "scores",

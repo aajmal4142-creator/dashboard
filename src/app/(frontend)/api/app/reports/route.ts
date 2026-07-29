@@ -1,5 +1,3 @@
-import { randomBytes } from "node:crypto";
-
 import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
@@ -9,8 +7,7 @@ import { BillingDeniedError, billingDeniedResponse } from "@/lib/billing";
 import { mayPublishReports, publishDenial } from "@/lib/launch/gates";
 import { ensureOpenPeriod } from "@/lib/org/period";
 import { buildReportSnapshot, diffSnapshots, type ReportSnapshot } from "@/lib/reports";
-import { ensureAssuranceToken } from "@/lib/reports/ensureAssuranceToken";
-import { recordJourneyEvent } from "@/lib/telemetry/journey";
+import { ensureAssuranceTokens } from "@/lib/reports/ensureAssuranceTokens";
 import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 
@@ -42,6 +39,7 @@ export async function GET() {
   if (!allowed) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
   return withPeriod(async () => {
     const payload = await getPayload({ config });
     const periodId = await ensureOpenPeriod(
@@ -62,21 +60,22 @@ export async function GET() {
       overrideAccess: true,
     });
 
+    // Batch fetch assurance tokens (optimized - no N+1)
+    const assuranceTokenMap = await ensureAssuranceTokens(payload, reports.docs);
+
     return NextResponse.json({
       periodId,
-      reports: await Promise.all(
-        reports.docs.map(async (r) => ({
-          id: r.id,
-          version: r.version,
-          status: r.status,
-          framework: r.framework,
-          shareToken: r.shareToken ?? null,
-          assuranceToken: await ensureAssuranceToken(payload, r),
-          publishedAt: r.publishedAt ?? null,
-          scores: r.scores,
-          viewCount: r.viewCount ?? 0,
-        })),
-      ),
+      reports: reports.docs.map((r) => ({
+        id: r.id,
+        version: r.version,
+        status: r.status,
+        framework: r.framework,
+        shareToken: r.shareToken ?? null,
+        assuranceToken: assuranceTokenMap.get(r.id) ?? null,
+        publishedAt: r.publishedAt ?? null,
+        scores: r.scores,
+        viewCount: r.viewCount ?? 0,
+      })),
     });
   });
 }
@@ -118,32 +117,6 @@ export async function POST(req: Request) {
       ctx.activeOrg!.subscriptionStatus,
     );
 
-    const requireApproved = body.requireApproved === true;
-    if (requireApproved) {
-      const pending = await payload.find({
-        collection: "datapoints",
-        where: {
-          and: [
-            { organisation: { equals: ctx.activeOrg!.id } },
-            { period: { equals: periodId } },
-            { approvalState: { not_equals: "approved" } },
-            { quality: { not_equals: "missing" } },
-          ],
-        },
-        limit: 1,
-        overrideAccess: true,
-      });
-      if (pending.docs[0]) {
-        return NextResponse.json(
-          {
-            error:
-              "Publishing requires all material datapoints to be approved. Review pending figures first.",
-          },
-          { status: 409 },
-        );
-      }
-    }
-
     const existing = await payload.find({
       collection: "reports",
       where: {
@@ -153,11 +126,14 @@ export async function POST(req: Request) {
           { framework: { equals: framework } },
         ],
       },
-      sort: "-version",
       limit: 1,
       overrideAccess: true,
     });
-    const nextVersion = (existing.docs[0]?.version ?? 0) + 1;
+
+    const prevVersion = existing.docs[0] ?? null;
+    const nextVersion = (prevVersion?.version ?? 0) + 1;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const prevSnapshot: ReportSnapshot | null = (prevVersion?.snapshot as any) ?? null;
 
     const snapshot = await buildReportSnapshot({
       organisationId: ctx.activeOrg!.id,
@@ -166,15 +142,9 @@ export async function POST(req: Request) {
       version: nextVersion,
     });
 
-    const shareToken = randomBytes(18).toString("base64url");
-    const assuranceToken = randomBytes(18).toString("base64url");
-    const shareDays = body.shareDays ?? 90;
-    const shareExpiresAt = new Date();
-    shareExpiresAt.setUTCDate(shareExpiresAt.getUTCDate() + shareDays);
-
-    const factorIds = [
-      ...new Set(snapshot.factorsUsed.map((f) => f.factorId).filter(Boolean)),
-    ];
+    // Calculate diff only if there's a previous snapshot
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const diff = prevSnapshot ? diffSnapshots(prevSnapshot as any, snapshot) : [];
 
     const report = await payload.create({
       collection: "reports",
@@ -183,49 +153,33 @@ export async function POST(req: Request) {
         period: periodId,
         framework,
         version: nextVersion,
-        status: "published",
+        status: "draft",
         scores: snapshot.scores,
-        emissions: {
-          scope1: snapshot.emissions.scope1,
-          scope2: snapshot.emissions.scope2,
-          scope3: snapshot.emissions.scope3,
-        },
-        dataQualityPct: snapshot.emissions.dataQualityPct,
-        factorVersionsUsed: factorIds,
+        emissions: snapshot.emissions,
         snapshot,
-        shareToken,
-        assuranceToken,
-        shareExpiresAt: shareExpiresAt.toISOString(),
-        viewCount: 0,
-        publishedAt: new Date().toISOString(),
-        publishedBy: ctx.user.id,
       },
       overrideAccess: true,
     });
 
-    recordJourneyEvent(ctx.activeOrg!.id, "first_publish");
     await writeAuditLog(payload, {
       organisationId: ctx.activeOrg!.id,
       actorId: ctx.user.id,
-      action: "report.publish",
+      action: "report.created",
       entityType: "reports",
       entityId: report.id,
-      after: { framework, version: nextVersion },
+      after: {
+        framework,
+        version: nextVersion,
+        status: "draft",
+      },
     });
 
-    let diff: ReturnType<typeof diffSnapshots> = [];
-    if (existing.docs[0]?.snapshot) {
-      diff = diffSnapshots(existing.docs[0].snapshot as ReportSnapshot, snapshot);
-    }
-
-    const origin = new URL(req.url).origin;
     return NextResponse.json({
-      ok: true,
       id: report.id,
       version: nextVersion,
-      shareUrl: `${origin}/r/${shareToken}`,
-      assuranceUrl: `${origin}/a/${assuranceToken}`,
-      diff,
+      framework,
+      status: "draft",
+      changes: diff,
     });
   });
 }

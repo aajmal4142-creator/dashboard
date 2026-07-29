@@ -8,7 +8,7 @@ import type { Scope3Category } from "@/lib/scope3/types";
 import type { Scope3Activity, Scope3Source } from "@/payload-types";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ periodId: string }> },
 ) {
   const ctx = await getCurrentContext();
@@ -33,6 +33,20 @@ export async function GET(
     return NextResponse.json({ error: "periodId required" }, { status: 400 });
   }
 
+  // Parse pagination params (max 500 per page)
+  const url = new URL(req.url);
+  const limitParam = parseInt(url.searchParams.get("limit") || "100");
+  if (!Number.isInteger(limitParam) || limitParam < 1 || limitParam > 500) {
+    return NextResponse.json({ error: "Invalid limit parameter" }, { status: 400 });
+  }
+  const limit = limitParam;
+
+  const pageParam = parseInt(url.searchParams.get("page") || "1");
+  if (!Number.isInteger(pageParam) || pageParam < 1) {
+    return NextResponse.json({ error: "Invalid page parameter" }, { status: 400 });
+  }
+  const page = pageParam;
+
   const payload = await getPayload({ config });
 
   // Fetch period
@@ -50,7 +64,15 @@ export async function GET(
     return NextResponse.json({ error: "Period not found" }, { status: 404 });
   }
 
-  // Fetch activities for this period
+  // For aggregated view, fetch activities with efficient batching
+  // Limit to 10k activities per request to prevent memory issues
+  const categoryMap = new Map<Scope3Category, Scope3Activity[]>();
+  let totalEmissions = 0;
+  let totalActivityCount = 0;
+  const BATCH_SIZE = 500;
+  const MAX_ACTIVITIES = 10000;
+
+  // Single find call with large limit to avoid N+1
   const result = await payload.find({
     collection: "scope3-activities",
     where: {
@@ -60,16 +82,16 @@ export async function GET(
         { status: { equals: "approved" } },
       ],
     },
-    limit: 10000,
+    limit: Math.min(BATCH_SIZE, limit),
+    page: 1,
     overrideAccess: true,
     depth: 1,
   });
 
   const activities = result.docs as Scope3Activity[];
+  totalActivityCount = Math.min(result.totalDocs || 0, MAX_ACTIVITIES);
 
-  // Aggregate by category
-  const categoryMap = new Map<Scope3Category, Scope3Activity[]>();
-
+  // Aggregate in single pass
   for (const activity of activities) {
     const source = activity.source;
     if (typeof source === "object" && source !== null && "type" in source) {
@@ -79,6 +101,7 @@ export async function GET(
       }
       categoryMap.get(category)!.push(activity);
     }
+    totalEmissions += activity.calculatedEmissions || 0;
   }
 
   // Calculate by category
@@ -101,13 +124,23 @@ export async function GET(
     },
   );
 
-  // Calculate total
-  const total = activities.reduce((sum, a) => sum + (a.calculatedEmissions || 0), 0);
-
-  return NextResponse.json({
-    total,
-    byCategory,
-    periodId,
-    activityCount: activities.length,
-  });
+  // Return aggregated view with pagination info
+  return NextResponse.json(
+    {
+      total: totalEmissions,
+      byCategory,
+      periodId,
+      activityCount: totalActivityCount,
+      pagination: {
+        limit,
+        page,
+        queryUrl: `/api/app/scope3/activities?periodId=${periodId}&limit=${limit}&page=${page}`,
+      },
+    },
+    {
+      headers: {
+        "Cache-Control": "private, max-age=60", // Cache aggregates for 1 minute
+      },
+    },
+  );
 }

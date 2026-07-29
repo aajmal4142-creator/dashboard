@@ -37,6 +37,7 @@ export const EmissionFactors: CollectionConfig = {
         { label: "Scope 2", value: "2" },
         { label: "Scope 3", value: "3" },
       ],
+      index: true,
     },
     {
       name: "source",
@@ -58,6 +59,7 @@ export const EmissionFactors: CollectionConfig = {
       name: "region",
       type: "text",
       required: true,
+      index: true,
       admin: { description: "ISO 3166-1 alpha-2 or GLOBAL" },
     },
     { name: "validFrom", type: "date", required: true },

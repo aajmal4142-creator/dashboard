@@ -158,6 +158,7 @@ export const Organisations: CollectionConfig = {
       name: "plan",
       type: "select",
       defaultValue: "free",
+      index: true,
       options: [
         { label: "Free", value: "free" },
         { label: "Pro", value: "pro" },
@@ -168,6 +169,7 @@ export const Organisations: CollectionConfig = {
       name: "subscriptionStatus",
       type: "select",
       defaultValue: "none",
+      index: true,
       options: [
         { label: "None", value: "none" },
         { label: "Active", value: "active" },

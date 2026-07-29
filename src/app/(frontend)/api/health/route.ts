@@ -1,44 +1,53 @@
-import { getPayload } from "payload";
 import { NextResponse } from "next/server";
+import { getHealthCheck } from "@/lib/monitoring/metrics";
+import { stripeCircuitBreaker } from "@/lib/billing/circuitBreaker";
 
-import { log } from "@/lib/observability/log";
-import config from "@/payload.config";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
+/**
+ * GET /api/health
+ * Health check endpoint for monitoring and load balancers
+ */
 export async function GET() {
-  const started = Date.now();
   try {
-    const payload = await getPayload({ config });
-    // Lightweight ping — count orgs with limit 0 still hits DB.
-    await payload.find({
-      collection: "organisations",
-      limit: 0,
-      overrideAccess: true,
-    });
-    const body = {
-      ok: true as const,
-      service: "clearesg",
-      db: "up",
-      ms: Date.now() - started,
-      ts: new Date().toISOString(),
-    };
-    log.info("health.ok", { ms: body.ms });
-    return NextResponse.json(body);
-  } catch (err) {
-    log.error("health.fail", {
-      ms: Date.now() - started,
-      error: err instanceof Error ? err.message : "unknown",
-    });
+    const health = getHealthCheck();
+    const stripeState = stripeCircuitBreaker.getState();
+
+    const statusCode =
+      health.status === "healthy" ? 200 : health.status === "degraded" ? 503 : 500;
+
     return NextResponse.json(
       {
-        ok: false,
-        service: "clearesg",
-        db: "down",
-        ms: Date.now() - started,
+        status: health.status,
+        timestamp: health.timestamp,
+        uptime: Math.round(health.uptime),
+        metrics: health.metrics,
+        services: {
+          ...health.services,
+          stripe:
+            stripeState === "closed"
+              ? "healthy"
+              : stripeState === "half-open"
+                ? "degraded"
+                : "unavailable",
+        },
       },
-      { status: 503 },
+      { status: statusCode },
+    );
+  } catch (error) {
+    return NextResponse.json(
+      {
+        status: "unhealthy",
+        timestamp: new Date(),
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
     );
   }
+}
+
+/**
+ * GET /api/health/live
+ * Liveness probe - quick check if service is running
+ */
+export async function HEAD() {
+  return new NextResponse(null, { status: 200 });
 }

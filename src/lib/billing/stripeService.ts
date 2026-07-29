@@ -2,6 +2,8 @@ import type Stripe from "stripe";
 import type { Payload } from "payload";
 import type { Plan, BillingCycle, Subscription } from "./types";
 import { getStripe } from "./stripe";
+import { stripeCircuitBreaker } from "./circuitBreaker";
+import { logger } from "@/lib/logging/logger";
 
 export class StripeService {
   private payload: Payload;
@@ -14,6 +16,7 @@ export class StripeService {
 
   /**
    * Create a Stripe customer for an organisation
+   * IMPORTANT: Call this only from authorized API routes that verify user owns the org
    */
   async createCustomer(organisation: {
     id: string;
@@ -30,10 +33,8 @@ export class StripeService {
       });
 
       // Update organisation with Stripe customer ID
-
       await this.payload.update({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        collection: "organisations" as any,
+        collection: "organisations",
         id: organisation.id,
         data: {
           stripeCustomerId: customer.id,
@@ -49,14 +50,14 @@ export class StripeService {
   }
 
   /**
-   * Create a subscription in Stripe
+   * Create a subscription in Stripe with circuit breaker
    */
   async createSubscription(
     customerId: string,
     plan: Plan,
     billingCycle: BillingCycle,
   ): Promise<string> {
-    try {
+    return stripeCircuitBreaker.execute(async () => {
       const priceId =
         billingCycle === "annual"
           ? this.getAnnualPriceId(plan.name)
@@ -76,11 +77,14 @@ export class StripeService {
         expand: ["latest_invoice.payment_intent"],
       });
 
+      logger.info("Stripe subscription created", {
+        customerId,
+        subscriptionId: subscription.id,
+        planName: plan.name,
+      });
+
       return subscription.id;
-    } catch (error) {
-      console.error("Error creating Stripe subscription:", error);
-      throw error;
-    }
+    });
   }
 
   /**
@@ -414,8 +418,7 @@ export class StripeService {
     // Find and update the invoice in Payload
 
     const invoices = await this.payload.find({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      collection: "invoices" as any,
+      collection: "invoices",
       where: {
         stripeInvoiceId: { equals: invoice.id },
       },
@@ -428,14 +431,13 @@ export class StripeService {
       const invoiceAny = invoice as any;
 
       await this.payload.update({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        collection: "invoices" as any,
+        collection: "invoices",
         id: invoices.docs[0].id,
         data: {
           status: "paid",
           paidDate: invoiceAny.status_transitions?.paid_at
-            ? new Date(invoiceAny.status_transitions.paid_at * 1000)
-            : new Date(),
+            ? new Date(invoiceAny.status_transitions.paid_at * 1000).toISOString()
+            : new Date().toISOString(),
         },
         overrideAccess: true,
       });
@@ -457,8 +459,7 @@ export class StripeService {
     // Find and update the invoice in Payload
 
     const invoices = await this.payload.find({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      collection: "invoices" as any,
+      collection: "invoices",
       where: {
         stripeInvoiceId: { equals: invoice.id },
       },
@@ -468,8 +469,7 @@ export class StripeService {
 
     if (invoices.docs?.[0]) {
       await this.payload.update({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        collection: "invoices" as any,
+        collection: "invoices",
         id: invoices.docs[0].id,
         data: {
           status: "failed",
@@ -480,14 +480,52 @@ export class StripeService {
   }
 
   /**
+   * Retry wrapper for transient Stripe API failures
+   */
+  private async retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    maxAttempts: number = 3,
+  ): Promise<T> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error as Error;
+
+        // Only retry on transient errors (timeouts, rate limits)
+        const isTransient =
+          error instanceof Error &&
+          (error.message.includes("timeout") ||
+            error.message.includes("429") ||
+            error.message.includes("rate"));
+
+        if (!isTransient || attempt === maxAttempts) {
+          throw error;
+        }
+
+        // Exponential backoff: 100ms, 200ms, 400ms
+        const delayMs = Math.pow(2, attempt - 1) * 100;
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+        logger.info(`Retrying Stripe operation (attempt ${attempt}/${maxAttempts})`, {
+          error: lastError.message,
+        });
+      }
+    }
+
+    throw lastError || new Error("Max retries exceeded");
+  }
+
+  /**
    * Private: Get organisation ID from Stripe customer
    */
   private async getOrganisationIdFromCustomer(
     customerId: string,
   ): Promise<string | null> {
     const orgs = await this.payload.find({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      collection: "organisations" as any,
+      collection: "organisations",
       where: {
         stripeCustomerId: { equals: customerId },
       },

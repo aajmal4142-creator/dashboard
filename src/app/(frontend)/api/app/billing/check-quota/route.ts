@@ -15,18 +15,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
+    let body: { action?: string; count?: number };
+    try {
+      body = (await request.json()) as { action?: string; count?: number };
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 },
+      );
+    }
+
     const { action, count = 1 } = body;
 
     if (!action) {
       return NextResponse.json({ error: "action is required" }, { status: 400 });
     }
 
-    if (!["create_datapoint", "publish_report", "api_call", "store_file"].includes(action)) {
+    if (!Number.isInteger(count) || count < 1) {
       return NextResponse.json(
-        { error: "Invalid action" },
-        { status: 400 }
+        { error: "count must be a positive integer" },
+        { status: 400 },
       );
+    }
+
+    if (
+      !["create_datapoint", "publish_report", "api_call", "store_file"].includes(action)
+    ) {
+      return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
     const payload = await getPayload({ config });
@@ -35,7 +50,7 @@ export async function POST(request: Request) {
     const result = await enforcer.checkQuota(
       ctx.activeOrg.id,
       action as "create_datapoint" | "publish_report" | "api_call" | "store_file",
-      count
+      count,
     );
 
     return NextResponse.json(result);

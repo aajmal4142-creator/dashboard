@@ -9,7 +9,7 @@ import config from "@/payload.config";
  */
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const ctx = await getCurrentContext();
@@ -21,8 +21,7 @@ export async function GET(
     const payload = await getPayload({ config });
 
     const invoice = await payload.findByID({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      collection: "invoices" as any,
+      collection: "invoices",
       id,
     });
 
@@ -31,10 +30,15 @@ export async function GET(
     }
 
     // Verify invoice belongs to user's org
-    if (invoice.organisation !== ctx.activeOrg.id) {
+    const invoiceOrgId =
+      typeof invoice.organisation === "object"
+        ? invoice.organisation.id
+        : String(invoice.organisation);
+
+    if (invoiceOrgId !== ctx.activeOrg.id) {
       return NextResponse.json(
         { error: "You don't have access to this invoice" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 

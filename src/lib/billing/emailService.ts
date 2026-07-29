@@ -1,5 +1,6 @@
 import type { Invoice, Subscription, OverageCharge } from "./types";
 import type { Payload } from "payload";
+import { logger } from "@/lib/logging/logger";
 
 interface UsageAlert {
   metric: string;
@@ -18,7 +19,7 @@ export class EmailService {
     this.emailFrom = process.env.EMAIL_FROM || "noreply@clearesg.ai";
 
     if (!this.resendApiKey) {
-      console.warn("RESEND_API_KEY not configured. Email sending will be disabled.");
+      logger.warn("RESEND_API_KEY not configured. Email sending will be disabled.");
     }
   }
 
@@ -197,8 +198,8 @@ export class EmailService {
         attempts++;
 
         if (attempts < maxAttempts) {
-          // Exponential backoff: 1s, 2s, 4s
-          const delayMs = Math.pow(2, attempts - 1) * 1000;
+          // Exponential backoff: 1s, 2s, 4s (increases with each retry)
+          const delayMs = Math.pow(2, attempts) * 1000;
           await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
       }

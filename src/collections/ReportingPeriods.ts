@@ -30,6 +30,7 @@ export const ReportingPeriods: CollectionConfig = {
         { label: "Locked", value: "locked" },
         { label: "Published", value: "published" },
       ],
+      index: true,
     },
     { name: "lockedAt", type: "date" },
     {

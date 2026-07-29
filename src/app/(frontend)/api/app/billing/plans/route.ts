@@ -1,6 +1,7 @@
 import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 import { getCurrentContext } from "@/lib/auth";
+import { CACHE_HEADERS } from "@/lib/api/cache-headers";
 import config from "@/payload.config";
 
 /**
@@ -24,10 +25,15 @@ export async function GET() {
       limit: 100,
     });
 
-    return NextResponse.json({
-      plans: plans.docs || [],
-      total: plans.totalDocs,
-    });
+    return NextResponse.json(
+      {
+        plans: plans.docs || [],
+        total: plans.totalDocs,
+      },
+      {
+        headers: CACHE_HEADERS.STATIC, // Plans rarely change
+      },
+    );
   } catch (error) {
     console.error("Error fetching plans:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
