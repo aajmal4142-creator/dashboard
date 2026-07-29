@@ -1,13 +1,22 @@
 import { getPayload } from "payload";
 import config from "@/payload.config";
 import { GHG_PROTOCOL_REQUIREMENTS } from "./ghgProtocolRules";
-import type {
-  DataQualityAssessment,
-  DataQualityInput,
-} from "./dataQualityAssessor";
-import { assessDataQuality } from "./dataQualityAssessor";
-import type { BoundaryDefinition, BoundaryValidationResult } from "./boundaryValidator";
-import { validateBoundary } from "./boundaryValidator";
+import type { DataQualityAssessment } from "./dataQualityAssessor";
+
+type EvidenceDocumentType =
+  | "data-source"
+  | "calculation-sheet"
+  | "policy-document"
+  | "audit-report"
+  | "third-party"
+  | "other";
+
+function relationId(
+  value: string | { id: string } | null | undefined,
+): string | undefined {
+  if (!value) return undefined;
+  return typeof value === "string" ? value : value.id;
+}
 
 export interface ComplianceChecklistResponse {
   complianceId: string;
@@ -38,19 +47,19 @@ export interface ComplianceChecklistResponse {
 
 export async function getCompliance(
   organisationId: string,
-  complianceId: string
+  complianceId: string,
 ): Promise<ComplianceChecklistResponse | null> {
   const payload = await getPayload({ config });
 
   const compliance = await payload.findByID({
     collection: "ghg-protocol-compliance",
     id: complianceId,
-    where: {
-      organisation: { equals: organisationId },
-    },
   });
 
   if (!compliance) return null;
+
+  const complianceOrgId = relationId(compliance.organisation);
+  if (complianceOrgId !== organisationId) return null;
 
   const checkpoints = await payload.find({
     collection: "compliance-checkpoints",
@@ -62,20 +71,24 @@ export async function getCompliance(
 
   return {
     complianceId: compliance.id,
-    organisationId: compliance.organisation,
+    organisationId: complianceOrgId,
     complianceYear: compliance.complianceYear,
-    checkpoints: (checkpoints.docs || []).map(cp => ({
+    checkpoints: (checkpoints.docs || []).map((cp) => ({
       checkpointId: cp.checkpointId,
       category: cp.category,
       requirementName: cp.requirementName,
       requirementCode: cp.requirementCode,
       requirementText: cp.requirementText,
       status: cp.status,
-      applicableScopes: cp.applicableScopes,
-      evidenceLinks: cp.evidenceLinks || [],
-      verifiedBy: cp.verifiedBy?.id,
-      verifiedAt: cp.verifiedAt,
-      notes: cp.notes,
+      applicableScopes: (cp.applicableScopes || []) as ("scope1" | "scope2" | "scope3")[],
+      evidenceLinks: (cp.evidenceLinks || []).map((link) => ({
+        url: link.url || "",
+        documentType: link.documentType || "other",
+        description: link.description || "",
+      })),
+      verifiedBy: relationId(cp.verifiedBy),
+      verifiedAt: cp.verifiedAt ?? undefined,
+      notes: cp.notes ?? undefined,
     })),
     complianceScore: compliance.complianceScore,
     dataQualityScore: compliance.dataQualityScore,
@@ -92,10 +105,10 @@ export async function updateCheckpoint(
     notes?: string;
     evidenceLinks?: Array<{
       url: string;
-      documentType: string;
+      documentType: EvidenceDocumentType;
       description: string;
     }>;
-  }
+  },
 ): Promise<void> {
   const payload = await getPayload({ config });
 
@@ -128,7 +141,7 @@ export async function updateCheckpoint(
 export async function verifyCheckpoint(
   organisationId: string,
   checkpointId: string,
-  userId: string
+  userId: string,
 ): Promise<void> {
   const payload = await getPayload({ config });
 
@@ -153,21 +166,24 @@ export async function verifyCheckpoint(
     data: {
       status: "verified",
       verifiedBy: userId,
-      verifiedAt: new Date(),
+      verifiedAt: new Date().toISOString(),
     },
   });
 }
 
 export async function calculateComplianceScore(
   organisationId: string,
-  complianceId: string
+  complianceId: string,
 ): Promise<number> {
   const payload = await getPayload({ config });
 
   const checkpoints = await payload.find({
     collection: "compliance-checkpoints",
     where: {
-      ghgProtocolCompliance: { equals: complianceId },
+      and: [
+        { ghgProtocolCompliance: { equals: complianceId } },
+        { organisation: { equals: organisationId } },
+      ],
     },
     limit: 100,
   });
@@ -180,7 +196,7 @@ export async function calculateComplianceScore(
     "in-progress": 25,
     completed: 75,
     verified: 100,
-    waived: 100, // Waived counts as complete
+    waived: 100,
   };
 
   const totalScore = docs.reduce((sum, checkpoint) => {
@@ -194,7 +210,7 @@ export async function calculateComplianceScore(
 export async function initializeCompliance(
   organisationId: string,
   complianceYear: string,
-  userId: string
+  userId: string,
 ): Promise<string> {
   const payload = await getPayload({ config });
 
@@ -215,7 +231,6 @@ export async function initializeCompliance(
     },
   });
 
-  // Create all 50+ checkpoints for this compliance record
   for (const requirement of GHG_PROTOCOL_REQUIREMENTS) {
     await payload.create({
       collection: "compliance-checkpoints",
@@ -234,7 +249,6 @@ export async function initializeCompliance(
     });
   }
 
-  // Log creation
   await payload.create({
     collection: "compliance-history",
     data: {
@@ -256,25 +270,24 @@ export async function lockCompliance(
   organisationId: string,
   complianceId: string,
   userId: string,
-  reason: string
+  reason: string,
 ): Promise<void> {
   const payload = await getPayload({ config });
 
   const compliance = await payload.findByID({
     collection: "ghg-protocol-compliance",
     id: complianceId,
-    where: {
-      organisation: { equals: organisationId },
-    },
   });
 
-  if (!compliance) {
+  if (!compliance || relationId(compliance.organisation) !== organisationId) {
     throw new Error("Compliance record not found");
   }
 
   if (compliance.isLocked) {
     throw new Error("Compliance already locked; cannot be modified");
   }
+
+  const lockedAt = new Date().toISOString();
 
   await payload.update({
     collection: "ghg-protocol-compliance",
@@ -283,13 +296,12 @@ export async function lockCompliance(
       isLocked: true,
       isVerified: true,
       verifiedBy: userId,
-      verifiedAt: new Date(),
+      verifiedAt: lockedAt,
       lockedBy: userId,
-      lockedAt: new Date(),
+      lockedAt,
     },
   });
 
-  // Log lock
   await payload.create({
     collection: "compliance-history",
     data: {
@@ -312,19 +324,16 @@ export async function validateAndUpdateEmissions(
   scope1: number,
   scope2: number,
   scope3: number,
-  userId: string
+  userId: string,
 ): Promise<void> {
   const payload = await getPayload({ config });
 
   const compliance = await payload.findByID({
     collection: "ghg-protocol-compliance",
     id: complianceId,
-    where: {
-      organisation: { equals: organisationId },
-    },
   });
 
-  if (!compliance) {
+  if (!compliance || relationId(compliance.organisation) !== organisationId) {
     throw new Error("Compliance record not found");
   }
 
@@ -332,7 +341,6 @@ export async function validateAndUpdateEmissions(
     throw new Error("Cannot modify locked compliance record");
   }
 
-  // Validate emissions are reasonable
   const totalEmissions = scope1 + scope2 + scope3;
   if (totalEmissions < 0) {
     throw new Error("Total emissions cannot be negative");
@@ -352,7 +360,6 @@ export async function validateAndUpdateEmissions(
     },
   });
 
-  // Log update
   await payload.create({
     collection: "compliance-history",
     data: {
@@ -373,7 +380,7 @@ export async function updateDataQuality(
   organisationId: string,
   complianceId: string,
   assessment: DataQualityAssessment,
-  userId: string
+  userId: string,
 ): Promise<void> {
   const payload = await getPayload({ config });
 
@@ -391,7 +398,6 @@ export async function updateDataQuality(
     },
   });
 
-  // Log assessment
   await payload.create({
     collection: "compliance-history",
     data: {

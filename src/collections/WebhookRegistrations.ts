@@ -1,4 +1,4 @@
-import type { CollectionConfig, Access } from "payload";
+import type { CollectionConfig } from "payload";
 import { tenantAccess } from "@/lib/access";
 
 const webhookRegistrationAccess = tenantAccess({ writeMin: "admin" });
@@ -30,7 +30,7 @@ export const WebhookRegistrations: CollectionConfig = {
       name: "endpoint_url",
       type: "text",
       required: true,
-      validate: (val) => {
+      validate: (val: unknown) => {
         if (!val || typeof val !== "string") return true;
         try {
           new URL(val);
@@ -50,7 +50,9 @@ export const WebhookRegistrations: CollectionConfig = {
       name: "events",
       type: "json",
       required: true,
-      admin: { description: 'Array of event types: ["datapoint.created", "datapoint.updated"]' },
+      admin: {
+        description: 'Array of event types: ["datapoint.created", "datapoint.updated"]',
+      },
     },
     {
       name: "status",

@@ -101,9 +101,9 @@ describe("ABAC Policy Evaluator", () => {
 
   describe("mergeCapabilities", () => {
     it("should start with role defaults", () => {
-      const defaults = [
-        { action: "view", resource: "datapoint", scope: "organisation" as const },
-        { action: "create", resource: "datapoint", scope: "organisation" as const },
+      const defaults: Capability[] = [
+        { action: "view", resource: "datapoint", scope: "organisation" },
+        { action: "create", resource: "datapoint", scope: "organisation" },
       ];
 
       const merged = mergeCapabilities(defaults, []);
@@ -114,12 +114,12 @@ describe("ABAC Policy Evaluator", () => {
     });
 
     it("should override with custom capabilities", () => {
-      const defaults = [
-        { action: "view", resource: "datapoint", scope: "organisation" as const },
+      const defaults: Capability[] = [
+        { action: "view", resource: "datapoint", scope: "organisation" },
       ];
 
-      const custom = [
-        { action: "view", resource: "datapoint", scope: "all" as const, isGrant: true },
+      const custom: Capability[] = [
+        { action: "view", resource: "datapoint", scope: "all", isGrant: true },
       ];
 
       const merged = mergeCapabilities(defaults, custom);
@@ -130,12 +130,12 @@ describe("ABAC Policy Evaluator", () => {
     });
 
     it("should add new capabilities from custom", () => {
-      const defaults = [
-        { action: "view", resource: "datapoint", scope: "organisation" as const },
+      const defaults: Capability[] = [
+        { action: "view", resource: "datapoint", scope: "organisation" },
       ];
 
-      const custom = [
-        { action: "manage-policies", resource: "policy", scope: "organisation" as const },
+      const custom: Capability[] = [
+        { action: "manage-policies", resource: "policy", scope: "organisation" },
       ];
 
       const merged = mergeCapabilities(defaults, custom);
@@ -145,13 +145,13 @@ describe("ABAC Policy Evaluator", () => {
     });
 
     it("should remove capabilities marked with isGrant=false", () => {
-      const defaults = [
-        { action: "view", resource: "datapoint", scope: "organisation" as const },
-        { action: "edit", resource: "datapoint", scope: "organisation" as const },
+      const defaults: Capability[] = [
+        { action: "view", resource: "datapoint", scope: "organisation" },
+        { action: "edit", resource: "datapoint", scope: "organisation" },
       ];
 
-      const custom = [
-        { action: "edit", resource: "datapoint", scope: "all" as const, isGrant: false },
+      const custom: Capability[] = [
+        { action: "edit", resource: "datapoint", scope: "all", isGrant: false },
       ];
 
       const merged = mergeCapabilities(defaults, custom);
@@ -162,32 +162,32 @@ describe("ABAC Policy Evaluator", () => {
     });
 
     it("should handle complex override scenarios", () => {
-      const defaults = [
-        { action: "view", resource: "datapoint", scope: "organisation" as const },
-        { action: "create", resource: "datapoint", scope: "organisation" as const },
-        { action: "edit", resource: "datapoint", scope: "own" as const },
-        { action: "delete", resource: "datapoint", scope: "organisation" as const },
+      const defaults: Capability[] = [
+        { action: "view", resource: "datapoint", scope: "organisation" },
+        { action: "create", resource: "datapoint", scope: "organisation" },
+        { action: "edit", resource: "datapoint", scope: "own" },
+        { action: "delete", resource: "datapoint", scope: "organisation" },
       ];
 
-      const custom = [
+      const custom: Capability[] = [
         {
           action: "edit",
           resource: "datapoint",
-          scope: "organisation" as const,
+          scope: "organisation",
           isGrant: true,
-        }, // Upgrade scope
+        },
         {
           action: "delete",
           resource: "datapoint",
-          scope: "all" as const,
+          scope: "all",
           isGrant: false,
-        }, // Revoke delete
+        },
         {
           action: "approve",
           resource: "datapoint",
-          scope: "organisation" as const,
+          scope: "organisation",
           isGrant: true,
-        }, // Add new
+        },
       ];
 
       const merged = mergeCapabilities(defaults, custom);

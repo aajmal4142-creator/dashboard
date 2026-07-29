@@ -1,22 +1,17 @@
 import { NextResponse } from "next/server";
 import { getCurrentContext } from "@/lib/auth";
-import { assertMinRole } from "@/lib/access";
-import {
-  deleteWebhook,
-  ApiError,
-  ErrorCodes,
-  createErrorResponse,
-} from "@/lib/webhooks";
+import { hasMinRole } from "@/lib/access/membership";
+import { deleteWebhook, ApiError, ErrorCodes, createErrorResponse } from "@/lib/webhooks";
 
 export async function DELETE(
-  req: Request,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
     const ctx = await getCurrentContext();
 
-    if (!ctx.activeOrg) {
+    if (!ctx.activeOrg || !ctx.role) {
       return NextResponse.json(
         createErrorResponse(
           new ApiError(ErrorCodes.UNAUTHORIZED, 403, "No active organisation"),
@@ -25,9 +20,7 @@ export async function DELETE(
       );
     }
 
-    // Check ABAC: admin only
-    const isAdmin = await assertMinRole(ctx.activeOrg.id, "admin");
-    if (!isAdmin) {
+    if (!hasMinRole(ctx.role, "admin")) {
       return NextResponse.json(
         createErrorResponse(
           new ApiError(ErrorCodes.UNAUTHORIZED, 403, "Admin access required"),
@@ -43,9 +36,8 @@ export async function DELETE(
     const message = err instanceof Error ? err.message : "Delete failed";
     const statusCode = message.includes("not found") ? 404 : 400;
 
-    return NextResponse.json(
-      createErrorResponse(new Error(message)),
-      { status: statusCode },
-    );
+    return NextResponse.json(createErrorResponse(new Error(message)), {
+      status: statusCode,
+    });
   }
 }

@@ -25,9 +25,10 @@ describe("syncEcoVadisSuppliers", () => {
       await syncEcoVadisSuppliers("org-test-123");
     } catch (error) {
       // Expected: auth/connection error
-      expect(String(error)).toContain(
-        "EcoVadis not connected" || "not configured",
-      );
+      expect(
+        String(error).includes("EcoVadis not connected") ||
+          String(error).includes("not configured"),
+      ).toBe(true);
     }
   });
 

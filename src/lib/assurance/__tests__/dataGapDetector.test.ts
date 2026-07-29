@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { DataGapDetector, type EmissionsData } from "../dataGapDetector";
 
 describe("DataGapDetector", () => {
@@ -69,9 +69,7 @@ describe("DataGapDetector", () => {
 
       const gaps = await detector.detectGaps("brsr", emissions, "all");
 
-      expect(gaps.some((g) => g.metric === "brsr_renewable_energy_pct")).toBe(
-        true
-      );
+      expect(gaps.some((g) => g.metric === "brsr_renewable_energy_pct")).toBe(true);
     });
 
     it("should detect GRI-specific gaps", async () => {

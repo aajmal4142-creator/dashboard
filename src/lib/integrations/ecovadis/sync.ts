@@ -21,9 +21,7 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function syncEcoVadisSuppliers(
-  organisationId: string,
-): Promise<SyncResult> {
+export async function syncEcoVadisSuppliers(organisationId: string): Promise<SyncResult> {
   const startedAt = new Date();
   const result: SyncResult = {
     success: true,
@@ -79,9 +77,7 @@ export async function syncEcoVadisSuppliers(
 
       const dbSupplier = supplierMap.get(ecoVadisSupplier.businessName);
       if (!dbSupplier) {
-        result.errors.push(
-          `Supplier not found in DB: ${ecoVadisSupplier.businessName}`,
-        );
+        result.errors.push(`Supplier not found in DB: ${ecoVadisSupplier.businessName}`);
         result.suppliersWithErrors += 1;
         continue;
       }
@@ -113,7 +109,8 @@ export async function syncEcoVadisSuppliers(
       if (!scoreData) continue;
 
       const riskData = mapEcoVadisScoreToRisk(scoreData.score);
-      const assessmentDate = new Date(scoreData.assessmentDate);
+      const assessmentDate = new Date(scoreData.assessmentDate).toISOString();
+      const calculatedAt = new Date().toISOString();
 
       // Update supplier with EcoVadis data
       await payload.update({
@@ -132,7 +129,7 @@ export async function syncEcoVadisSuppliers(
             score: riskData.score,
             tier: riskData.tier,
             flags: riskData.flags,
-            calculatedAt: new Date(),
+            calculatedAt,
           },
         },
         overrideAccess: true,
@@ -154,10 +151,9 @@ export async function syncEcoVadisSuppliers(
         collection: "ecovadis-connections",
         id: connection.docs[0].id,
         data: {
-          lastSyncAt: new Date(),
+          lastSyncAt: new Date().toISOString(),
           lastSyncStatus: result.errors.length === 0 ? "success" : "failed",
-          errorMessage:
-            result.errors.length > 0 ? result.errors.join("; ") : null,
+          errorMessage: result.errors.length > 0 ? result.errors.join("; ") : null,
           syncCount: (connection.docs[0].syncCount || 0) + 1,
           totalSuppliersSynced: result.suppliersUpdated,
         },

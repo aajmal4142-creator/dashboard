@@ -1,6 +1,18 @@
+export type ComplianceCategory =
+  | "scope-boundaries"
+  | "data-collection"
+  | "calculation-methods"
+  | "emission-factors"
+  | "quality-assurance"
+  | "documentation"
+  | "organizational-boundaries"
+  | "operational-boundaries"
+  | "restatements"
+  | "uncertainty";
+
 export interface ComplianceRequirement {
   checkpointId: string;
-  category: string;
+  category: ComplianceCategory;
   requirementName: string;
   requirementCode: string;
   requirementText: string;
@@ -43,8 +55,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "operational-boundaries",
     requirementName: "Define Scope 1 boundaries",
     requirementCode: "Section 3.2",
-    requirementText:
-      "Scope 1: Direct GHG emissions from owned or controlled sources",
+    requirementText: "Scope 1: Direct GHG emissions from owned or controlled sources",
     applicableScopes: ["scope1"],
   },
   {
@@ -92,8 +103,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "operational-boundaries",
     requirementName: "Identify material Scope 3 categories",
     requirementCode: "Section 5.2.1",
-    requirementText:
-      "Determine which of 15 Scope 3 categories are material and relevant",
+    requirementText: "Determine which of 15 Scope 3 categories are material and relevant",
     applicableScopes: ["scope3"],
   },
 
@@ -130,8 +140,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "data-collection",
     requirementName: "Consolidation periods",
     requirementCode: "Section 6.2.3",
-    requirementText:
-      "Use consistent calendar year or fiscal year for all entities",
+    requirementText: "Use consistent calendar year or fiscal year for all entities",
     applicableScopes: ["scope1", "scope2", "scope3"],
   },
 
@@ -159,8 +168,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "calculation-methods",
     requirementName: "GWP values selection",
     requirementCode: "Section 7.2",
-    requirementText:
-      "Use consistent IPCC GWP values (100-year global warming potential)",
+    requirementText: "Use consistent IPCC GWP values (100-year global warming potential)",
     applicableScopes: ["scope1", "scope2", "scope3"],
   },
   {
@@ -208,8 +216,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "scope-boundaries",
     requirementName: "Completeness check",
     requirementCode: "Section 9.1",
-    requirementText:
-      "Ensure all material sources within defined boundaries are included",
+    requirementText: "Ensure all material sources within defined boundaries are included",
     applicableScopes: ["scope1", "scope2", "scope3"],
   },
   {
@@ -217,8 +224,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "scope-boundaries",
     requirementName: "Exclusion justification",
     requirementCode: "Section 9.1.1",
-    requirementText:
-      "Document and justify any excluded sources or categories",
+    requirementText: "Document and justify any excluded sources or categories",
     applicableScopes: ["scope1", "scope2", "scope3"],
   },
   {
@@ -302,8 +308,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "documentation",
     requirementName: "Assumptions documentation",
     requirementCode: "Section 11.2",
-    requirementText:
-      "Document all assumptions and estimates used in calculations",
+    requirementText: "Document all assumptions and estimates used in calculations",
     applicableScopes: ["scope1", "scope2", "scope3"],
   },
 
@@ -351,8 +356,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "uncertainty",
     requirementName: "Sensitivity analysis",
     requirementCode: "Section 13.1.1",
-    requirementText:
-      "Perform sensitivity analysis on key assumptions and parameters",
+    requirementText: "Perform sensitivity analysis on key assumptions and parameters",
     applicableScopes: ["scope1", "scope2", "scope3"],
   },
 
@@ -371,8 +375,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "data-collection",
     requirementName: "Data gap identification",
     requirementCode: "Section 6.3",
-    requirementText:
-      "Identify data gaps and document methods for addressing them",
+    requirementText: "Identify data gaps and document methods for addressing them",
     applicableScopes: ["scope1", "scope2", "scope3"],
   },
   {
@@ -380,8 +383,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "calculation-methods",
     requirementName: "Biogenic emissions tracking",
     requirementCode: "Section 7.3",
-    requirementText:
-      "Track and separately report biogenic CO2 emissions (not in total)",
+    requirementText: "Track and separately report biogenic CO2 emissions (not in total)",
     applicableScopes: ["scope1"],
   },
   {
@@ -398,8 +400,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "quality-assurance",
     requirementName: "Calculation software validation",
     requirementCode: "Section 10.4",
-    requirementText:
-      "Validate any spreadsheets or software used for calculations",
+    requirementText: "Validate any spreadsheets or software used for calculations",
     applicableScopes: ["scope1", "scope2", "scope3"],
   },
   {
@@ -425,8 +426,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "scope-boundaries",
     requirementName: "Comparative analysis",
     requirementCode: "Section 9.3",
-    requirementText:
-      "Report year-on-year comparison and analyze material changes",
+    requirementText: "Report year-on-year comparison and analyze material changes",
     applicableScopes: ["scope1", "scope2", "scope3"],
   },
   {
@@ -434,8 +434,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "data-collection",
     requirementName: "Primary data preference",
     requirementCode: "Section 6.4",
-    requirementText:
-      "Prioritize primary data over secondary data for accuracy",
+    requirementText: "Prioritize primary data over secondary data for accuracy",
     applicableScopes: ["scope1", "scope2", "scope3"],
   },
   {
@@ -443,8 +442,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "organizational-boundaries",
     requirementName: "Boundary changes documentation",
     requirementCode: "Section 2.2",
-    requirementText:
-      "Document any changes to organizational boundaries and their impact",
+    requirementText: "Document any changes to organizational boundaries and their impact",
     applicableScopes: ["scope1", "scope2", "scope3"],
   },
   {
@@ -452,8 +450,7 @@ export const GHG_PROTOCOL_REQUIREMENTS: ComplianceRequirement[] = [
     category: "quality-assurance",
     requirementName: "Internal review procedures",
     requirementCode: "Section 10.5",
-    requirementText:
-      "Implement internal review procedures before finalizing inventory",
+    requirementText: "Implement internal review procedures before finalizing inventory",
     applicableScopes: ["scope1", "scope2", "scope3"],
   },
   {

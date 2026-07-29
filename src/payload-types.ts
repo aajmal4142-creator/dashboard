@@ -88,18 +88,25 @@ export interface Config {
     'audit-logs': AuditLog;
     'benchmark-stats': BenchmarkStat;
     'compliance-obligations': ComplianceObligation;
+    'compliance-targets': ComplianceTarget;
+    'ghg-protocol-compliance': GhgProtocolCompliance;
+    'compliance-checkpoints': ComplianceCheckpoint;
+    'compliance-history': ComplianceHistory;
     'policy-evaluations': PolicyEvaluation;
     'framework-metrics': FrameworkMetric;
-    'compliance-targets': ComplianceTarget;
     'framework-mappings': FrameworkMapping;
     'assurance-engagements': AssuranceEngagement;
     'verification-findings': VerificationFinding;
     'assurance-reports': AssuranceReport;
     plans: Plan;
     subscriptions: Subscription;
+    'subscription-history': SubscriptionHistory;
     'usage-metrics': UsageMetric;
     invoices: Invoice;
     'payment-history': PaymentHistory;
+    'webhook-registrations': WebhookRegistration;
+    'webhook-logs': WebhookLog;
+    'ecovadis-connections': EcovadisConnection;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -128,18 +135,25 @@ export interface Config {
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     'benchmark-stats': BenchmarkStatsSelect<false> | BenchmarkStatsSelect<true>;
     'compliance-obligations': ComplianceObligationsSelect<false> | ComplianceObligationsSelect<true>;
+    'compliance-targets': ComplianceTargetsSelect<false> | ComplianceTargetsSelect<true>;
+    'ghg-protocol-compliance': GhgProtocolComplianceSelect<false> | GhgProtocolComplianceSelect<true>;
+    'compliance-checkpoints': ComplianceCheckpointsSelect<false> | ComplianceCheckpointsSelect<true>;
+    'compliance-history': ComplianceHistorySelect<false> | ComplianceHistorySelect<true>;
     'policy-evaluations': PolicyEvaluationsSelect<false> | PolicyEvaluationsSelect<true>;
     'framework-metrics': FrameworkMetricsSelect<false> | FrameworkMetricsSelect<true>;
-    'compliance-targets': ComplianceTargetsSelect<false> | ComplianceTargetsSelect<true>;
     'framework-mappings': FrameworkMappingsSelect<false> | FrameworkMappingsSelect<true>;
     'assurance-engagements': AssuranceEngagementsSelect<false> | AssuranceEngagementsSelect<true>;
     'verification-findings': VerificationFindingsSelect<false> | VerificationFindingsSelect<true>;
     'assurance-reports': AssuranceReportsSelect<false> | AssuranceReportsSelect<true>;
     plans: PlansSelect<false> | PlansSelect<true>;
     subscriptions: SubscriptionsSelect<false> | SubscriptionsSelect<true>;
+    'subscription-history': SubscriptionHistorySelect<false> | SubscriptionHistorySelect<true>;
     'usage-metrics': UsageMetricsSelect<false> | UsageMetricsSelect<true>;
     invoices: InvoicesSelect<false> | InvoicesSelect<true>;
     'payment-history': PaymentHistorySelect<false> | PaymentHistorySelect<true>;
+    'webhook-registrations': WebhookRegistrationsSelect<false> | WebhookRegistrationsSelect<true>;
+    'webhook-logs': WebhookLogsSelect<false> | WebhookLogsSelect<true>;
+    'ecovadis-connections': EcovadisConnectionsSelect<false> | EcovadisConnectionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -621,6 +635,39 @@ export interface Supplier {
     | boolean
     | null;
   reminderCount?: number | null;
+  ecovadis?: {
+    score?: number | null;
+    assessmentDate?: string | null;
+    /**
+     * Environment, Labor, Ethics, Procurement scores and trend
+     */
+    categories?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    lastAssessed?: string | null;
+    trend?: string | null;
+    ecoVadisUrl?: string | null;
+  };
+  riskMetrics?: {
+    score?: number | null;
+    tier?: ('low' | 'medium' | 'high' | 'critical') | null;
+    flags?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    calculatedAt?: string | null;
+  };
   updatedAt: string;
   createdAt: string;
 }
@@ -991,6 +1038,276 @@ export interface ComplianceObligation {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "compliance-targets".
+ */
+export interface ComplianceTarget {
+  id: string;
+  organisation: string | Organisation;
+  framework: 'csrd' | 'brsr' | 'gri' | 'sasb';
+  /**
+   * Reference to FrameworkMetrics.metricKey
+   */
+  metricKey: string;
+  /**
+   * Cached metric label for readability
+   */
+  metricLabel?: string | null;
+  /**
+   * Target value for this metric
+   */
+  targetValue: number;
+  /**
+   * Year from which emissions are measured
+   */
+  baselineYear: number;
+  /**
+   * Year by which target should be achieved
+   */
+  targetYear: number;
+  /**
+   * Current status relative to trajectory
+   */
+  status: 'on-track' | 'at-risk' | 'off-track';
+  /**
+   * Internal notes about this target
+   */
+  notes?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  /**
+   * Approval workflow status
+   */
+  approvalStatus?: ('draft' | 'submitted' | 'approved' | 'rejected') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ghg-protocol-compliance".
+ */
+export interface GhgProtocolCompliance {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * e.g. 2024, 2025
+   */
+  complianceYear: string;
+  /**
+   * Total Scope 1 emissions (tCO2e)
+   */
+  scope1Total: number;
+  /**
+   * Total Scope 2 emissions (tCO2e)
+   */
+  scope2Total: number;
+  /**
+   * Total Scope 3 emissions (tCO2e)
+   */
+  scope3Total: number;
+  /**
+   * Organizational and operational boundaries defined
+   */
+  boundaryDefinition: string;
+  /**
+   * Emissions calculation methodology used
+   */
+  methodology: string;
+  /**
+   * Data quality assessment (0-100)
+   */
+  dataQualityScore: number;
+  dataQualityBreakdown?: {
+    /**
+     * Completeness score (0-100)
+     */
+    completeness?: number | null;
+    /**
+     * Accuracy score (0-100)
+     */
+    accuracy?: number | null;
+    /**
+     * Consistency score (0-100)
+     */
+    consistency?: number | null;
+    /**
+     * Recency score (0-100)
+     */
+    recency?: number | null;
+  };
+  /**
+   * Overall compliance score (0-100)
+   */
+  complianceScore: number;
+  /**
+   * Has this compliance been verified?
+   */
+  isVerified: boolean;
+  /**
+   * Locked after assurance auditor sign-off (immutable)
+   */
+  isLocked: boolean;
+  /**
+   * User who verified this compliance
+   */
+  verifiedBy?: (string | null) | User;
+  /**
+   * When verification occurred
+   */
+  verifiedAt?: string | null;
+  /**
+   * Assurance auditor who locked this
+   */
+  lockedBy?: (string | null) | User;
+  /**
+   * When this was locked for audit
+   */
+  lockedAt?: string | null;
+  /**
+   * Number of fulfilled checkpoints
+   */
+  checkpointsFulfilled?: number | null;
+  /**
+   * Total checkpoints in compliance framework
+   */
+  checkpointsTotal?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "compliance-checkpoints".
+ */
+export interface ComplianceCheckpoint {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Parent compliance record
+   */
+  ghgProtocolCompliance: string | GhgProtocolCompliance;
+  /**
+   * Unique checkpoint identifier (e.g., GHG-001)
+   */
+  checkpointId: string;
+  category:
+    | 'scope-boundaries'
+    | 'data-collection'
+    | 'calculation-methods'
+    | 'emission-factors'
+    | 'quality-assurance'
+    | 'documentation'
+    | 'organizational-boundaries'
+    | 'operational-boundaries'
+    | 'restatements'
+    | 'uncertainty';
+  /**
+   * Human-readable requirement name
+   */
+  requirementName: string;
+  /**
+   * GHG Protocol section/subsection (e.g., Section 4.2.3)
+   */
+  requirementCode: string;
+  /**
+   * Full requirement text from GHG Protocol
+   */
+  requirementText: string;
+  status: 'not-started' | 'in-progress' | 'completed' | 'verified' | 'waived';
+  /**
+   * Internal notes or implementation details
+   */
+  notes?: string | null;
+  /**
+   * Supporting evidence and documentation
+   */
+  evidenceLinks?:
+    | {
+        /**
+         * URL or reference to supporting evidence
+         */
+        url?: string | null;
+        documentType?:
+          ('data-source' | 'calculation-sheet' | 'policy-document' | 'audit-report' | 'third-party' | 'other') | null;
+        /**
+         * How this evidence supports the requirement
+         */
+        description?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * User who verified this checkpoint
+   */
+  verifiedBy?: (string | null) | User;
+  /**
+   * When checkpoint was verified
+   */
+  verifiedAt?: string | null;
+  /**
+   * Which emission scopes this applies to
+   */
+  applicableScopes?: ('scope1' | 'scope2' | 'scope3')[] | null;
+  /**
+   * If waived, explain why this requirement is not applicable
+   */
+  waiverReason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "compliance-history".
+ */
+export interface ComplianceHistory {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * The compliance record this audit log entry relates to
+   */
+  compliance: string | GhgProtocolCompliance;
+  action:
+    | 'created'
+    | 'updated'
+    | 'checkpoint-verified'
+    | 'data-quality-assessed'
+    | 'score-calculated'
+    | 'locked'
+    | 'unlocked'
+    | 'report-generated'
+    | 'evidence-added'
+    | 'assurance-sign-off';
+  /**
+   * User who performed this action
+   */
+  actor: string | User;
+  /**
+   * JSON snapshot of what changed (immutable record)
+   */
+  changes: string;
+  /**
+   * Why this action was taken
+   */
+  reason?: string | null;
+  /**
+   * IP address of the actor (for compliance audit)
+   */
+  ipAddress?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "policy-evaluations".
  */
 export interface PolicyEvaluation {
@@ -1093,63 +1410,6 @@ export interface FrameworkMetric {
     | number
     | boolean
     | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "compliance-targets".
- */
-export interface ComplianceTarget {
-  id: string;
-  organisation: string | Organisation;
-  framework: 'csrd' | 'brsr' | 'gri' | 'sasb';
-  /**
-   * Reference to FrameworkMetrics.metricKey
-   */
-  metricKey: string;
-  /**
-   * Cached metric label for readability
-   */
-  metricLabel?: string | null;
-  /**
-   * Target value for this metric
-   */
-  targetValue: number;
-  /**
-   * Year from which emissions are measured
-   */
-  baselineYear: number;
-  /**
-   * Year by which target should be achieved
-   */
-  targetYear: number;
-  /**
-   * Current status relative to trajectory
-   */
-  status: 'on-track' | 'at-risk' | 'off-track';
-  /**
-   * Internal notes about this target
-   */
-  notes?: {
-    root: {
-      type: string;
-      children: {
-        type: any;
-        version: number;
-        [k: string]: unknown;
-      }[];
-      direction: ('ltr' | 'rtl') | null;
-      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
-      indent: number;
-      version: number;
-    };
-    [k: string]: unknown;
-  } | null;
-  /**
-   * Approval workflow status
-   */
-  approvalStatus?: ('draft' | 'submitted' | 'approved' | 'rejected') | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1612,6 +1872,71 @@ export interface Subscription {
    * Send email alerts when usage reaches 80% of quota
    */
   sendUsageAlerts: boolean;
+  /**
+   * Next renewal/billing date
+   */
+  nextRenewalDate: string;
+  /**
+   * Last renewal date
+   */
+  lastRenewalDate?: string | null;
+  /**
+   * Discount percentage applied (only for annual billing)
+   */
+  annualDiscountPercentage: number;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-history".
+ */
+export interface SubscriptionHistory {
+  id: string;
+  /**
+   * Associated subscription
+   */
+  subscription: string | Subscription;
+  /**
+   * Organization for quick filtering
+   */
+  organisation: string | Organisation;
+  /**
+   * Type of subscription change
+   */
+  action: 'upgrade' | 'downgrade' | 'billing_cycle_change' | 'renewal' | 'cancellation';
+  /**
+   * Plan before change (if applicable)
+   */
+  previousPlan?: (string | null) | Plan;
+  /**
+   * Plan after change (if applicable)
+   */
+  newPlan?: (string | null) | Plan;
+  /**
+   * Billing cycle before change
+   */
+  previousCycle?: ('monthly' | 'annual') | null;
+  /**
+   * Billing cycle after change
+   */
+  newCycle?: ('monthly' | 'annual') | null;
+  /**
+   * Pro-rata credit (positive) or charge (negative)
+   */
+  prorataAdjustment: number;
+  /**
+   * When change occurred
+   */
+  timestamp: string;
+  /**
+   * User who triggered this change
+   */
+  initiatedBy?: (string | null) | User;
+  /**
+   * JSON metadata (Stripe IDs, notes, etc.)
+   */
+  metadata?: string | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1800,6 +2125,112 @@ export interface PaymentHistory {
   updatedAt: string;
 }
 /**
+ * Webhook endpoints registered by organizations for data ingestion
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "webhook-registrations".
+ */
+export interface WebhookRegistration {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * UUID for webhook identification
+   */
+  webhook_id: string;
+  endpoint_url: string;
+  /**
+   * Encrypted webhook secret for HMAC-SHA256 validation
+   */
+  secret: string;
+  /**
+   * Array of event types: ["datapoint.created", "datapoint.updated"]
+   */
+  events:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status: 'active' | 'inactive';
+  /**
+   * Timestamp of last successful webhook trigger
+   */
+  last_triggered_at?: string | null;
+  /**
+   * Count of retried deliveries
+   */
+  retry_count?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Audit trail of webhook delivery attempts
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "webhook-logs".
+ */
+export interface WebhookLog {
+  id: string;
+  organisation: string | Organisation;
+  webhook_id: string;
+  event_type: string;
+  /**
+   * Event payload (sanitized of sensitive data)
+   */
+  payload?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status: 'success' | 'failed' | 'retrying';
+  /**
+   * HTTP response code from webhook endpoint
+   */
+  response_code?: number | null;
+  /**
+   * Error details if delivery failed
+   */
+  error_message?: string | null;
+  attempt_number: number;
+  /**
+   * When next retry is scheduled
+   */
+  next_retry_at?: string | null;
+  /**
+   * Time taken for webhook delivery (ms)
+   */
+  duration_ms?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ecovadis-connections".
+ */
+export interface EcovadisConnection {
+  id: string;
+  organisation: string | Organisation;
+  status: 'connected' | 'disconnected' | 'error';
+  accessToken?: string | null;
+  refreshToken?: string | null;
+  expiresAt?: string | null;
+  connectedAt?: string | null;
+  lastSyncAt?: string | null;
+  lastSyncStatus: 'success' | 'failed' | 'pending';
+  errorMessage?: string | null;
+  syncCount?: number | null;
+  totalSuppliersSynced?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -1908,16 +2339,28 @@ export interface PayloadLockedDocument {
         value: string | ComplianceObligation;
       } | null)
     | ({
+        relationTo: 'compliance-targets';
+        value: string | ComplianceTarget;
+      } | null)
+    | ({
+        relationTo: 'ghg-protocol-compliance';
+        value: string | GhgProtocolCompliance;
+      } | null)
+    | ({
+        relationTo: 'compliance-checkpoints';
+        value: string | ComplianceCheckpoint;
+      } | null)
+    | ({
+        relationTo: 'compliance-history';
+        value: string | ComplianceHistory;
+      } | null)
+    | ({
         relationTo: 'policy-evaluations';
         value: string | PolicyEvaluation;
       } | null)
     | ({
         relationTo: 'framework-metrics';
         value: string | FrameworkMetric;
-      } | null)
-    | ({
-        relationTo: 'compliance-targets';
-        value: string | ComplianceTarget;
       } | null)
     | ({
         relationTo: 'framework-mappings';
@@ -1944,6 +2387,10 @@ export interface PayloadLockedDocument {
         value: string | Subscription;
       } | null)
     | ({
+        relationTo: 'subscription-history';
+        value: string | SubscriptionHistory;
+      } | null)
+    | ({
         relationTo: 'usage-metrics';
         value: string | UsageMetric;
       } | null)
@@ -1954,6 +2401,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'payment-history';
         value: string | PaymentHistory;
+      } | null)
+    | ({
+        relationTo: 'webhook-registrations';
+        value: string | WebhookRegistration;
+      } | null)
+    | ({
+        relationTo: 'webhook-logs';
+        value: string | WebhookLog;
+      } | null)
+    | ({
+        relationTo: 'ecovadis-connections';
+        value: string | EcovadisConnection;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -2310,6 +2769,24 @@ export interface SuppliersSelect<T extends boolean = true> {
   lastReminderAt?: T;
   submittedData?: T;
   reminderCount?: T;
+  ecovadis?:
+    | T
+    | {
+        score?: T;
+        assessmentDate?: T;
+        categories?: T;
+        lastAssessed?: T;
+        trend?: T;
+        ecoVadisUrl?: T;
+      };
+  riskMetrics?:
+    | T
+    | {
+        score?: T;
+        tier?: T;
+        flags?: T;
+        calculatedAt?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2504,6 +2981,101 @@ export interface ComplianceObligationsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "compliance-targets_select".
+ */
+export interface ComplianceTargetsSelect<T extends boolean = true> {
+  organisation?: T;
+  framework?: T;
+  metricKey?: T;
+  metricLabel?: T;
+  targetValue?: T;
+  baselineYear?: T;
+  targetYear?: T;
+  status?: T;
+  notes?: T;
+  approvalStatus?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ghg-protocol-compliance_select".
+ */
+export interface GhgProtocolComplianceSelect<T extends boolean = true> {
+  organisation?: T;
+  complianceYear?: T;
+  scope1Total?: T;
+  scope2Total?: T;
+  scope3Total?: T;
+  boundaryDefinition?: T;
+  methodology?: T;
+  dataQualityScore?: T;
+  dataQualityBreakdown?:
+    | T
+    | {
+        completeness?: T;
+        accuracy?: T;
+        consistency?: T;
+        recency?: T;
+      };
+  complianceScore?: T;
+  isVerified?: T;
+  isLocked?: T;
+  verifiedBy?: T;
+  verifiedAt?: T;
+  lockedBy?: T;
+  lockedAt?: T;
+  checkpointsFulfilled?: T;
+  checkpointsTotal?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "compliance-checkpoints_select".
+ */
+export interface ComplianceCheckpointsSelect<T extends boolean = true> {
+  organisation?: T;
+  ghgProtocolCompliance?: T;
+  checkpointId?: T;
+  category?: T;
+  requirementName?: T;
+  requirementCode?: T;
+  requirementText?: T;
+  status?: T;
+  notes?: T;
+  evidenceLinks?:
+    | T
+    | {
+        url?: T;
+        documentType?: T;
+        description?: T;
+        id?: T;
+      };
+  verifiedBy?: T;
+  verifiedAt?: T;
+  applicableScopes?: T;
+  waiverReason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "compliance-history_select".
+ */
+export interface ComplianceHistorySelect<T extends boolean = true> {
+  organisation?: T;
+  compliance?: T;
+  action?: T;
+  actor?: T;
+  changes?: T;
+  reason?: T;
+  ipAddress?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "policy-evaluations_select".
  */
 export interface PolicyEvaluationsSelect<T extends boolean = true> {
@@ -2531,24 +3103,6 @@ export interface FrameworkMetricsSelect<T extends boolean = true> {
   dataType?: T;
   required?: T;
   calculationMethod?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "compliance-targets_select".
- */
-export interface ComplianceTargetsSelect<T extends boolean = true> {
-  organisation?: T;
-  framework?: T;
-  metricKey?: T;
-  metricLabel?: T;
-  targetValue?: T;
-  baselineYear?: T;
-  targetYear?: T;
-  status?: T;
-  notes?: T;
-  approvalStatus?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2728,6 +3282,28 @@ export interface SubscriptionsSelect<T extends boolean = true> {
   sendInvoices?: T;
   contactEmail?: T;
   sendUsageAlerts?: T;
+  nextRenewalDate?: T;
+  lastRenewalDate?: T;
+  annualDiscountPercentage?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscription-history_select".
+ */
+export interface SubscriptionHistorySelect<T extends boolean = true> {
+  subscription?: T;
+  organisation?: T;
+  action?: T;
+  previousPlan?: T;
+  newPlan?: T;
+  previousCycle?: T;
+  newCycle?: T;
+  prorataAdjustment?: T;
+  timestamp?: T;
+  initiatedBy?: T;
+  metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -2808,6 +3384,59 @@ export interface PaymentHistorySelect<T extends boolean = true> {
   refundReason?: T;
   createdAt?: T;
   updatedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "webhook-registrations_select".
+ */
+export interface WebhookRegistrationsSelect<T extends boolean = true> {
+  organisation?: T;
+  webhook_id?: T;
+  endpoint_url?: T;
+  secret?: T;
+  events?: T;
+  status?: T;
+  last_triggered_at?: T;
+  retry_count?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "webhook-logs_select".
+ */
+export interface WebhookLogsSelect<T extends boolean = true> {
+  organisation?: T;
+  webhook_id?: T;
+  event_type?: T;
+  payload?: T;
+  status?: T;
+  response_code?: T;
+  error_message?: T;
+  attempt_number?: T;
+  next_retry_at?: T;
+  duration_ms?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ecovadis-connections_select".
+ */
+export interface EcovadisConnectionsSelect<T extends boolean = true> {
+  organisation?: T;
+  status?: T;
+  accessToken?: T;
+  refreshToken?: T;
+  expiresAt?: T;
+  connectedAt?: T;
+  lastSyncAt?: T;
+  lastSyncStatus?: T;
+  errorMessage?: T;
+  syncCount?: T;
+  totalSuppliersSynced?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

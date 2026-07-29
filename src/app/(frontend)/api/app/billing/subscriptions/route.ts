@@ -166,6 +166,8 @@ export async function POST(request: Request) {
         billingCycle,
         currentPeriodStart: now.toISOString(),
         currentPeriodEnd: periodEnd.toISOString(),
+        nextRenewalDate: periodEnd.toISOString(),
+        annualDiscountPercentage: billingCycle === "annual" ? 15 : 0,
         seats,
         autoRenew: true,
         sendInvoices: true,

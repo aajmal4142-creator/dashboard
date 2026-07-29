@@ -1,4 +1,4 @@
-import type { CollectionConfig, Access, Where } from "payload";
+import type { CollectionConfig, Access } from "payload";
 
 const webhookLogsRead: Access = async ({ req }) => {
   if (!req.user) return false;
@@ -7,13 +7,6 @@ const webhookLogsRead: Access = async ({ req }) => {
   const adminOrgs = orgs.filter((o) => hasMinRole(o.role, "admin")).map((o) => o.orgId);
   if (adminOrgs.length === 0) return false;
   return { organisation: { in: adminOrgs } };
-};
-
-const webhookLogsWrite: Access = async ({ req }) => {
-  if (!req.user) return false;
-  const { canWriteOrg } = await import("@/lib/access/membership");
-  // Logs are system-written; read-only for users
-  return false;
 };
 
 export const WebhookLogs: CollectionConfig = {
@@ -91,12 +84,4 @@ export const WebhookLogs: CollectionConfig = {
     },
   ],
   timestamps: true,
-  hooks: {
-    afterRead: [
-      async ({ docs }) => {
-        // Auto-delete logs after 90 days (implement via scheduled job or TTL)
-        return docs;
-      },
-    ],
-  },
 };

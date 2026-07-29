@@ -2,10 +2,7 @@ import { NextResponse } from "next/server";
 import { getPayload } from "payload";
 import config from "@/payload.config";
 import { getCurrentContext } from "@/lib/auth";
-import {
-  getOAuthManager,
-  getOrRefreshToken,
-} from "@/lib/integrations/ecovadis/oauth";
+import { getOAuthManager } from "@/lib/integrations/ecovadis/oauth";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -26,8 +23,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "No active org" }, { status: 401 });
     }
 
-    // Verify state (in production, check against Redis/DB)
-    const expectedState = btoa(`${ctx.activeOrg}-`);
+    const expectedState = btoa(`${ctx.activeOrg.id}-`);
     if (!state.startsWith(expectedState)) {
       return NextResponse.json({ error: "Invalid state" }, { status: 400 });
     }
@@ -36,41 +32,40 @@ export async function GET(req: Request) {
     const token = await manager.exchangeAuthCode(code);
 
     const payload = await getPayload({ config });
+    const expiresAt = token.expiresAt.toISOString();
+    const connectedAt = new Date().toISOString();
 
-    // Check if connection exists
     const existing = await payload.find({
       collection: "ecovadis-connections",
-      where: { organisation: { equals: ctx.activeOrg } },
+      where: { organisation: { equals: ctx.activeOrg.id } },
       limit: 1,
       overrideAccess: true,
     });
 
     if (existing.docs[0]) {
-      // Update existing
       await payload.update({
         collection: "ecovadis-connections",
         id: existing.docs[0].id,
         data: {
           accessToken: token.accessToken,
           refreshToken: token.refreshToken,
-          expiresAt: token.expiresAt,
+          expiresAt,
           status: "connected",
-          connectedAt: new Date(),
+          connectedAt,
           lastSyncStatus: "pending",
         },
         overrideAccess: true,
       });
     } else {
-      // Create new
       await payload.create({
         collection: "ecovadis-connections",
         data: {
-          organisation: ctx.activeOrg,
+          organisation: ctx.activeOrg.id,
           accessToken: token.accessToken,
           refreshToken: token.refreshToken,
-          expiresAt: token.expiresAt,
+          expiresAt,
           status: "connected",
-          connectedAt: new Date(),
+          connectedAt,
           lastSyncStatus: "pending",
           syncCount: 0,
           totalSuppliersSynced: 0,
@@ -79,16 +74,10 @@ export async function GET(req: Request) {
       });
     }
 
-    // Redirect to success page (or return JSON for API clients)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    return NextResponse.redirect(
-      `${appUrl}/integrations/ecovadis?success=true`,
-    );
+    return NextResponse.redirect(`${appUrl}/integrations/ecovadis?success=true`);
   } catch (error) {
     console.error("EcoVadis callback error:", error);
-    return NextResponse.json(
-      { error: String(error) },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }

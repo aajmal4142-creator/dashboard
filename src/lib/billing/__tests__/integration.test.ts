@@ -8,7 +8,7 @@ describe("Billing Integration Tests", () => {
     it("should validate basic plan structure", () => {
       const validPlan: Plan = {
         id: "plan-basic",
-        name: "basic",
+        name: "starter",
         displayName: "Basic Plan",
         monthlyPrice: 99,
         annualPrice: 990,
@@ -52,7 +52,7 @@ describe("Billing Integration Tests", () => {
     it("should allow action within quota", () => {
       const plan: Plan = {
         id: "plan-basic",
-        name: "basic",
+        name: "starter",
         displayName: "Basic",
         monthlyPrice: 99,
         annualPrice: 990,
@@ -82,7 +82,7 @@ describe("Billing Integration Tests", () => {
     it("should reject action exceeding quota", () => {
       const plan: Plan = {
         id: "plan-free",
-        name: "free",
+        name: "trial",
         displayName: "Free",
         monthlyPrice: 0,
         annualPrice: 0,
@@ -141,7 +141,7 @@ describe("Billing Integration Tests", () => {
     it("should calculate invoice total with seats", () => {
       const plan: Plan = {
         id: "plan-basic",
-        name: "basic",
+        name: "starter",
         displayName: "Basic Plan",
         monthlyPrice: 99,
         annualPrice: 990,
@@ -178,8 +178,8 @@ describe("Billing Integration Tests", () => {
     });
 
     it("should deny access to other organizations", () => {
-      const userOrgId = "org-123";
-      const resourceOrgId = "org-999";
+      const userOrgId: string = "org-123";
+      const resourceOrgId: string = "org-999";
 
       const hasAccess = userOrgId === resourceOrgId;
       expect(hasAccess).toBe(false);

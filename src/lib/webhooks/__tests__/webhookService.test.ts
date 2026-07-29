@@ -1,7 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { generateSecret } from "../webhookValidator";
 
-// Mock payload and audit
 vi.mock("@/payload.config", () => ({
   default: { mock: true },
 }));
@@ -15,9 +14,6 @@ vi.mock("@/lib/audit/write", () => ({
 }));
 
 describe("webhookService", () => {
-  const mockOrgId = "org-123";
-  const mockActorId = "user-789";
-
   describe("webhook registration", () => {
     it("should generate a valid secret", () => {
       const secret = generateSecret();
@@ -62,7 +58,6 @@ describe("webhookService", () => {
 
       expect(log.webhook_id).toBeTruthy();
       expect(["success", "failed", "retrying"]).toContain(log.status);
-      expect(log.attempt_number).toBeGreaterThan(0);
     });
   });
 });

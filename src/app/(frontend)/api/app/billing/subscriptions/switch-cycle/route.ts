@@ -4,7 +4,7 @@ import { getCurrentContext } from "@/lib/auth";
 import config from "@/payload.config";
 import { createProrataCalculator } from "@/lib/billing/prorataCalculator";
 import { createStripeService } from "@/lib/billing/stripeService";
-import type { BillingCycle } from "@/lib/billing/types";
+import type { BillingCycle, Plan, Subscription } from "@/lib/billing/types";
 
 /**
  * POST /api/app/billing/subscriptions/switch-cycle
@@ -31,17 +31,12 @@ export async function POST(request: Request) {
 
     const { newBillingCycle, confirmProrata = false } = body;
 
-    // Validate billing cycle
     if (!["monthly", "annual"].includes(newBillingCycle)) {
-      return NextResponse.json(
-        { error: "Invalid billing cycle" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid billing cycle" }, { status: 400 });
     }
 
     const payload = await getPayload({ config });
 
-    // Get current subscription
     const result = await payload.find({
       collection: "subscriptions",
       where: {
@@ -50,77 +45,114 @@ export async function POST(request: Request) {
       limit: 1,
     });
 
-    const subscription = result.docs?.[0];
-    if (!subscription) {
-      return NextResponse.json(
-        { error: "No subscription found" },
-        { status: 404 },
-      );
+    const subscriptionDoc = result.docs?.[0];
+    if (!subscriptionDoc) {
+      return NextResponse.json({ error: "No subscription found" }, { status: 404 });
     }
 
-    // Validate subscription status
-    if (subscription.status !== "active") {
+    if (subscriptionDoc.status !== "active") {
       return NextResponse.json(
         { error: "Can only switch billing cycle for active subscriptions" },
         { status: 400 },
       );
     }
 
-    // Check if already on requested cycle
-    if (subscription.billingCycle === newBillingCycle) {
+    if (subscriptionDoc.billingCycle === newBillingCycle) {
       return NextResponse.json(
         { error: "Subscription already on this billing cycle" },
         { status: 400 },
       );
     }
 
-    // Get current plan
-    const plan = await payload.findByID({
+    const planDoc = await payload.findByID({
       collection: "plans",
-      id: typeof subscription.plan === "string" ? subscription.plan : subscription.plan.id,
+      id:
+        typeof subscriptionDoc.plan === "string"
+          ? subscriptionDoc.plan
+          : subscriptionDoc.plan.id,
     });
 
-    if (!plan) {
-      return NextResponse.json(
-        { error: "Plan not found" },
-        { status: 404 },
-      );
+    if (!planDoc) {
+      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
     }
 
-    // Calculate pro-rata adjustment
+    const plan: Plan = {
+      id: planDoc.id,
+      name: planDoc.name,
+      displayName: planDoc.displayName,
+      monthlyPrice: planDoc.monthlyPrice,
+      annualPrice: planDoc.annualPrice,
+      dataPointsPerMonth: planDoc.dataPointsPerMonth,
+      reportsPerMonth: planDoc.reportsPerMonth,
+      storageGB: planDoc.storageGB,
+      activeUsersLimit: planDoc.activeUsersLimit,
+      features: (planDoc.features || []).map((f) => ({ name: f.name })),
+      overageRatePerUnit: planDoc.overageRatePerUnit,
+      trialDays: planDoc.trialDays ?? undefined,
+      isActive: Boolean(planDoc.isActive),
+    };
+
+    const subscription: Subscription = {
+      id: subscriptionDoc.id,
+      organisation:
+        typeof subscriptionDoc.organisation === "string"
+          ? subscriptionDoc.organisation
+          : subscriptionDoc.organisation.id,
+      plan: plan.id,
+      status: subscriptionDoc.status,
+      billingCycle: subscriptionDoc.billingCycle,
+      currentPeriodStart: new Date(subscriptionDoc.currentPeriodStart),
+      currentPeriodEnd: new Date(subscriptionDoc.currentPeriodEnd),
+      nextRenewalDate: new Date(subscriptionDoc.nextRenewalDate),
+      lastRenewalDate: subscriptionDoc.lastRenewalDate
+        ? new Date(subscriptionDoc.lastRenewalDate)
+        : undefined,
+      trialEndsAt: subscriptionDoc.trialEndsAt
+        ? new Date(subscriptionDoc.trialEndsAt)
+        : undefined,
+      cancelledAt: subscriptionDoc.cancelledAt
+        ? new Date(subscriptionDoc.cancelledAt)
+        : undefined,
+      stripeSubscriptionId: subscriptionDoc.stripeSubscriptionId ?? undefined,
+      stripeCustomerId: subscriptionDoc.stripeCustomerId ?? undefined,
+      seats: subscriptionDoc.seats,
+      autoRenew: subscriptionDoc.autoRenew,
+      annualDiscountPercentage: subscriptionDoc.annualDiscountPercentage,
+      sendInvoices: subscriptionDoc.sendInvoices,
+      contactEmail: subscriptionDoc.contactEmail ?? undefined,
+      sendUsageAlerts: subscriptionDoc.sendUsageAlerts,
+      createdAt: new Date(subscriptionDoc.createdAt),
+      updatedAt: new Date(subscriptionDoc.updatedAt),
+    };
+
     const prorataCalculator = createProrataCalculator();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const prorataAmount = prorataCalculator.calculateProrataAmount(
-      subscription as any,
-      plan as any,
-      plan as any,
+      subscription,
+      plan,
+      plan,
       subscription.billingCycle,
       newBillingCycle,
     );
 
-    // If pro-rata amount is positive (credit) and not confirmed, ask for confirmation
     if (prorataAmount > 0 && !confirmProrata) {
       return NextResponse.json({
         success: false,
         prorataAmount,
-        newNextRenewalDate: new Date(subscription.currentPeriodEnd),
+        newNextRenewalDate: new Date(subscriptionDoc.currentPeriodEnd),
         confirmationRequired: true,
         message: `Switching to ${newBillingCycle} will credit $${prorataAmount.toFixed(2)} to your account. Confirm to proceed.`,
       });
     }
 
-    // Calculate new renewal date
-    const newRenewalDate = new Date(subscription.currentPeriodEnd);
+    const newRenewalDate = new Date(subscriptionDoc.currentPeriodEnd);
 
-    // Update Stripe subscription
-    if (subscription.stripeSubscriptionId) {
+    if (subscriptionDoc.stripeSubscriptionId) {
       const stripeService = createStripeService(payload);
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await stripeService.switchBillingCycle(
-          subscription.stripeSubscriptionId,
+          subscriptionDoc.stripeSubscriptionId,
           newBillingCycle,
-          (plan as any).name,
+          plan.name,
           prorataAmount,
         );
       } catch (error) {
@@ -132,31 +164,30 @@ export async function POST(request: Request) {
       }
     }
 
-    // Update Payload subscription
     await payload.update({
       collection: "subscriptions",
-      id: subscription.id,
+      id: subscriptionDoc.id,
       data: {
         billingCycle: newBillingCycle,
-        nextRenewalDate: newRenewalDate,
+        nextRenewalDate: newRenewalDate.toISOString(),
       },
     });
 
-    // Create subscription history entry
     await payload.create({
       collection: "subscription-history",
       data: {
-        subscription: subscription.id,
+        subscription: subscriptionDoc.id,
         organisation: ctx.activeOrg.id,
         action: "billing_cycle_change",
-        previousCycle: subscription.billingCycle,
+        previousCycle: subscriptionDoc.billingCycle,
         newCycle: newBillingCycle,
         prorataAdjustment: prorataAmount,
+        timestamp: new Date().toISOString(),
         initiatedBy: ctx.user.id,
         metadata: JSON.stringify({
-          planId: (plan as any).id,
-          planName: (plan as any).name,
-          stripeSubscriptionId: subscription.stripeSubscriptionId,
+          planId: plan.id,
+          planName: plan.name,
+          stripeSubscriptionId: subscriptionDoc.stripeSubscriptionId,
         }),
       },
     });
@@ -169,9 +200,6 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Error switching billing cycle:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

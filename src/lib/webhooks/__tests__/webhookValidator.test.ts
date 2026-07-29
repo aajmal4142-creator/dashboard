@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { createHmac } from "crypto";
 import { verifySignature, generateSignature, generateSecret } from "../webhookValidator";
 
 describe("webhookValidator", () => {
@@ -52,8 +53,7 @@ describe("webhookValidator", () => {
 
       // Create a signature with an old timestamp
       const oldTimestamp = Math.floor(Date.now() / 1000) - 400;
-      const signed = require("crypto")
-        .createHmac("sha256", secret)
+      const signed = createHmac("sha256", secret)
         .update(`${oldTimestamp}.${payload}`)
         .digest("hex");
       const oldSignature = `${oldTimestamp},${signed}`;

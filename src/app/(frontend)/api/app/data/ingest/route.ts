@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import config from "@/payload.config";
 import { getCurrentContext } from "@/lib/auth";
-import { assertMinRole } from "@/lib/access";
+import { hasMinRole } from "@/lib/access/membership";
 import { clientIp } from "@/lib/rate-limit";
 import { writeAuditLog } from "@/lib/audit/write";
 import {
@@ -22,6 +22,7 @@ const SingleDatapointSchema = z.object({
   value: z.number().nullable().optional(),
   quality: z.enum(["measured", "calculated", "estimated", "missing"]),
   unit: z.string().optional(),
+  source: z.string().optional(),
 });
 
 const BatchDatapointsSchema = z.array(SingleDatapointSchema).min(1).max(1000);
@@ -43,18 +44,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check ABAC: user must have create:datapoint:organisation
-    const canCreate = await assertMinRole(ctx.activeOrg.id, "contributor");
-    if (!canCreate) {
+    if (!hasMinRole(ctx.role, "contributor")) {
       return NextResponse.json(
         createErrorResponse(
-          new ApiError(ErrorCodes.UNAUTHORIZED, 403, "Insufficient permissions to create datapoints"),
+          new ApiError(
+            ErrorCodes.UNAUTHORIZED,
+            403,
+            "Insufficient permissions to create datapoints",
+          ),
         ),
         { status: 403 },
       );
     }
 
-    // Rate limiting
     const rateLimitResult = await checkOrgRateLimit(ctx.activeOrg.id);
     const rateLimitHeaders = getRateLimitHeaders(rateLimitResult);
 
@@ -71,7 +73,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Ensure open period
     const periodId = await ensureOpenPeriod(
       ctx.activeOrg.id,
       ctx.activeOrg.plan,
@@ -80,7 +81,6 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-    // Check if batch or single
     let datapoints: z.infer<typeof SingleDatapointSchema>[] = [];
     if (Array.isArray(body)) {
       datapoints = BatchDatapointsSchema.parse(body);
@@ -91,7 +91,6 @@ export async function POST(req: Request) {
     const payload = await getPayload({ config });
     const ip = clientIp(req);
 
-    // Log request
     await writeAuditLog(payload, {
       organisationId: ctx.activeOrg.id,
       actorId: ctx.user.id,
@@ -103,38 +102,40 @@ export async function POST(req: Request) {
     });
 
     if (datapoints.length === 1) {
-      // Single ingest
       const result = await ingestDatapoint(
         ctx.activeOrg.id,
         periodId,
         datapoints[0],
         ctx.user.id,
       );
-      return NextResponse.json({ ok: true, ...result }, {
-        status: 201,
-        headers: rateLimitHeaders,
-      });
-    } else {
-      // Batch ingest
-      const result = await batchIngestDatapoints(
-        ctx.activeOrg.id,
-        periodId,
-        datapoints,
-        ctx.user.id,
+      return NextResponse.json(
+        { ok: true, ...result },
+        {
+          status: 201,
+          headers: rateLimitHeaders,
+        },
       );
-      return NextResponse.json({ ok: true, ...result }, {
+    }
+
+    const result = await batchIngestDatapoints(
+      ctx.activeOrg.id,
+      periodId,
+      datapoints,
+      ctx.user.id,
+    );
+    return NextResponse.json(
+      { ok: true, ...result },
+      {
         status: 201,
         headers: rateLimitHeaders,
-      });
-    }
+      },
+    );
   } catch (err) {
-    const payload = await getPayload({ config });
     const statusCode = err instanceof ApiError ? err.statusCode : 400;
-    const message =
-      err instanceof Error ? err.message : "Ingestion failed";
+    const message = err instanceof Error ? err.message : "Ingestion failed";
 
     if (err instanceof z.ZodError) {
-      const formatted = err.errors.map((e) => ({
+      const formatted = err.issues.map((e) => ({
         path: e.path.join("."),
         message: e.message,
       }));

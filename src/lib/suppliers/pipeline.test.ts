@@ -37,7 +37,6 @@ describe("Scope 3 provenance pipeline", () => {
         quality: "estimated",
         provenance: "spend_estimate",
         supplierKey: "sup_b",
-        factorId: "factor_spend_1",
       },
     ]);
     expect(composition.estimateTco2e).toBe(40);

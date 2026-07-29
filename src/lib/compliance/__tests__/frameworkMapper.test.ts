@@ -42,7 +42,10 @@ describe("Framework Mapper", () => {
 
   describe("calculateFrameworkComplianceStatus", () => {
     it("should calculate 100% alignment when all verified", () => {
-      const statuses: Record<string, any> = {
+      const statuses: Record<
+        string,
+        "not-started" | "in-progress" | "completed" | "verified" | "waived"
+      > = {
         "GHG-001": "verified",
         "GHG-002": "verified",
         "GHG-003": "verified",
@@ -54,7 +57,10 @@ describe("Framework Mapper", () => {
     });
 
     it("should calculate partial alignment when some in progress", () => {
-      const statuses: Record<string, any> = {
+      const statuses: Record<
+        string,
+        "not-started" | "in-progress" | "completed" | "verified" | "waived"
+      > = {
         "GHG-001": "verified",
         "GHG-002": "in-progress",
         "GHG-003": "not-started",
@@ -67,7 +73,10 @@ describe("Framework Mapper", () => {
     });
 
     it("should return 0% alignment when all not started", () => {
-      const statuses: Record<string, any> = {
+      const statuses: Record<
+        string,
+        "not-started" | "in-progress" | "completed" | "verified" | "waived"
+      > = {
         "GHG-001": "not-started",
         "GHG-002": "not-started",
       };

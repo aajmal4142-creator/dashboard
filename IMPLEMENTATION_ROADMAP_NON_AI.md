@@ -1,4 +1,5 @@
 # ClearESG Implementation Roadmap - Non-AI Features
+
 **Scope**: 40+ non-AI features across 9 categories  
 **Target Segments**: Mid-Market, Growth, Enterprise, Specialist  
 **Quality**: Production-ready, highly optimized code  
@@ -9,13 +10,13 @@
 
 ## Overview: Feature Count by Priority
 
-| Priority | Count | Hours | Impact | Target |
-|----------|-------|-------|--------|--------|
-| 🔴 CRITICAL | 4 | 24h | +40% TAM | Week 1-2 |
-| 🟠 HIGH | 18 | 136h | +20% TAM | Week 3-8 |
-| 🟡 MEDIUM | 14 | 72h | Competitive parity | Week 9-14 |
-| 🟢 LOW | 4 | 14h | Polish | Week 15-16 |
-| **TOTAL** | **40** | **246h** | Enterprise parity | 16 weeks |
+| Priority    | Count  | Hours    | Impact             | Target     |
+| ----------- | ------ | -------- | ------------------ | ---------- |
+| 🔴 CRITICAL | 4      | 24h      | +40% TAM           | Week 1-2   |
+| 🟠 HIGH     | 18     | 136h     | +20% TAM           | Week 3-8   |
+| 🟡 MEDIUM   | 14     | 72h      | Competitive parity | Week 9-14  |
+| 🟢 LOW      | 4      | 14h      | Polish             | Week 15-16 |
+| **TOTAL**   | **40** | **246h** | Enterprise parity  | 16 weeks   |
 
 ---
 
@@ -28,33 +29,38 @@
 **Sprint 5 (Week 9-10)**: Integrations (Part 1)  
 **Sprint 6 (Week 11-12)**: Integrations (Part 2)  
 **Sprint 7 (Week 13-14)**: Platform & UX Polish  
-**Sprint 8 (Week 15-16)**: Billing, Automation & Edge Cases  
+**Sprint 8 (Week 15-16)**: Billing, Automation & Edge Cases
 
 ---
 
 # SPRINT 1: CRITICAL FOUNDATION (Week 1-2)
 
+> **Sprint status**: ✅ COMPLETED (implementation). Production-readiness checklists (load tests, external security audit, monitoring alerts) remain open and should be closed before calling Sprint 1 production-certified.
+
 ## Category 1: DATA COLLECTION & IMPORT
+
 ### Sprint 1 Feature: API/Webhook Data Ingestion
 
 **Feature ID**: DC-001  
 **Priority**: 🔴 CRITICAL  
 **Effort**: 8 hours  
-**Status**: ⬜ NOT STARTED
+**Status**: ✅ IMPLEMENTED
 
 #### Acceptance Criteria
-- [ ] REST API endpoints for third-party data ingestion
-- [ ] Webhook receiver for real-time data feeds
-- [ ] Request signature verification (HMAC-SHA256)
-- [ ] Rate limiting (1000 requests/hour per org)
-- [ ] Retry logic with exponential backoff
-- [ ] Full audit logging for all API calls
-- [ ] API documentation (OpenAPI 3.0)
-- [ ] Error handling with meaningful error codes
-- [ ] Support for batch and real-time payloads
-- [ ] ABAC enforcement on all endpoints
+
+- [x] REST API endpoints for third-party data ingestion
+- [x] Webhook receiver for real-time data feeds
+- [x] Request signature verification (HMAC-SHA256)
+- [x] Rate limiting (1000 requests/hour per org)
+- [x] Retry logic with exponential backoff
+- [x] Full audit logging for all API calls
+- [x] API documentation (OpenAPI 3.0)
+- [x] Error handling with meaningful error codes
+- [x] Support for batch and real-time payloads
+- [x] ABAC enforcement on all endpoints
 
 #### Implementation Tasks
+
 1. **API Route Structure** (2h)
    - Create `/api/app/data/ingest` endpoint (POST)
    - Create `/api/app/webhooks/register` endpoint (POST/GET/DELETE)
@@ -87,6 +93,7 @@
    - Request timeout (30s max)
 
 #### Code Quality Standards
+
 ```typescript
 // Type Safety
 - 100% TypeScript (no any types)
@@ -111,6 +118,7 @@
 ```
 
 #### Production Readiness Checklist
+
 - [ ] All tests passing (unit + integration)
 - [ ] Load testing complete (1000 req/min sustained)
 - [ ] Security audit (OWASP Top 10)
@@ -121,6 +129,7 @@
 - [ ] Backward compatibility verified (no breaking changes)
 
 #### Sample Implementation Structure
+
 ```
 src/lib/api/
   ├── webhookService.ts          (core logic)
@@ -147,21 +156,23 @@ docs/
 **Feature ID**: CF-001  
 **Priority**: 🔴 CRITICAL  
 **Effort**: 8 hours  
-**Status**: ⬜ NOT STARTED
+**Status**: ✅ IMPLEMENTED
 
 #### Acceptance Criteria
-- [ ] GHG Protocol 2004/2015 compliance checklist
-- [ ] Scopes calculation verification
-- [ ] Boundary definition enforcement
-- [ ] Emissions factor documentation
-- [ ] Calculation methodology documentation
-- [ ] Data quality assessment
-- [ ] Compliance report generation (audit-ready)
-- [ ] Assurance auditor sign-off capability
-- [ ] Framework mapping (CSRD, BRSR, GRI, SASB alignment)
-- [ ] Regulatory requirement tracking
+
+- [x] GHG Protocol 2004/2015 compliance checklist
+- [x] Scopes calculation verification
+- [x] Boundary definition enforcement
+- [x] Emissions factor documentation
+- [x] Calculation methodology documentation
+- [x] Data quality assessment
+- [x] Compliance report generation (audit-ready)
+- [x] Assurance auditor sign-off capability
+- [x] Framework mapping (CSRD, BRSR, GRI, SASB alignment)
+- [x] Regulatory requirement tracking
 
 #### Implementation Tasks
+
 1. **Compliance Framework** (2h)
    - GhgProtocolCompliance collection (org_id, scope1, scope2, scope3, boundaries, methodology)
    - ComplianceCheckpoints collection (checkpoint_id, requirement, status, evidence_links)
@@ -187,6 +198,7 @@ docs/
    - Flag non-compliance items for remediation
 
 #### Code Quality Standards
+
 ```typescript
 // Compliance Rigor
 - Immutable audit trail (cannot delete checkpoints)
@@ -201,6 +213,7 @@ docs/
 ```
 
 #### Production Readiness Checklist
+
 - [ ] All GHG Protocol 2004 requirements coded
 - [ ] Compliance score calculation verified
 - [ ] Report generation tested with real data
@@ -216,21 +229,23 @@ docs/
 **Feature ID**: SM-001  
 **Priority**: 🔴 CRITICAL  
 **Effort**: 8 hours  
-**Status**: ⬜ NOT STARTED
+**Status**: ✅ IMPLEMENTED
 
 #### Acceptance Criteria
-- [ ] OAuth 2.0 integration with EcoVadis API
-- [ ] Supplier score sync (automated, daily refresh)
-- [ ] Assessment result mapping to ClearESG schema
-- [ ] Multi-dimensional scoring (Environment, Labor, Ethics, Sustainable Procurement)
-- [ ] Risk flag automation (low score = high risk)
-- [ ] Historical score tracking (trend analysis)
-- [ ] Failed sync error handling & retry
-- [ ] Admin UI to manage EcoVadis connection
-- [ ] Sync status dashboard
-- [ ] Data freshness validation
+
+- [x] OAuth 2.0 integration with EcoVadis API
+- [x] Supplier score sync (automated, daily refresh)
+- [x] Assessment result mapping to ClearESG schema
+- [x] Multi-dimensional scoring (Environment, Labor, Ethics, Sustainable Procurement)
+- [x] Risk flag automation (low score = high risk)
+- [x] Historical score tracking (trend analysis)
+- [x] Failed sync error handling & retry
+- [x] Admin UI to manage EcoVadis connection
+- [x] Sync status dashboard
+- [x] Data freshness validation
 
 #### Implementation Tasks
+
 1. **OAuth Integration** (2h)
    - EcoVadis OAuth token management
    - Token refresh mechanism
@@ -258,6 +273,7 @@ docs/
    - Disconnect functionality
 
 #### Code Quality Standards
+
 ```typescript
 // API Reliability
 - Retry logic (exponential backoff)
@@ -272,6 +288,7 @@ docs/
 ```
 
 #### Production Readiness Checklist
+
 - [ ] OAuth token management tested
 - [ ] Daily sync runs without errors
 - [ ] Error handling for API failures
@@ -284,24 +301,27 @@ docs/
 ---
 
 ## Category 9: BILLING & COMMERCIAL
+
 ### Sprint 1 Feature: Annual Billing with Discount
 
 **Feature ID**: BC-001  
 **Priority**: 🔴 CRITICAL  
 **Effort**: 4 hours  
-**Status**: ⬜ NOT STARTED
+**Status**: ✅ IMPLEMENTED
 
 #### Acceptance Criteria
-- [ ] Annual billing cycle option at checkout
-- [ ] 15-20% discount for annual plans
-- [ ] Billing cycle toggle in subscription management
-- [ ] Pro-rata calculation for mid-cycle changes
-- [ ] Renewal reminders (60, 30, 7 days before)
-- [ ] Automatic renewal on annual date
-- [ ] Manual renewal management UI
-- [ ] Discount calculation in invoices
+
+- [x] Annual billing cycle option at checkout
+- [x] 15-20% discount for annual plans
+- [x] Billing cycle toggle in subscription management
+- [x] Pro-rata calculation for mid-cycle changes
+- [x] Renewal reminders (60, 30, 7 days before)
+- [x] Automatic renewal on annual date
+- [x] Manual renewal management UI
+- [x] Discount calculation in invoices
 
 #### Implementation Tasks
+
 1. **Stripe Integration** (2h)
    - Create Stripe price IDs for annual plans (STRIPE_PRICE_*_ANNUAL)
    - Implement billing cycle selector at checkout
@@ -321,6 +341,7 @@ docs/
    - Invoice display with discount breakdown
 
 #### Code Quality Standards
+
 ```typescript
 // Financial Accuracy
 - All monetary calculations use Decimal (not float)
@@ -329,6 +350,7 @@ docs/
 ```
 
 #### Production Readiness Checklist
+
 - [ ] Annual pricing visible at checkout
 - [ ] Discount correctly applied to invoices
 - [ ] Renewal automation tested (dry run)
@@ -340,6 +362,7 @@ docs/
 # SPRINT 2: COMPLIANCE & REGULATIONS (Week 3-4)
 
 ## Category 3: COMPLIANCE & FRAMEWORKS
+
 ### Sprint 2 Feature Set (5 features)
 
 **Features**: CSRD/ESRS, TCFD, ISSB S1/S2, Carbon Trust Workflows, Regulatory Calendar
@@ -352,6 +375,7 @@ docs/
 **Effort**: 20 hours
 
 **Acceptance Criteria**
+
 - [ ] ESRS standard mapping (E1-E4, S1-S2, G1-G2 topics)
 - [ ] Automated data population from ClearESG datapoints
 - [ ] ESRS compliance report generation (PDF)
@@ -363,6 +387,7 @@ docs/
 - [ ] Export to XBRL (future compatibility)
 
 **Implementation Tasks**
+
 1. Create ESRS standard data model (2h)
 2. Build report template engine (5h)
 3. Implement auto-population logic (8h)
@@ -377,6 +402,7 @@ docs/
 **Effort**: 12 hours
 
 **Acceptance Criteria**
+
 - [ ] TCFD disclosure mapping (Governance, Strategy, Risk, Metrics)
 - [ ] Climate scenario analysis integration
 - [ ] Financial impact assessment
@@ -384,6 +410,7 @@ docs/
 - [ ] Disclosure report generation
 
 **Implementation Tasks**
+
 1. TCFD data model (2h)
 2. Scenario analysis engine (5h)
 3. Report generation (3h)
@@ -397,6 +424,7 @@ docs/
 **Effort**: 12 hours
 
 **Acceptance Criteria**
+
 - [ ] S1 (General) & S2 (Climate) mapping
 - [ ] Materiality threshold assessment
 - [ ] Climate resilience indicators
@@ -411,6 +439,7 @@ docs/
 **Effort**: 8 hours
 
 **Acceptance Criteria**
+
 - [ ] Carbon Trust Standard verification checklist
 - [ ] Evidence collection & linking
 - [ ] Auditor review workflow
@@ -424,6 +453,7 @@ docs/
 **Effort**: 6 hours
 
 **Acceptance Criteria**
+
 - [ ] Auto-populated deadline calendar (CSRD, TCFD, GRI, ISSB)
 - [ ] Jurisdiction-based filtering
 - [ ] Email alerts (90, 60, 30, 14, 7 days before)
@@ -435,6 +465,7 @@ docs/
 # SPRINT 3: SUPPLIER ECOSYSTEM (Week 5-6)
 
 ## Category 4: SUPPLIER MANAGEMENT
+
 ### Sprint 3 Feature Set (6 features)
 
 **Features**: Risk Scoring, Supply Chain Mapping, Tiered Categorization, Document Repository, Compliance Dashboard, Bulk Assessment
@@ -447,6 +478,7 @@ docs/
 **Effort**: 12 hours
 
 **Acceptance Criteria**
+
 - [ ] Risk scoring algorithm (0-100 scale)
 - [ ] Multi-factor scoring (EcoVadis, GHG intensity, location, compliance)
 - [ ] Risk tier mapping (Low, Medium, High, Critical)
@@ -457,6 +489,7 @@ docs/
 - [ ] Procurement notification system
 
 **Implementation Tasks**
+
 1. Risk scoring algorithm (4h)
 2. Risk dashboard UI (3h)
 3. Notification system (3h)
@@ -470,6 +503,7 @@ docs/
 **Effort**: 14 hours
 
 **Acceptance Criteria**
+
 - [ ] Network graph visualization (org → Tier 1 → Tier 2/3)
 - [ ] Emissions flow through supply chain
 - [ ] Interactive drill-down capabilities
@@ -486,6 +520,7 @@ docs/
 **Effort**: 6 hours
 
 **Acceptance Criteria**
+
 - [ ] Tier 1 (direct), Tier 2, Tier 3+ classification
 - [ ] Risk-weighted data collection
 - [ ] Separate tracking & reporting by tier
@@ -500,6 +535,7 @@ docs/
 **Effort**: 8 hours
 
 **Acceptance Criteria**
+
 - [ ] Document upload system (ESG reports, certifications, carbon data)
 - [ ] Version control & timestamp tracking
 - [ ] Full-text search across documents
@@ -515,6 +551,7 @@ docs/
 **Effort**: 10 hours
 
 **Acceptance Criteria**
+
 - [ ] Real-time compliance status (data freshness, response rate)
 - [ ] SLA tracking (% suppliers responding within 30 days)
 - [ ] Flagged issues per supplier
@@ -530,6 +567,7 @@ docs/
 **Effort**: 6 hours
 
 **Acceptance Criteria**
+
 - [ ] CSV import of supplier list
 - [ ] Auto-send standardized questionnaire
 - [ ] Bulk tracking & status updates
@@ -540,6 +578,7 @@ docs/
 # SPRINT 4: ANALYTICS & INSIGHTS (Week 7-8)
 
 ## Category 7: ANALYTICS & INSIGHTS
+
 ### Sprint 4 Feature Set (5 features)
 
 **Features**: Peer Benchmarking, Scenario Modeling, Decarbonization Pathways, Predictive Trends, Consumption Intensity
@@ -552,6 +591,7 @@ docs/
 **Effort**: 14 hours
 
 **Acceptance Criteria**
+
 - [ ] Anonymized peer data aggregation
 - [ ] Industry classification by NAICS/SIC code
 - [ ] Size-normalized comparisons (revenue, headcount, employees)
@@ -561,6 +601,7 @@ docs/
 - [ ] 90th, 50th, 10th percentile tracking
 
 **Implementation Tasks**
+
 1. Data aggregation pipeline (4h)
 2. Benchmarking algorithm (4h)
 3. Dashboard UI (4h)
@@ -574,6 +615,7 @@ docs/
 **Effort**: 20 hours
 
 **Acceptance Criteria**
+
 - [ ] Scenario builder UI (baseline, optimistic, pessimistic)
 - [ ] Variable mapping (emissions drivers → levers)
 - [ ] Impact estimation engine
@@ -584,6 +626,7 @@ docs/
 - [ ] Scenario versioning
 
 **Implementation Tasks**
+
 1. Scenario data model (3h)
 2. Scenario builder UI (6h)
 3. Impact estimation (6h)
@@ -598,6 +641,7 @@ docs/
 **Effort**: 16 hours
 
 **Acceptance Criteria**
+
 - [ ] Lever library (renewable energy, efficiency, etc.)
 - [ ] Timeline planner (year-by-year roadmap)
 - [ ] Impact per lever (kgCO2e reduction)
@@ -613,6 +657,7 @@ docs/
 **Effort**: 12 hours
 
 **Acceptance Criteria**
+
 - [ ] Time-series forecasting (next 12 months)
 - [ ] Confidence intervals (80%, 95%)
 - [ ] Auto-select best model (ETS, ARIMA)
@@ -628,6 +673,7 @@ docs/
 **Effort**: 10 hours
 
 **Acceptance Criteria**
+
 - [ ] Emissions per revenue (tCO2e/$M)
 - [ ] Emissions per employee (tCO2e/emp)
 - [ ] Emissions per unit produced
@@ -640,6 +686,7 @@ docs/
 # SPRINT 5: ENTERPRISE INTEGRATIONS PART 1 (Week 9-10)
 
 ## Category 8: INTEGRATIONS & AUTOMATION
+
 ### Sprint 5 Feature Set (3 features)
 
 **Features**: Salesforce Integration, NetSuite Integration, Accounting System Sync
@@ -652,6 +699,7 @@ docs/
 **Effort**: 12 hours
 
 **Acceptance Criteria**
+
 - [ ] OAuth 2.0 authentication
 - [ ] Account & contact syncing
 - [ ] Org hierarchy mapping
@@ -662,6 +710,7 @@ docs/
 - [ ] Admin UI for connection management
 
 **Implementation Tasks**
+
 1. Salesforce OAuth setup (2h)
 2. Data mapper (account → org) (3h)
 3. Sync worker (bi-directional) (4h)
@@ -675,6 +724,7 @@ docs/
 **Effort**: 10 hours
 
 **Acceptance Criteria**
+
 - [ ] OAuth 2.0 authentication
 - [ ] General Ledger sync
 - [ ] GL code → emissions category mapping
@@ -691,6 +741,7 @@ docs/
 **Effort**: 8 hours
 
 **Acceptance Criteria**
+
 - [ ] OAuth 2.0 for both Xero & QB
 - [ ] Expense category syncing
 - [ ] Spend-based emissions calculation
@@ -703,6 +754,7 @@ docs/
 # SPRINT 6: ENTERPRISE INTEGRATIONS PART 2 (Week 11-12)
 
 ## Category 8: INTEGRATIONS & AUTOMATION (Continued)
+
 ### Sprint 6 Feature Set (4 features)
 
 **Features**: SAP Connector, Data Warehouse Connectors, Webhooks, Power BI/Tableau
@@ -715,6 +767,7 @@ docs/
 **Effort**: 16 hours
 
 **Acceptance Criteria**
+
 - [ ] ODATA API integration
 - [ ] GL posting from ClearESG
 - [ ] Bill of materials (BOM) integration
@@ -731,6 +784,7 @@ docs/
 **Effort**: 10 hours
 
 **Acceptance Criteria**
+
 - [ ] Snowflake share integration
 - [ ] BigQuery dataset connector
 - [ ] Databricks Delta Lake support
@@ -746,6 +800,7 @@ docs/
 **Effort**: 10 hours
 
 **Acceptance Criteria**
+
 - [ ] Custom webhook triggers (data updated, alerts, etc.)
 - [ ] Zapier integration
 - [ ] Make.com integration
@@ -760,6 +815,7 @@ docs/
 **Effort**: 12 hours
 
 **Acceptance Criteria**
+
 - [ ] Tableau direct connector
 - [ ] Power BI custom connector
 - [ ] Live data refresh
@@ -771,6 +827,7 @@ docs/
 # SPRINT 7: PLATFORM & UX POLISH (Week 13-14)
 
 ## Category 9: PLATFORM & UX
+
 ### Sprint 7 Feature Set (4 features)
 
 **Features**: Advanced Roles, Bulk Operations, Saved Filters, Audit Log Search
@@ -783,6 +840,7 @@ docs/
 **Effort**: 8 hours
 
 **Acceptance Criteria**
+
 - [ ] Custom role builder UI
 - [ ] Capability matrix (action × resource × scope)
 - [ ] Role templates (default roles for common scenarios)
@@ -798,6 +856,7 @@ docs/
 **Effort**: 6 hours
 
 **Acceptance Criteria**
+
 - [ ] Multi-select checkboxes across list views
 - [ ] Bulk action menu (delete, update status, assign, etc.)
 - [ ] Bulk email reminders for suppliers
@@ -812,6 +871,7 @@ docs/
 **Effort**: 8 hours
 
 **Acceptance Criteria**
+
 - [ ] Save complex filter combinations
 - [ ] Name and organize saved views
 - [ ] Share views with team
@@ -826,6 +886,7 @@ docs/
 **Effort**: 6 hours
 
 **Acceptance Criteria**
+
 - [ ] Full-text search across audit logs
 - [ ] Filter by user, action, resource, time range
 - [ ] Export to CSV/Excel
@@ -837,6 +898,7 @@ docs/
 # SPRINT 8: BILLING, AUTOMATION & EDGE CASES (Week 15-16)
 
 ## Category 9: BILLING & COMMERCIAL (Continued)
+
 ### Sprint 8 Feature Set (4 features)
 
 **Features**: Freemium Model, Usage-Based Pricing, Volume Discounts, Dunning
@@ -849,6 +911,7 @@ docs/
 **Effort**: 8 hours
 
 **Acceptance Criteria**
+
 - [ ] Free account creation (no credit card)
 - [ ] Free tier limits (100 datapoints, basic reporting)
 - [ ] Upgrade prompts when approaching limits
@@ -863,6 +926,7 @@ docs/
 **Effort**: 6 hours
 
 **Acceptance Criteria**
+
 - [ ] Meter datapoints, reports, API calls
 - [ ] Pricing: $0.05/datapoint, $1/report
 - [ ] Real-time usage dashboard
@@ -877,6 +941,7 @@ docs/
 **Effort**: 3 hours
 
 **Acceptance Criteria**
+
 - [ ] 10% discount for 5+ seats
 - [ ] 20% discount for 20+ seats
 - [ ] Manual discount application (for larger deals)
@@ -890,6 +955,7 @@ docs/
 **Effort**: 3 hours
 
 **Acceptance Criteria**
+
 - [ ] Stripe dunning integration
 - [ ] Automated retry schedule (1, 3, 5 days)
 - [ ] Email notifications to account owner
@@ -899,6 +965,7 @@ docs/
 ---
 
 ## Category 1: DATA COLLECTION & IMPORT (Continued)
+
 ### Sprint 8 Feature Set (4 features - remaining data collection)
 
 **Features**: Real-time IoT, ERP Connectors, Email Collection, Smart Data Quality Rules
@@ -911,6 +978,7 @@ docs/
 **Effort**: 12 hours
 
 **Acceptance Criteria**
+
 - [ ] MQTT broker support
 - [ ] Modbus/OPC-UA protocol support
 - [ ] Utility API connectors (energy, water, gas)
@@ -920,6 +988,7 @@ docs/
 - [ ] Data validation rules
 
 **Implementation Tasks**
+
 1. MQTT server setup (2h)
 2. Protocol adapters (Modbus, OPC-UA) (5h)
 3. Utility API clients (3h)
@@ -933,6 +1002,7 @@ docs/
 **Effort**: 20 hours
 
 **Acceptance Criteria**
+
 - [ ] NetSuite, Xero, QuickBooks support (covered in INT-002, INT-003)
 - [ ] Workday integration (HR data for intensity metrics)
 - [ ] Data mapper for custom fields
@@ -948,6 +1018,7 @@ docs/
 **Effort**: 4 hours
 
 **Acceptance Criteria**
+
 - [ ] Automated email forms for suppliers
 - [ ] Template-based form parsing
 - [ ] Reply detection & data extraction
@@ -962,6 +1033,7 @@ docs/
 **Effort**: 8 hours
 
 **Acceptance Criteria**
+
 - [ ] User-defined validation rules UI
 - [ ] Rule templates (min/max range, regex, business logic)
 - [ ] Auto-flag violations
@@ -971,6 +1043,7 @@ docs/
 ---
 
 ## Category 5: ASSURANCE & VERIFICATION (Continued)
+
 ### Sprint 8 Feature Set (2 features)
 
 **Features**: ISO 14064 Compliance, Assurance Partner Directory
@@ -983,6 +1056,7 @@ docs/
 **Effort**: 6 hours
 
 **Acceptance Criteria**
+
 - [ ] ISO 14064-1 requirements mapping
 - [ ] Verification checklist
 - [ ] Evidence linking
@@ -997,6 +1071,7 @@ docs/
 **Effort**: 8 hours
 
 **Acceptance Criteria**
+
 - [ ] Directory of qualified audit firms
 - [ ] Firm profiles & capabilities
 - [ ] Review ratings & past engagements
@@ -1006,6 +1081,7 @@ docs/
 ---
 
 ## Category 6: REPORTING & EXPORT (Continued)
+
 ### Sprint 8 Feature Set (3 features - remaining reporting)
 
 **Features**: Interactive HTML Reports, Excel Templates, Scheduled Delivery
@@ -1018,6 +1094,7 @@ docs/
 **Effort**: 10 hours
 
 **Acceptance Criteria**
+
 - [ ] React-based report builder
 - [ ] Interactive charts (drill-down, filtering)
 - [ ] Data tables with sorting/pagination
@@ -1033,6 +1110,7 @@ docs/
 **Effort**: 8 hours
 
 **Acceptance Criteria**
+
 - [ ] Pre-built Excel templates per framework
 - [ ] Auto-populate with organization data
 - [ ] Formula preservation
@@ -1047,6 +1125,7 @@ docs/
 **Effort**: 8 hours
 
 **Acceptance Criteria**
+
 - [ ] Schedule reports (daily, weekly, monthly)
 - [ ] Email delivery with PDF attachment
 - [ ] Webhook triggers for external systems
@@ -1056,6 +1135,7 @@ docs/
 ---
 
 ## Category 2: EMISSIONS CALCULATION (Continued)
+
 ### Sprint 8 Feature Set (3 features - remaining emissions)
 
 **Features**: Spend-Based Emissions, Product-Level Footprinting, Custom Factor Database
@@ -1068,6 +1148,7 @@ docs/
 **Effort**: 16 hours
 
 **Acceptance Criteria**
+
 - [ ] IO table integration (USEEIO, EXIOBASE)
 - [ ] GL code → industry mapping
 - [ ] Emissions factor lookup by category
@@ -1084,6 +1165,7 @@ docs/
 **Effort**: 30 hours
 
 **Acceptance Criteria**
+
 - [ ] SKU management (product codes, names, categories)
 - [ ] Bill of materials (BOM) import
 - [ ] Supplier emission factors per material
@@ -1102,6 +1184,7 @@ docs/
 **Effort**: 12 hours
 
 **Acceptance Criteria**
+
 - [ ] Admin UI for factor management
 - [ ] Import factors from external sources
 - [ ] Factor versioning & effective dates
@@ -1114,6 +1197,7 @@ docs/
 # SPRINT 8 (CONTINUED): MISCELLANEOUS & PLATFORM FEATURES
 
 ## Category 1: DATA COLLECTION & IMPORT (Final)
+
 ### Historical Data Backfill Tools
 
 **Feature ID**: DC-006  
@@ -1121,6 +1205,7 @@ docs/
 **Effort**: 6 hours
 
 **Acceptance Criteria**
+
 - [ ] Bulk import tool for prior years (2020-2025)
 - [ ] Same validation as current data
 - [ ] Anomaly detection enabled
@@ -1130,6 +1215,7 @@ docs/
 ---
 
 ## Category 3: COMPLIANCE & FRAMEWORKS (Final)
+
 ### EU Green Taxonomy Alignment
 
 **Feature ID**: CF-006  
@@ -1137,6 +1223,7 @@ docs/
 **Effort**: 8 hours
 
 **Acceptance Criteria**
+
 - [ ] Activity classification against EU taxonomy
 - [ ] % taxonomy-aligned calculation
 - [ ] Financial alignment reporting
@@ -1145,6 +1232,7 @@ docs/
 ---
 
 ## Category 7: ANALYTICS & INSIGHTS (Final)
+
 ### Root Cause Analysis & Executive Dashboards
 
 **Feature ID**: AN-006 + AN-007  
@@ -1152,12 +1240,14 @@ docs/
 **Effort**: 18 hours
 
 **Acceptance Criteria (Root Cause)**
+
 - [ ] Drill-down by supplier, facility, category, source
 - [ ] Contributor charts (what drove the change?)
 - [ ] Export capability
 - [ ] Quick-filter buttons
 
 **Acceptance Criteria (Executive Dashboard)**
+
 - [ ] KPI cards (top 5-7 metrics)
 - [ ] Status indicators (red/yellow/green)
 - [ ] YoY trends
@@ -1173,6 +1263,7 @@ docs/
 ## Non-AI Features Summary (40 features)
 
 ### SPRINT 1: CRITICAL FOUNDATION (24 hours)
+
 - [ ] **DC-001**: API/Webhook Data Ingestion (8h)
 - [ ] **CF-001**: GHG Protocol 2004 Compliance (8h)
 - [ ] **SM-001**: EcoVadis Integration (8h)
@@ -1183,6 +1274,7 @@ docs/
 ---
 
 ### SPRINT 2: COMPLIANCE & REGULATIONS (40 hours)
+
 - [ ] **SF-001**: CSRD/ESRS Automated Reporting (20h)
 - [ ] **SF-002**: TCFD Framework Support (12h)
 - [ ] **SF-003**: ISSB S1/S2 Standards (12h)
@@ -1194,6 +1286,7 @@ docs/
 ---
 
 ### SPRINT 3: SUPPLIER ECOSYSTEM (54 hours)
+
 - [ ] **SM-002**: Automated Supplier Risk Scoring (12h)
 - [ ] **SM-003**: Supply Chain Mapping Visualization (14h)
 - [ ] **SM-004**: Tiered Supplier Categorization (6h)
@@ -1206,6 +1299,7 @@ docs/
 ---
 
 ### SPRINT 4: ANALYTICS & INSIGHTS (60 hours)
+
 - [ ] **AN-001**: Peer/Industry Benchmarking (14h)
 - [ ] **AN-002**: Scenario Modeling (20h)
 - [ ] **AN-003**: Decarbonization Pathway Planning (16h)
@@ -1217,6 +1311,7 @@ docs/
 ---
 
 ### SPRINT 5: ENTERPRISE INTEGRATIONS PART 1 (30 hours)
+
 - [ ] **INT-001**: Salesforce Integration (12h)
 - [ ] **INT-002**: NetSuite Integration (10h)
 - [ ] **INT-003**: Xero/QuickBooks Sync (8h)
@@ -1226,6 +1321,7 @@ docs/
 ---
 
 ### SPRINT 6: ENTERPRISE INTEGRATIONS PART 2 (38 hours)
+
 - [ ] **INT-004**: SAP Integration (16h)
 - [ ] **INT-005**: Data Warehouse Connectors (10h)
 - [ ] **INT-006**: Webhook Support & Zapier (10h)
@@ -1236,6 +1332,7 @@ docs/
 ---
 
 ### SPRINT 7: PLATFORM & UX POLISH (28 hours)
+
 - [ ] **UX-001**: Advanced Roles & Permissions (8h)
 - [ ] **UX-002**: Bulk Operations (6h)
 - [ ] **UX-003**: Saved Filters & Views (8h)
@@ -1246,6 +1343,7 @@ docs/
 ---
 
 ### SPRINT 8: FINAL FEATURES & POLISH (148 hours)
+
 - [ ] **BC-002**: Freemium Model (8h)
 - [ ] **BC-003**: Usage-Based Pricing (6h)
 - [ ] **BC-004**: Volume Discounts (3h)
@@ -1273,15 +1371,15 @@ docs/
 
 ## TOTAL PROJECT SUMMARY
 
-| Metric | Value |
-|--------|-------|
-| **Total Sprints** | 8 (16 weeks) |
-| **Total Features** | 40 |
-| **Total Hours** | 246 hours |
-| **Engineers Needed** | 2-3 (full-time) |
-| **Code Quality** | Production-ready, highly optimized |
-| **Target Segments** | Mid-Market, Growth, Enterprise, Specialist |
-| **TAM Expansion** | +80% (from $200M to $600M+) |
+| Metric               | Value                                      |
+| -------------------- | ------------------------------------------ |
+| **Total Sprints**    | 8 (16 weeks)                               |
+| **Total Features**   | 40                                         |
+| **Total Hours**      | 246 hours                                  |
+| **Engineers Needed** | 2-3 (full-time)                            |
+| **Code Quality**     | Production-ready, highly optimized         |
+| **Target Segments**  | Mid-Market, Growth, Enterprise, Specialist |
+| **TAM Expansion**    | +80% (from $200M to $600M+)                |
 
 ---
 
@@ -1333,6 +1431,7 @@ docs/
 # CODE QUALITY STANDARDS (Applied to ALL Features)
 
 ## TypeScript & Type Safety
+
 ```typescript
 // ✅ REQUIRED
 - Strict mode: true
@@ -1349,6 +1448,7 @@ docs/
 ```
 
 ## Performance Standards
+
 ```typescript
 // ✅ TARGET METRICS
 - API response: <100ms (p95)
@@ -1366,6 +1466,7 @@ docs/
 ```
 
 ## Testing Coverage
+
 ```typescript
 // ✅ MINIMUM COVERAGE
 - Unit tests: 80%+ line coverage
@@ -1385,6 +1486,7 @@ describe('FeatureService', () => {
 ```
 
 ## Security Standards
+
 ```typescript
 // ✅ REQUIRED SECURITY CHECKS
 - Input validation (Zod schemas)
@@ -1408,6 +1510,7 @@ describe('FeatureService', () => {
 ```
 
 ## Code Organization
+
 ```
 src/lib/feature/
   ├── service.ts              (core logic, testable)
@@ -1429,14 +1532,15 @@ src/collections/
 ```
 
 ## Documentation Standards
+
 ```typescript
 /**
  * High-level function description.
- * 
+ *
  * @param input - Parameter description
  * @returns Description of return value
  * @throws FeatureError if validation fails
- * 
+ *
  * @example
  * const result = await service.doSomething(input);
  */
@@ -1446,6 +1550,7 @@ export async function doSomething(input: InputType): Promise<OutputType> {
 ```
 
 ## Git Commit Standards
+
 ```bash
 # ✅ GOOD COMMITS
 git commit -m "feat: implement webhook receiver with signature verification"
@@ -1472,21 +1577,21 @@ Before marking a feature as ✅ COMPLETED:
   - [ ] Prettier: Code formatted
   - [ ] Test coverage: ≥80%
   - [ ] No `any` types
-  
+
 - [ ] **Testing**
   - [ ] Unit tests: All passing
   - [ ] Integration tests: All passing
   - [ ] Load testing: Meets SLA
   - [ ] Security testing: OWASP Top 10 verified
   - [ ] Edge case testing: Complete
-  
+
 - [ ] **Performance**
   - [ ] Response times: <100ms p95
   - [ ] Database queries: <50ms p95
   - [ ] Memory usage: <50MB
   - [ ] Connection pooling: Enabled
   - [ ] Caching: Implemented where applicable
-  
+
 - [ ] **Security**
   - [ ] Input validation: 100% coverage
   - [ ] ABAC enforcement: All endpoints checked
@@ -1494,28 +1599,28 @@ Before marking a feature as ✅ COMPLETED:
   - [ ] Audit logging: Critical operations logged
   - [ ] Rate limiting: Configured
   - [ ] HTTPS/TLS: Enforced
-  
+
 - [ ] **Documentation**
   - [ ] Code comments: Complex logic explained
   - [ ] API docs: OpenAPI spec complete
   - [ ] Error codes: All documented
   - [ ] Examples: curl/code examples provided
   - [ ] Runbook: Operations guide ready
-  
+
 - [ ] **Monitoring**
   - [ ] Error alerts: Configured
   - [ ] Performance alerts: Configured
   - [ ] Logging: Structured JSON logs
   - [ ] Metrics: Business KPIs tracked
   - [ ] Dashboards: Grafana/DataDog ready
-  
+
 - [ ] **Deployment**
   - [ ] Zero-downtime deployment: Tested
   - [ ] Rollback plan: Documented
   - [ ] Database migrations: Tested
   - [ ] Feature flags: If needed
   - [ ] Canary deployment: 5% → 25% → 100%
-  
+
 - [ ] **Backward Compatibility**
   - [ ] No breaking API changes
   - [ ] Old client versions still work
@@ -1531,6 +1636,7 @@ Before marking a feature as ✅ COMPLETED:
 1. Update this roadmap with completion date & link to implementation chat
 2. Create implementation summary (code size, tests, performance metrics)
 3. Reference the NEXT feature to work on:
+
    ```
    ✅ DC-001 COMPLETED
    → Next: Start CF-001 (GHG Protocol Compliance)

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentContext } from "@/lib/auth";
-import { assertMinRole } from "@/lib/access";
-import { clientIp } from "@/lib/rate-limit";
+import { hasMinRole } from "@/lib/access/membership";
 import {
   registerWebhook,
   listWebhooks,
@@ -20,7 +19,7 @@ export async function POST(req: Request) {
   try {
     const ctx = await getCurrentContext();
 
-    if (!ctx.activeOrg) {
+    if (!ctx.activeOrg || !ctx.role) {
       return NextResponse.json(
         createErrorResponse(
           new ApiError(ErrorCodes.UNAUTHORIZED, 403, "No active organisation"),
@@ -29,9 +28,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check ABAC: admin only
-    const isAdmin = await assertMinRole(ctx.activeOrg.id, "admin");
-    if (!isAdmin) {
+    if (!hasMinRole(ctx.role, "admin")) {
       return NextResponse.json(
         createErrorResponse(
           new ApiError(ErrorCodes.UNAUTHORIZED, 403, "Admin access required"),
@@ -66,7 +63,7 @@ export async function POST(req: Request) {
         {
           error: "Invalid request schema",
           code: ErrorCodes.INVALID_SCHEMA,
-          details: err.errors.map((e) => ({
+          details: err.issues.map((e) => ({
             path: e.path.join("."),
             message: e.message,
           })),
@@ -83,11 +80,11 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const ctx = await getCurrentContext();
 
-    if (!ctx.activeOrg) {
+    if (!ctx.activeOrg || !ctx.role) {
       return NextResponse.json(
         createErrorResponse(
           new ApiError(ErrorCodes.UNAUTHORIZED, 403, "No active organisation"),
@@ -96,9 +93,7 @@ export async function GET(req: Request) {
       );
     }
 
-    // Check ABAC: admin only
-    const isAdmin = await assertMinRole(ctx.activeOrg.id, "admin");
-    if (!isAdmin) {
+    if (!hasMinRole(ctx.role, "admin")) {
       return NextResponse.json(
         createErrorResponse(
           new ApiError(ErrorCodes.UNAUTHORIZED, 403, "Admin access required"),

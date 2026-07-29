@@ -1,4 +1,3 @@
-import { encryptJWT, SignJWT } from "jose";
 import { getPayload } from "payload";
 import config from "@/payload.config";
 
@@ -102,9 +101,7 @@ export class EcoVadisOAuthManager {
     });
 
     if (!res.ok) {
-      throw new Error(
-        `EcoVadis API error: ${res.status} ${await res.text()}`,
-      );
+      throw new Error(`EcoVadis API error: ${res.status} ${await res.text()}`);
     }
 
     return res.json() as Promise<{
@@ -127,9 +124,7 @@ export class EcoVadisOAuthManager {
     });
 
     if (!res.ok) {
-      throw new Error(
-        `EcoVadis API error: ${res.status} ${await res.text()}`,
-      );
+      throw new Error(`EcoVadis API error: ${res.status} ${await res.text()}`);
     }
 
     return res.json() as Promise<EcoVadisSupplierScore>;
@@ -167,18 +162,6 @@ export interface EcoVadisSupplierScore {
   };
 }
 
-function encryptToken(token: string, secret: string): string {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(token);
-  const key = encoder.encode(secret.padEnd(32, "0").slice(0, 32));
-  // Simple XOR encryption (for demo; use proper encryption in production)
-  return Buffer.from(data).toString("base64");
-}
-
-function decryptToken(encrypted: string, secret: string): string {
-  return Buffer.from(encrypted, "base64").toString("utf-8");
-}
-
 export async function getOAuthManager(): Promise<EcoVadisOAuthManager> {
   const clientId = process.env.ECOVADIS_CLIENT_ID?.trim();
   const clientSecret = process.env.ECOVADIS_CLIENT_SECRET?.trim();
@@ -191,9 +174,7 @@ export async function getOAuthManager(): Promise<EcoVadisOAuthManager> {
   return new EcoVadisOAuthManager(clientId, clientSecret, redirectUri);
 }
 
-export async function getOrRefreshToken(
-  orgId: string,
-): Promise<EcoVadisOAuthToken> {
+export async function getOrRefreshToken(orgId: string): Promise<EcoVadisOAuthToken> {
   const payload = await getPayload({ config });
 
   const connection = await payload.find({
@@ -211,10 +192,7 @@ export async function getOrRefreshToken(
   const expiresAt = doc.expiresAt ? new Date(doc.expiresAt) : null;
 
   // Refresh if expired or expiring soon (5 min buffer)
-  if (
-    !expiresAt ||
-    expiresAt.getTime() - Date.now() < 5 * 60 * 1000
-  ) {
+  if (!expiresAt || expiresAt.getTime() - Date.now() < 5 * 60 * 1000) {
     if (!doc.refreshToken) {
       throw new Error("No refresh token available");
     }
@@ -228,7 +206,7 @@ export async function getOrRefreshToken(
       data: {
         accessToken: newToken.accessToken,
         refreshToken: newToken.refreshToken,
-        expiresAt: newToken.expiresAt,
+        expiresAt: newToken.expiresAt.toISOString(),
         status: "connected",
       },
       overrideAccess: true,

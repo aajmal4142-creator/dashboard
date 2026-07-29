@@ -1,5 +1,9 @@
-import { listWebhooks, logWebhookAttempt, updateWebhookLastTriggered } from "./webhookService";
-import { verifySignature, generateSignature } from "./webhookValidator";
+import {
+  listWebhooks,
+  logWebhookAttempt,
+  updateWebhookLastTriggered,
+} from "./webhookService";
+import { generateSignature } from "./webhookValidator";
 
 export interface WebhookEvent {
   event_type: "datapoint.created" | "datapoint.updated";
@@ -71,7 +75,8 @@ async function deliverWebhook(
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
 
     if (attempt < MAX_RETRIES) {
-      const nextRetryMs = RETRY_DELAYS[attempt - 1] ?? RETRY_DELAYS[RETRY_DELAYS.length - 1];
+      const nextRetryMs =
+        RETRY_DELAYS[attempt - 1] ?? RETRY_DELAYS[RETRY_DELAYS.length - 1];
       const nextRetryAt = new Date(Date.now() + nextRetryMs).toISOString();
 
       await logWebhookAttempt({
@@ -115,9 +120,7 @@ export async function triggerWebhooks(event: WebhookEvent): Promise<void> {
 
     // Filter active webhooks that handle this event
     const activeWebhooks = webhooks.filter(
-      (w) =>
-        w.status === "active" &&
-        w.events.includes(event.event_type),
+      (w) => w.status === "active" && w.events.includes(event.event_type),
     );
 
     // Deliver in parallel, non-blocking
@@ -128,10 +131,9 @@ export async function triggerWebhooks(event: WebhookEvent): Promise<void> {
         webhook.endpoint_url,
         event,
         webhook.secret,
-      )
-        .catch((err) => {
-          console.error(`[webhook] delivery failed: ${webhook.webhook_id}`, err);
-        });
+      ).catch((err) => {
+        console.error(`[webhook] delivery failed: ${webhook.webhook_id}`, err);
+      });
     });
   } catch (err) {
     console.error("[webhook] trigger failed", err);

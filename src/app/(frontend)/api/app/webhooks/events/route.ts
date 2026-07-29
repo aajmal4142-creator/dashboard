@@ -3,11 +3,7 @@ import { z } from "zod";
 import { verifySignature } from "@/lib/webhooks/webhookValidator";
 import { getWebhook } from "@/lib/webhooks/webhookService";
 import { triggerWebhooks } from "@/lib/webhooks/webhookQueue";
-import {
-  ApiError,
-  ErrorCodes,
-  createErrorResponse,
-} from "@/lib/webhooks";
+import { ApiError, ErrorCodes, createErrorResponse } from "@/lib/webhooks";
 
 const WebhookEventSchema = z.object({
   event_type: z.enum(["datapoint.created", "datapoint.updated"]),
@@ -136,7 +132,7 @@ export async function POST(req: Request) {
         {
           error: "Invalid webhook event schema",
           code: ErrorCodes.INVALID_SCHEMA,
-          details: err.errors.map((e) => ({
+          details: err.issues.map((e) => ({
             path: e.path.join("."),
             message: e.message,
           })),

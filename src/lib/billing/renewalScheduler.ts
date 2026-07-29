@@ -31,7 +31,8 @@ export class RenewalScheduler {
       );
 
       // Record reminder schedule in subscription history
-      const remindersToSchedule: Array<{ daysBeforeRenewal: number; timestamp: Date }> = [];
+      const remindersToSchedule: Array<{ daysBeforeRenewal: number; timestamp: Date }> =
+        [];
 
       // 60-day reminder
       if (daysUntilRenewal >= 60) {
@@ -137,8 +138,12 @@ export class RenewalScheduler {
             newPeriodEnd: newPeriodEnd.toISOString(),
             renewalAmount:
               subscription.billingCycle === "monthly"
-                ? (subscription.plan as any)?.monthlyPrice
-                : (subscription.plan as any)?.annualPrice,
+                ? typeof subscription.plan === "object" && subscription.plan
+                  ? subscription.plan.monthlyPrice
+                  : undefined
+                : typeof subscription.plan === "object" && subscription.plan
+                  ? subscription.plan.annualPrice
+                  : undefined,
           }),
         },
         overrideAccess: true,
@@ -202,7 +207,9 @@ export class RenewalScheduler {
    * Get subscriptions with renewal reminders due
    * Returns subscriptions whose renewal date is within the specified days
    */
-  async getSubscriptionsDueForReminder(daysBeforeRenewal: number = 7): Promise<Subscription[]> {
+  async getSubscriptionsDueForReminder(
+    daysBeforeRenewal: number = 7,
+  ): Promise<Subscription[]> {
     try {
       const now = new Date();
       const reminderDate = new Date(now);

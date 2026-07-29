@@ -1,4 +1,4 @@
-import { getPayload, type Payload } from "payload";
+import { getPayload } from "payload";
 import { randomUUID } from "crypto";
 import config from "@/payload.config";
 import { writeAuditLog } from "@/lib/audit/write";
@@ -74,7 +74,9 @@ export async function registerWebhook(
   return webhook;
 }
 
-export async function listWebhooks(organisationId: string): Promise<WebhookRegistration[]> {
+export async function listWebhooks(
+  organisationId: string,
+): Promise<WebhookRegistration[]> {
   const payload = await getPayload({ config });
 
   const result = await (
@@ -154,7 +156,6 @@ export async function rotateSecret(webhookId: string): Promise<string> {
   if (!webhook) throw new Error("Webhook not found");
 
   const newSecret = generateSecret();
-  const oldSecret = webhook.secret;
 
   await (
     payload.update as (args: {

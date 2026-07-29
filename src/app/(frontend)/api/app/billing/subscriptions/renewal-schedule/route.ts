@@ -16,7 +16,6 @@ export async function GET() {
 
     const payload = await getPayload({ config });
 
-    // Get current subscription
     const result = await payload.find({
       collection: "subscriptions",
       where: {
@@ -27,57 +26,41 @@ export async function GET() {
 
     const subscription = result.docs?.[0];
     if (!subscription) {
-      return NextResponse.json(
-        { error: "No subscription found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "No subscription found" }, { status: 404 });
     }
 
-    // Get plan details
     const plan = await payload.findByID({
       collection: "plans",
-      id: typeof subscription.plan === "string" ? subscription.plan : subscription.plan.id,
+      id:
+        typeof subscription.plan === "string" ? subscription.plan : subscription.plan.id,
     });
 
     if (!plan) {
-      return NextResponse.json(
-        { error: "Plan not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Plan not found" }, { status: 404 });
     }
 
-    // Calculate renewal info
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const nextRenewalDate = new Date(
-      ((subscription as any).nextRenewalDate as Date | undefined) ||
-        subscription.currentPeriodEnd,
+      subscription.nextRenewalDate || subscription.currentPeriodEnd,
     );
     const now = new Date();
     const daysUntilRenewal = Math.ceil(
       (nextRenewalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
     );
 
-    // Get renewal amount based on billing cycle
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const renewalAmount =
-      subscription.billingCycle === "annual"
-        ? (plan as any).annualPrice
-        : (plan as any).monthlyPrice;
+      subscription.billingCycle === "annual" ? plan.annualPrice : plan.monthlyPrice;
 
     return NextResponse.json({
       nextRenewalDate,
       daysUntilRenewal: Math.max(0, daysUntilRenewal),
       estimatedRenewalAmount: renewalAmount,
       billingCycle: subscription.billingCycle,
-      planName: (plan as any).displayName,
+      planName: plan.displayName,
       autoRenew: subscription.autoRenew,
       status: subscription.status,
     });
   } catch (error) {
     console.error("Error fetching renewal schedule:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

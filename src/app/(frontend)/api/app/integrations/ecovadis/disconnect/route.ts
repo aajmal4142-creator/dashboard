@@ -3,7 +3,7 @@ import { getPayload } from "payload";
 import config from "@/payload.config";
 import { getCurrentContext } from "@/lib/auth";
 
-export async function POST(req: Request) {
+export async function POST() {
   const ctx = await getCurrentContext();
 
   if (!ctx.activeOrg || (ctx.role !== "admin" && ctx.role !== "owner")) {
@@ -15,16 +15,13 @@ export async function POST(req: Request) {
 
     const connection = await payload.find({
       collection: "ecovadis-connections",
-      where: { organisation: { equals: ctx.activeOrg } },
+      where: { organisation: { equals: ctx.activeOrg.id } },
       limit: 1,
       overrideAccess: true,
     });
 
     if (!connection.docs[0]) {
-      return NextResponse.json(
-        { error: "Not connected" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Not connected" }, { status: 404 });
     }
 
     await payload.update({
@@ -41,9 +38,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json(
-      { error: String(error) },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }

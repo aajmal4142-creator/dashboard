@@ -25,8 +25,8 @@ describe("Boundary Validator", () => {
     });
 
     it("should reject missing organizational approach", () => {
-      const boundary: BoundaryDefinition = {
-        organizationalApproach: undefined as any,
+      const boundary = {
+        organizationalApproach: undefined,
         operationalScope: ["scope1"],
         includedEntities: ["Entity A"],
         excludedEntities: [],
@@ -34,11 +34,11 @@ describe("Boundary Validator", () => {
         scope1Sources: ["stationary-combustion"],
         scope2Sources: [],
         scope3Categories: [],
-      };
+      } as unknown as BoundaryDefinition;
 
       const result = validateBoundary(boundary);
       expect(result.isValid).toBe(false);
-      expect(result.errors.some(e => e.includes("Organizational approach"))).toBe(true);
+      expect(result.errors.some((e) => e.includes("Organizational approach"))).toBe(true);
     });
 
     it("should reject empty operational scope", () => {
@@ -55,7 +55,7 @@ describe("Boundary Validator", () => {
 
       const result = validateBoundary(boundary);
       expect(result.isValid).toBe(false);
-      expect(result.errors.some(e => e.includes("operational scope"))).toBe(true);
+      expect(result.errors.some((e) => e.includes("operational scope"))).toBe(true);
     });
 
     it("should detect overlapping included/excluded entities", () => {
@@ -72,7 +72,7 @@ describe("Boundary Validator", () => {
 
       const result = validateBoundary(boundary);
       expect(result.isValid).toBe(false);
-      expect(result.errors.some(e => e.includes("cannot be both"))).toBe(true);
+      expect(result.errors.some((e) => e.includes("cannot be both"))).toBe(true);
     });
 
     it("should warn about missing Scope 1 sources when Scope 1 included", () => {
@@ -88,7 +88,7 @@ describe("Boundary Validator", () => {
       };
 
       const result = validateBoundary(boundary);
-      expect(result.warnings.some(w => w.includes("Scope 1"))).toBe(true);
+      expect(result.warnings.some((w) => w.includes("Scope 1"))).toBe(true);
     });
 
     it("should warn about missing exclusion reasons", () => {
@@ -104,7 +104,7 @@ describe("Boundary Validator", () => {
       };
 
       const result = validateBoundary(boundary);
-      expect(result.warnings.some(w => w.includes("exclusion reason"))).toBe(true);
+      expect(result.warnings.some((w) => w.includes("exclusion reason"))).toBe(true);
     });
   });
 

@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentContext } from "@/lib/auth";
 import { getOAuthManager } from "@/lib/integrations/ecovadis/oauth";
-import { isProductionRuntime } from "@/lib/launch/gates";
 
-export async function GET(req: Request) {
+export async function GET() {
   const ctx = await getCurrentContext();
 
   if (!ctx.activeOrg || (ctx.role !== "admin" && ctx.role !== "owner")) {
@@ -12,17 +11,11 @@ export async function GET(req: Request) {
 
   try {
     const manager = await getOAuthManager();
-
-    // Generate state token (in production, store this in Redis with TTL)
-    const state = btoa(`${ctx.activeOrg}-${Date.now()}`);
-
+    const state = btoa(`${ctx.activeOrg.id}-${Date.now()}`);
     const url = manager.getAuthorizationUrl(state);
 
     return NextResponse.json({ url });
   } catch (error) {
-    return NextResponse.json(
-      { error: String(error) },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }

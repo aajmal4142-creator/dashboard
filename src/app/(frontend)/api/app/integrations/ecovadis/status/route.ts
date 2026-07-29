@@ -3,7 +3,7 @@ import { getPayload } from "payload";
 import config from "@/payload.config";
 import { getCurrentContext } from "@/lib/auth";
 
-export async function GET(req: Request) {
+export async function GET() {
   const ctx = await getCurrentContext();
 
   if (!ctx.activeOrg) {
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
     const connection = await payload.find({
       collection: "ecovadis-connections",
-      where: { organisation: { equals: ctx.activeOrg } },
+      where: { organisation: { equals: ctx.activeOrg.id } },
       limit: 1,
       overrideAccess: true,
     });
@@ -40,9 +40,6 @@ export async function GET(req: Request) {
       totalSuppliersSynced: doc.totalSuppliersSynced,
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: String(error) },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }

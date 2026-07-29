@@ -133,7 +133,7 @@ describe("tenant access control", () => {
         unit: "kWh",
         quality: "measured",
         source: "manual",
-        supplierKey: "",
+        approvalState: "pending",
       },
       overrideAccess: true,
     });
@@ -149,7 +149,7 @@ describe("tenant access control", () => {
         unit: "kWh",
         quality: "measured",
         source: "manual",
-        supplierKey: "",
+        approvalState: "pending",
       },
       overrideAccess: true,
     });

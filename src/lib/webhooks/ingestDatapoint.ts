@@ -8,10 +8,10 @@ const DatapointSchema = z.object({
   value: z.number().nullable().optional(),
   quality: z.enum(["measured", "calculated", "estimated", "missing"]),
   unit: z.string().optional(),
-  source: z.string().default("webhook"),
+  source: z.string().default("api"),
 });
 
-export type IngestDatapointInput = z.infer<typeof DatapointSchema>;
+export type IngestDatapointInput = z.input<typeof DatapointSchema>;
 
 export interface IngestResult {
   id: string;
@@ -66,7 +66,8 @@ export async function ingestDatapoint(
       value: validated.quality === "missing" ? null : (validated.value ?? null),
       unit: validated.unit,
       quality: validated.quality,
-      source: "webhook",
+      source: "api",
+      approvalState: "pending",
     },
     overrideAccess: true,
   });
@@ -82,7 +83,7 @@ export async function ingestDatapoint(
       metricKey: validated.metricKey,
       value: validated.value,
       quality: validated.quality,
-      source: "webhook",
+      source: "api",
     },
   });
 
@@ -109,24 +110,27 @@ export async function batchIngestDatapoints(
   let inserted = 0;
 
   // Validate all inputs first
-  const validated = inputs.map((input, index) => {
-    try {
-      return { index, data: DatapointSchema.parse(input) };
-    } catch (err) {
-      const message = err instanceof z.ZodError ? err.errors[0].message : "Invalid data";
-      errors.push({ index, error: message });
-      return null;
-    }
-  }).filter(Boolean) as Array<{ index: number; data: IngestDatapointInput }>;
+  const validated = inputs
+    .map((input, index) => {
+      try {
+        return { index, data: DatapointSchema.parse(input) };
+      } catch (err) {
+        const message =
+          err instanceof z.ZodError
+            ? (err.issues[0]?.message ?? "Invalid data")
+            : "Invalid data";
+        errors.push({ index, error: message });
+        return null;
+      }
+    })
+    .filter(Boolean) as Array<{ index: number; data: IngestDatapointInput }>;
 
   // Process in parallel (max 10 concurrent)
   const batchSize = 10;
   for (let i = 0; i < validated.length; i += batchSize) {
     const batch = validated.slice(i, i + batchSize);
     const results = await Promise.allSettled(
-      batch.map((item) =>
-        ingestDatapoint(organisationId, periodId, item.data, actorId),
-      ),
+      batch.map((item) => ingestDatapoint(organisationId, periodId, item.data, actorId)),
     );
 
     results.forEach((result, batchIndex) => {
@@ -137,7 +141,8 @@ export async function batchIngestDatapoints(
         if (originalIndex !== undefined) {
           errors.push({
             index: originalIndex,
-            error: result.reason instanceof Error ? result.reason.message : "Unknown error",
+            error:
+              result.reason instanceof Error ? result.reason.message : "Unknown error",
           });
         }
       }

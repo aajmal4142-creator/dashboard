@@ -4,6 +4,8 @@ import { EcoVadisOAuthManager } from "./oauth";
 // Mock fetch globally
 global.fetch = vi.fn();
 
+const mockFetch = vi.mocked(global.fetch);
+
 describe("EcoVadisOAuthManager", () => {
   let manager: EcoVadisOAuthManager;
 
@@ -24,10 +26,10 @@ describe("EcoVadisOAuthManager", () => {
         expires_in: 3600,
       };
 
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
-      });
+      } as Response);
 
       const result = await manager.exchangeAuthCode("test-code");
 
@@ -38,10 +40,10 @@ describe("EcoVadisOAuthManager", () => {
     });
 
     it("throws on failed exchange", async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: false,
         text: async () => "Invalid code",
-      });
+      } as Response);
 
       await expect(manager.exchangeAuthCode("invalid-code")).rejects.toThrow(
         "EcoVadis OAuth exchange failed",
@@ -57,10 +59,10 @@ describe("EcoVadisOAuthManager", () => {
         expires_in: 3600,
       };
 
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
-      });
+      } as Response);
 
       const result = await manager.refreshAccessToken("old-refresh-token");
 
@@ -69,10 +71,10 @@ describe("EcoVadisOAuthManager", () => {
     });
 
     it("throws on refresh failure", async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: false,
         text: async () => "Invalid refresh token",
-      });
+      } as Response);
 
       await expect(manager.refreshAccessToken("bad-token")).rejects.toThrow(
         "EcoVadis refresh failed",
@@ -91,10 +93,10 @@ describe("EcoVadisOAuthManager", () => {
         page: 0,
       };
 
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
-      });
+      } as Response);
 
       const result = await manager.fetchSuppliers("test-token", 0, 100);
 
@@ -104,15 +106,15 @@ describe("EcoVadisOAuthManager", () => {
     });
 
     it("throws on API error", async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 401,
         text: async () => "Unauthorized",
-      });
+      } as Response);
 
-      await expect(
-        manager.fetchSuppliers("invalid-token", 0, 100),
-      ).rejects.toThrow("EcoVadis API error");
+      await expect(manager.fetchSuppliers("invalid-token", 0, 100)).rejects.toThrow(
+        "EcoVadis API error",
+      );
     });
   });
 
@@ -131,10 +133,10 @@ describe("EcoVadisOAuthManager", () => {
         },
       };
 
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
-      });
+      } as Response);
 
       const result = await manager.fetchSupplierScores("test-token", "1");
 
