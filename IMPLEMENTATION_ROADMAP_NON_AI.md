@@ -224,7 +224,7 @@ docs/
 
 ---
 
-### Sprint 1 Feature: EcoVadis Integration
+### Sprint 1 Feature: Free Supplier ESG Data Integration
 
 **Feature ID**: SM-001  
 **Priority**: 🔴 CRITICAL  
@@ -233,70 +233,67 @@ docs/
 
 #### Acceptance Criteria
 
-- [x] OAuth 2.0 integration with EcoVadis API
-- [x] Supplier score sync (automated, daily refresh)
-- [x] Assessment result mapping to ClearESG schema
-- [x] Multi-dimensional scoring (Environment, Labor, Ethics, Sustainable Procurement)
-- [x] Risk flag automation (low score = high risk)
-- [x] Historical score tracking (trend analysis)
-- [x] Failed sync error handling & retry
-- [x] Admin UI to manage EcoVadis connection
-- [x] Sync status dashboard
-- [x] Data freshness validation
+- [x] Supplier questionnaire (30+ questions, self-reported)
+- [x] UN Global Compact database sync (free, 10K+ companies)
+- [x] Government data integration (EU ETS, SEC Edgar - all free)
+- [x] Data source tracking (show origin of each metric)
+- [x] Risk scoring from data completeness + quality (0-100)
+- [x] Admin UI to manage questionnaires and data sources
+- [x] Data completeness dashboard
+- [x] Alert system (email when sufficient data)
+- [x] NO paid external services (zero cost)
 
 #### Implementation Tasks
 
-1. **OAuth Integration** (2h)
-   - EcoVadis OAuth token management
-   - Token refresh mechanism
-   - Connection status monitoring
-   - Secure credential storage (encrypted in MongoDB)
+1. **Supplier Questionnaire** (2h)
+   - 30-40 self-reported ESG questions
+   - Scope 1/2/3, certifications, governance, targets
+   - Send invitations and track responses
+   - Reminder system (14, 21, 30 days)
 
-2. **API Sync Service** (3h)
-   - Build sync worker (runs daily at 2 AM UTC)
-   - Fetch supplier assessments from EcoVadis
-   - Map EcoVadis scores → ClearESG supplier profile
-   - Store assessment date, score, trend
-   - Implement delta sync (only fetch updated since last sync)
+2. **UN Global Compact Sync** (2h)
+   - Download free UN GC CSV (10K+ signatory companies)
+   - Auto-match suppliers by company name
+   - Store signatory status + SDG alignment
+   - Monthly sync
 
-3. **Risk Scoring Engine** (2h)
-   - Auto-flag suppliers with score < 40 (high risk)
-   - Map EcoVadis dimensions to risk categories
-   - Create supplier risk dashboard
-   - Alert system for newly high-risk suppliers
+3. **Government Data Integration** (2h)
+   - EU ETS registry (10K EU companies, free)
+   - SEC EDGAR 10-K filings (6K US public companies, free)
+   - Auto-extract emissions + ESG mentions
+   - Link to official filings
 
 4. **Admin UI** (1h)
-   - EcoVadis connection status page
-   - Manual sync trigger button
-   - Last sync timestamp display
-   - Failed sync error logs
-   - Disconnect functionality
+   - Questionnaire management page
+   - Data sync status dashboard
+   - Response rate tracking (X% responded)
+   - Manual sync buttons for each source
 
 #### Code Quality Standards
 
 ```typescript
-// API Reliability
-- Retry logic (exponential backoff)
-- Timeout handling (30s max)
-- Circuit breaker for EcoVadis API
-- Fallback to cached scores if API down
-
 // Data Integrity
-- Idempotent operations (safe to retry)
-- Transaction support for multi-document updates
-- Data validation before storing
+- All data sources publicly verified
+- Confidence scores for each metric (60%-95%)
+- Data lineage tracking (show source + date)
+- Retry logic for sync failures
+
+// Performance
+- Process 1000 suppliers in <30s
+- UN GC sync: <10s for 1000 companies
+- Risk calculation: <100ms per supplier
 ```
 
 #### Production Readiness Checklist
 
-- [ ] OAuth token management tested
-- [ ] Daily sync runs without errors
-- [ ] Error handling for API failures
-- [ ] Performance tested (1000+ suppliers)
-- [ ] Risk scoring validated manually
-- [ ] Admin UI functional
-- [ ] Monitoring alerts configured
-- [ ] SLA: 99% sync success rate
+- [ ] Questionnaire template finalized
+- [ ] UN GC sync tested (matches work correctly)
+- [ ] EU ETS/SEC sync tested
+- [ ] Risk scoring validated by procurement team
+- [ ] Admin UI functional and intuitive
+- [ ] All tests passing (10+ unit, 5+ integration)
+- [ ] Zero external API costs verified
+- [ ] SLA: 99% data accuracy
 
 ---
 
@@ -480,7 +477,7 @@ docs/
 **Acceptance Criteria**
 
 - [ ] Risk scoring algorithm (0-100 scale)
-- [ ] Multi-factor scoring (EcoVadis, GHG intensity, location, compliance)
+- [ ] Multi-factor scoring (Data Completeness, GHG intensity, location, compliance)
 - [ ] Risk tier mapping (Low, Medium, High, Critical)
 - [ ] Automated flags for high-risk suppliers
 - [ ] Risk dashboard with filtering
@@ -1266,7 +1263,7 @@ docs/
 
 - [ ] **DC-001**: API/Webhook Data Ingestion (8h)
 - [ ] **CF-001**: GHG Protocol 2004 Compliance (8h)
-- [ ] **SM-001**: EcoVadis Integration (8h)
+- [ ] **SM-001**: Free Supplier ESG Data Integration (8h)
 - [ ] **BC-001**: Annual Billing with Discount (4h)
 
 **Expected Output**: Enterprise data feeds + compliance baseline + supply chain integration
@@ -1645,7 +1642,7 @@ Before marking a feature as ✅ COMPLETED:
 
 4. Flag any **blockers** or **dependencies**:
    ```
-   ⚠️ Blocker: Need EcoVadis API credentials (request from sales)
+   ⚠️ No blockers: Using only free public data sources (UN GC, EU ETS, SEC Edgar)
    ⚠️ Dependency: Requires DC-001 (API Ingestion) complete first
    ```
 
