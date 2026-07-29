@@ -56,7 +56,7 @@ export class UsageTracker {
 
       if (existingMetric) {
         await this.payload.update({
-          collection: "usage-metrics",
+          collection: "usage-metrics" as any,
           id: existingMetric.id,
           data: {
             storageUsedGB: sizeGB,
@@ -69,7 +69,7 @@ export class UsageTracker {
           organisationId,
         );
         await this.payload.update({
-          collection: "usage-metrics",
+          collection: "usage-metrics" as any,
           id: dailyMetric.id,
           data: {
             storageUsedGB: sizeGB,
@@ -94,7 +94,7 @@ export class UsageTracker {
 
       if (existingMetric) {
         await this.payload.update({
-          collection: "usage-metrics",
+          collection: "usage-metrics" as any,
           id: existingMetric.id,
           data: {
             activeUsersCount: count,
@@ -106,7 +106,7 @@ export class UsageTracker {
           organisationId,
         );
         await this.payload.update({
-          collection: "usage-metrics",
+          collection: "usage-metrics" as any,
           id: dailyMetric.id,
           data: {
             activeUsersCount: count,
@@ -133,7 +133,7 @@ export class UsageTracker {
 
       // Query all metrics from this month
       const metrics = await this.payload.find({
-        collection: "usage-metrics",
+        collection: "usage-metrics" as any,
         where: {
           and: [
             { subscription: { equals: subscription.id } },
@@ -183,7 +183,7 @@ export class UsageTracker {
       }
 
       const result = await this.payload.find({
-        collection: "usage-metrics",
+        collection: "usage-metrics" as any,
         where: {
           and: [
             { subscription: { equals: subscription.id } },
@@ -222,7 +222,7 @@ export class UsageTracker {
       const startOfNextMonth = new Date(month.getFullYear(), month.getMonth() + 1, 1);
 
       const metrics = await this.payload.find({
-        collection: "usage-metrics",
+        collection: "usage-metrics" as any,
         where: {
           and: [
             { subscription: { equals: subscription.id } },
@@ -275,7 +275,7 @@ export class UsageTracker {
     if (existingMetric) {
       const currentValue = (existingMetric[field] as number) || 0;
       await this.payload.update({
-        collection: "usage-metrics",
+        collection: "usage-metrics" as any,
         id: existingMetric.id,
         data: {
           [field]: currentValue + amount,
@@ -287,7 +287,7 @@ export class UsageTracker {
         organisationId,
       );
       await this.payload.update({
-        collection: "usage-metrics",
+        collection: "usage-metrics" as any,
         id: dailyMetric.id,
         data: {
           [field]: amount,
@@ -313,7 +313,7 @@ export class UsageTracker {
     if (existingMetric) {
       const currentValue = (existingMetric[field] as number) || 0;
       await this.payload.update({
-        collection: "usage-metrics",
+        collection: "usage-metrics" as any,
         id: existingMetric.id,
         data: {
           [field]: currentValue + amount,
@@ -325,7 +325,7 @@ export class UsageTracker {
         organisationId,
       );
       await this.payload.update({
-        collection: "usage-metrics",
+        collection: "usage-metrics" as any,
         id: dailyMetric.id,
         data: {
           [field]: amount,
@@ -342,7 +342,7 @@ export class UsageTracker {
     date: Date,
   ): Promise<UsageMetric | null> {
     const result = await this.payload.find({
-      collection: "usage-metrics",
+      collection: "usage-metrics" as any,
       where: {
         and: [
           { subscription: { equals: subscriptionId } },
@@ -374,7 +374,7 @@ export class UsageTracker {
     }
 
     const created = await this.payload.create({
-      collection: "usage-metrics",
+      collection: "usage-metrics" as any,
       data: {
         subscription: subscriptionId,
         organisation: organisationId,
@@ -397,7 +397,7 @@ export class UsageTracker {
    */
   private async getSubscriptionForOrg(organisationId: string) {
     const result = await this.payload.find({
-      collection: "subscriptions",
+      collection: "subscriptions" as any,
       where: {
         organisation: { equals: organisationId },
       },

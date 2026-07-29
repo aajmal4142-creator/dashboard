@@ -333,8 +333,9 @@ export class QuotaEnforcer {
    * Private helper: Get subscription for organisation
    */
   private async getSubscription(organisationId: string): Promise<Subscription | null> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await this.payload.find({
-      collection: "subscriptions",
+      collection: "subscriptions" as any,
       where: {
         organisation: { equals: organisationId },
       },
