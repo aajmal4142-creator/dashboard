@@ -22,3 +22,35 @@ export {
   findSupplierByToken,
   tokenAuthorizesSupplier,
 } from "./tokenSecurity";
+export {
+  generateQuestionnaireTemplate,
+  calculateCompletion,
+  sendQuestionnaire,
+  submitQuestionnaire,
+  getCompletion,
+  remindSupplier,
+  needsReminder,
+  type QuestionnaireQuestion,
+  type QuestionnaireTemplate,
+} from "./questionnaireService";
+export {
+  fetchUncGlobalCompactDatabase,
+  matchSupplierInDatabase,
+  syncUnGcForOrganisation,
+  setUnGcSignatoryStatus,
+  type UnGcCompany,
+} from "./uncGlobalCompactService";
+export {
+  fetchEuEtsRegistry,
+  findInEuEts,
+  syncSupplierEuEtsData,
+  syncEuEtsForOrganisation,
+  type EuEtsEntry,
+} from "./euEtsService";
+export {
+  calculateRiskScore,
+  recalculateRiskScoresForOrganisation,
+  hasMovedToHighRisk,
+  getRiskScoreWithExplanation,
+  type RiskScoreBreakdown,
+} from "./riskScoringEngine";

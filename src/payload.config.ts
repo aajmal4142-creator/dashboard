@@ -39,6 +39,8 @@ import { Scope3Activities } from "./collections/Scope3Activities";
 import { Subscriptions } from "./collections/Subscriptions";
 import { SubscriptionHistory } from "./collections/SubscriptionHistory";
 import { Suppliers } from "./collections/Suppliers";
+import { SupplierQuestionnaire } from "./collections/SupplierQuestionnaire";
+import { SupplierDataSource } from "./collections/SupplierDataSource";
 import { UsageMetrics } from "./collections/UsageMetrics";
 import { UserPolicies } from "./collections/UserPolicies";
 import { Users } from "./collections/Users";
@@ -82,6 +84,8 @@ export default buildConfig({
     Datapoints,
     Evidence,
     Suppliers,
+    SupplierQuestionnaire,
+    SupplierDataSource,
     Scope3Sources,
     Scope3Activities,
     InternalDataRequests,

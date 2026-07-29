@@ -80,6 +80,8 @@ export interface Config {
     datapoints: Datapoint;
     evidence: Evidence;
     suppliers: Supplier;
+    'supplier-questionnaires': SupplierQuestionnaire;
+    'supplier-data-sources': SupplierDataSource;
     'scope3-sources': Scope3Source;
     'scope3-activities': Scope3Activity;
     'internal-data-requests': InternalDataRequest;
@@ -127,6 +129,8 @@ export interface Config {
     datapoints: DatapointsSelect<false> | DatapointsSelect<true>;
     evidence: EvidenceSelect<false> | EvidenceSelect<true>;
     suppliers: SuppliersSelect<false> | SuppliersSelect<true>;
+    'supplier-questionnaires': SupplierQuestionnairesSelect<false> | SupplierQuestionnairesSelect<true>;
+    'supplier-data-sources': SupplierDataSourcesSelect<false> | SupplierDataSourcesSelect<true>;
     'scope3-sources': Scope3SourcesSelect<false> | Scope3SourcesSelect<true>;
     'scope3-activities': Scope3ActivitiesSelect<false> | Scope3ActivitiesSelect<true>;
     'internal-data-requests': InternalDataRequestsSelect<false> | InternalDataRequestsSelect<true>;
@@ -635,6 +639,51 @@ export interface Supplier {
     | boolean
     | null;
   reminderCount?: number | null;
+  /**
+   * Country code or name (for UN GC, EU ETS matching)
+   */
+  country?: string | null;
+  /**
+   * Free ESG data from public sources (UN GC, govt registries)
+   */
+  esgData?: {
+    /**
+     * Is supplier a UN Global Compact signatory?
+     */
+    unGcSignatory?: boolean | null;
+    /**
+     * When UN GC signatory status was verified
+     */
+    unGcVerifiedAt?: string | null;
+    /**
+     * ISO 14001 Environmental Management certification
+     */
+    hasIso14001?: boolean | null;
+    /**
+     * B Corp certification
+     */
+    hasBCorp?: boolean | null;
+    /**
+     * Array of certifications with expiry dates: [{name, expiryDate}]
+     */
+    certifications?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Percentage of required ESG data collected (0-100)
+     */
+    dataCompletionPercent?: number | null;
+    /**
+     * When ESG data was last updated from any source
+     */
+    lastDataUpdateAt?: string | null;
+  };
   ecovadis?: {
     score?: number | null;
     assessmentDate?: string | null;
@@ -712,6 +761,121 @@ export interface Evidence {
    */
   ocrStatus?: ('pending' | 'done' | 'failed' | 'skipped') | null;
   updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-questionnaires".
+ */
+export interface SupplierQuestionnaire {
+  id: string;
+  organisation: string | Organisation;
+  supplier: string | Supplier;
+  status: 'draft' | 'sent' | 'in_progress' | 'submitted' | 'reviewed';
+  /**
+   * Questionnaire responses as JSON: { questionId: answer }
+   */
+  responses?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Percentage of questions answered (0-100)
+   */
+  completionPercent?: number | null;
+  /**
+   * When questionnaire was sent to supplier
+   */
+  invitedAt?: string | null;
+  /**
+   * When last sent/reminder was sent
+   */
+  sentAt?: string | null;
+  /**
+   * When supplier submitted completed questionnaire
+   */
+  submittedAt?: string | null;
+  /**
+   * Last time responses were modified
+   */
+  lastUpdatedAt?: string | null;
+  /**
+   * Number of reminder emails sent
+   */
+  reminderCount?: number | null;
+  /**
+   * When last reminder was sent
+   */
+  lastReminderAt?: string | null;
+  /**
+   * Questionnaire link expires at this date
+   */
+  expiresAt?: string | null;
+  /**
+   * Admin notes after review
+   */
+  reviewNotes?: string | null;
+  /**
+   * User who reviewed the submission
+   */
+  reviewedBy?: (string | null) | User;
+  /**
+   * When the submission was reviewed
+   */
+  reviewedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-data-sources".
+ */
+export interface SupplierDataSource {
+  id: string;
+  organisation: string | Organisation;
+  supplier: string | Supplier;
+  /**
+   * Name of the metric (e.g., 'scope1_emissions', 'has_iso14001')
+   */
+  metricName: string;
+  /**
+   * The metric value (string, number, boolean, or object)
+   */
+  value:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  source: 'questionnaire' | 'un_gc' | 'eu_ets' | 'sec_filing' | 'manual' | 'public_report';
+  /**
+   * Confidence score (0-100): questionnaire=60%, govt=95%, manual=40%
+   */
+  confidence?: number | null;
+  /**
+   * Link to the source document or registry
+   */
+  sourceUrl?: string | null;
+  /**
+   * When this data point was last updated
+   */
+  updatedAt: string;
+  /**
+   * Optional expiration date for time-sensitive data (e.g., certifications)
+   */
+  expiresAt?: string | null;
+  /**
+   * Additional context about this data point
+   */
+  notes?: string | null;
   createdAt: string;
 }
 /**
@@ -2307,6 +2471,14 @@ export interface PayloadLockedDocument {
         value: string | Supplier;
       } | null)
     | ({
+        relationTo: 'supplier-questionnaires';
+        value: string | SupplierQuestionnaire;
+      } | null)
+    | ({
+        relationTo: 'supplier-data-sources';
+        value: string | SupplierDataSource;
+      } | null)
+    | ({
         relationTo: 'scope3-sources';
         value: string | Scope3Source;
       } | null)
@@ -2769,6 +2941,18 @@ export interface SuppliersSelect<T extends boolean = true> {
   lastReminderAt?: T;
   submittedData?: T;
   reminderCount?: T;
+  country?: T;
+  esgData?:
+    | T
+    | {
+        unGcSignatory?: T;
+        unGcVerifiedAt?: T;
+        hasIso14001?: T;
+        hasBCorp?: T;
+        certifications?: T;
+        dataCompletionPercent?: T;
+        lastDataUpdateAt?: T;
+      };
   ecovadis?:
     | T
     | {
@@ -2788,6 +2972,46 @@ export interface SuppliersSelect<T extends boolean = true> {
         calculatedAt?: T;
       };
   updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-questionnaires_select".
+ */
+export interface SupplierQuestionnairesSelect<T extends boolean = true> {
+  organisation?: T;
+  supplier?: T;
+  status?: T;
+  responses?: T;
+  completionPercent?: T;
+  invitedAt?: T;
+  sentAt?: T;
+  submittedAt?: T;
+  lastUpdatedAt?: T;
+  reminderCount?: T;
+  lastReminderAt?: T;
+  expiresAt?: T;
+  reviewNotes?: T;
+  reviewedBy?: T;
+  reviewedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-data-sources_select".
+ */
+export interface SupplierDataSourcesSelect<T extends boolean = true> {
+  organisation?: T;
+  supplier?: T;
+  metricName?: T;
+  value?: T;
+  source?: T;
+  confidence?: T;
+  sourceUrl?: T;
+  updatedAt?: T;
+  expiresAt?: T;
+  notes?: T;
   createdAt?: T;
 }
 /**

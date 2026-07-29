@@ -66,6 +66,78 @@ export const Suppliers: CollectionConfig = {
     { name: "submittedData", type: "json" },
     { name: "reminderCount", type: "number", defaultValue: 0, min: 0 },
     {
+      name: "country",
+      type: "text",
+      admin: {
+        description: "Country code or name (for UN GC, EU ETS matching)",
+      },
+    },
+    {
+      name: "esgData",
+      type: "group",
+      admin: {
+        description: "Free ESG data from public sources (UN GC, govt registries)",
+      },
+      fields: [
+        {
+          name: "unGcSignatory",
+          type: "checkbox",
+          defaultValue: false,
+          admin: {
+            description: "Is supplier a UN Global Compact signatory?",
+          },
+        },
+        {
+          name: "unGcVerifiedAt",
+          type: "date",
+          admin: {
+            description: "When UN GC signatory status was verified",
+          },
+        },
+        {
+          name: "hasIso14001",
+          type: "checkbox",
+          defaultValue: false,
+          admin: {
+            description: "ISO 14001 Environmental Management certification",
+          },
+        },
+        {
+          name: "hasBCorp",
+          type: "checkbox",
+          defaultValue: false,
+          admin: {
+            description: "B Corp certification",
+          },
+        },
+        {
+          name: "certifications",
+          type: "json",
+          admin: {
+            description:
+              "Array of certifications with expiry dates: [{name, expiryDate}]",
+          },
+        },
+        {
+          name: "dataCompletionPercent",
+          type: "number",
+          min: 0,
+          max: 100,
+          defaultValue: 0,
+          admin: {
+            description: "Percentage of required ESG data collected (0-100)",
+          },
+        },
+        {
+          name: "lastDataUpdateAt",
+          type: "date",
+          admin: {
+            description: "When ESG data was last updated from any source",
+          },
+        },
+      ],
+    },
+    {
       name: "ecovadis",
       type: "group",
       fields: [
