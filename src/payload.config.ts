@@ -18,18 +18,23 @@ import { Evidence } from "./collections/Evidence";
 import { FrameworkMappings } from "./collections/FrameworkMappings";
 import { FrameworkMetrics } from "./collections/FrameworkMetrics";
 import { InternalDataRequests } from "./collections/InternalDataRequests";
+import { Invoices } from "./collections/Invoices";
 import { MaterialityAssessments } from "./collections/MaterialityAssessments";
 import { Media } from "./collections/Media";
 import { Memberships } from "./collections/Memberships";
 import { MetricDefinitions } from "./collections/MetricDefinitions";
 import { Organisations } from "./collections/Organisations";
+import { PaymentHistory } from "./collections/PaymentHistory";
+import { Plans } from "./collections/Plans";
 import { PolicyEvaluations } from "./collections/PolicyEvaluations";
 import { PolicyRoles } from "./collections/PolicyRoles";
 import { ReportingPeriods } from "./collections/ReportingPeriods";
 import { Reports } from "./collections/Reports";
 import { Scope3Sources } from "./collections/Scope3Sources";
 import { Scope3Activities } from "./collections/Scope3Activities";
+import { Subscriptions } from "./collections/Subscriptions";
 import { Suppliers } from "./collections/Suppliers";
+import { UsageMetrics } from "./collections/UsageMetrics";
 import { UserPolicies } from "./collections/UserPolicies";
 import { Users } from "./collections/Users";
 import { VerificationFindings } from "./collections/VerificationFindings";
@@ -85,6 +90,11 @@ export default buildConfig({
     AssuranceEngagements,
     VerificationFindings,
     AssuranceReports,
+    Plans,
+    Subscriptions,
+    UsageMetrics,
+    Invoices,
+    PaymentHistory,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,
