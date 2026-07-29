@@ -64,6 +64,9 @@ import { SAPConnections } from "./collections/SAPConnections";
 import { DataWarehouseConnections } from "./collections/DataWarehouseConnections";
 import { PowerBIConnections } from "./collections/PowerBIConnections";
 import { TableauConnections } from "./collections/TableauConnections";
+import { CustomRoles } from "./collections/CustomRoles";
+import { SavedFilters } from "./collections/SavedFilters";
+import { BulkOperations } from "./collections/BulkOperations";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -147,6 +150,9 @@ export default buildConfig({
     DataWarehouseConnections,
     PowerBIConnections,
     TableauConnections,
+    CustomRoles,
+    SavedFilters,
+    BulkOperations,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,

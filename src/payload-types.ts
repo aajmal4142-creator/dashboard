@@ -126,6 +126,9 @@ export interface Config {
     'datawarehouse-connections': DatawarehouseConnection;
     'powerbi-connections': PowerbiConnection;
     'tableau-connections': TableauConnection;
+    'custom-roles': CustomRole;
+    'saved-filters': SavedFilter;
+    'bulk-operations': BulkOperation;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -192,6 +195,9 @@ export interface Config {
     'datawarehouse-connections': DatawarehouseConnectionsSelect<false> | DatawarehouseConnectionsSelect<true>;
     'powerbi-connections': PowerbiConnectionsSelect<false> | PowerbiConnectionsSelect<true>;
     'tableau-connections': TableauConnectionsSelect<false> | TableauConnectionsSelect<true>;
+    'custom-roles': CustomRolesSelect<false> | CustomRolesSelect<true>;
+    'saved-filters': SavedFiltersSelect<false> | SavedFiltersSelect<true>;
+    'bulk-operations': BulkOperationsSelect<false> | BulkOperationsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -3609,6 +3615,153 @@ export interface TableauConnection {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "custom-roles".
+ */
+export interface CustomRole {
+  id: string;
+  organisation: string | Organisation;
+  name: string;
+  description?: string | null;
+  /**
+   * System template roles are shared across all organisations
+   */
+  isTemplate?: boolean | null;
+  /**
+   * Capability matrix: { action: [resources], ...} e.g. { read: [suppliers, reports], write: [materiality] }
+   */
+  permissions:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Scope limits per resource: { resource: scope, ...} e.g. { suppliers: own, reports: team }
+   */
+  resourceScopes?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Parent role for hierarchy
+   */
+  inheritsFrom?: (string | null) | CustomRole;
+  memberCount?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "saved-filters".
+ */
+export interface SavedFilter {
+  id: string;
+  organisation: string | Organisation;
+  owner: string | User;
+  name: string;
+  description?: string | null;
+  resourceType: 'suppliers' | 'datapoints' | 'reports' | 'audit-logs' | 'users' | 'materiality' | 'obligations';
+  /**
+   * Query conditions for the filter
+   */
+  filterConditions:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Sort field and order
+   */
+  sortConfig?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Set as default view for this resource type
+   */
+  isDefault?: boolean | null;
+  isSharedWithTeam?: boolean | null;
+  /**
+   * Specific users this filter is shared with
+   */
+  sharedWith?: (string | User)[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bulk-operations".
+ */
+export interface BulkOperation {
+  id: string;
+  organisation: string | Organisation;
+  actor: string | User;
+  operationType: 'delete' | 'update-status' | 'assign' | 'email-reminder' | 'export';
+  resourceType: 'suppliers' | 'datapoints' | 'users';
+  /**
+   * Array of resource IDs affected
+   */
+  itemIds:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  itemCount: number;
+  /**
+   * Changes applied in this bulk operation
+   */
+  changes?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  progressPercent?: number | null;
+  errorMessage?: string | null;
+  /**
+   * Snapshot of items before operation for undo
+   */
+  beforeSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  canUndo?: boolean | null;
+  undoneAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -3866,6 +4019,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'tableau-connections';
         value: string | TableauConnection;
+      } | null)
+    | ({
+        relationTo: 'custom-roles';
+        value: string | CustomRole;
+      } | null)
+    | ({
+        relationTo: 'saved-filters';
+        value: string | SavedFilter;
+      } | null)
+    | ({
+        relationTo: 'bulk-operations';
+        value: string | BulkOperation;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -5470,6 +5635,61 @@ export interface TableauConnectionsSelect<T extends boolean = true> {
   lastSyncStatus?: T;
   lastSyncRecords?: T;
   connectedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "custom-roles_select".
+ */
+export interface CustomRolesSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  description?: T;
+  isTemplate?: T;
+  permissions?: T;
+  resourceScopes?: T;
+  inheritsFrom?: T;
+  memberCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "saved-filters_select".
+ */
+export interface SavedFiltersSelect<T extends boolean = true> {
+  organisation?: T;
+  owner?: T;
+  name?: T;
+  description?: T;
+  resourceType?: T;
+  filterConditions?: T;
+  sortConfig?: T;
+  isDefault?: T;
+  isSharedWithTeam?: T;
+  sharedWith?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bulk-operations_select".
+ */
+export interface BulkOperationsSelect<T extends boolean = true> {
+  organisation?: T;
+  actor?: T;
+  operationType?: T;
+  resourceType?: T;
+  itemIds?: T;
+  itemCount?: T;
+  changes?: T;
+  status?: T;
+  progressPercent?: T;
+  errorMessage?: T;
+  beforeSnapshot?: T;
+  canUndo?: T;
+  undoneAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
