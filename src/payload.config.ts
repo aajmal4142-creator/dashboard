@@ -45,6 +45,8 @@ import { SubscriptionHistory } from "./collections/SubscriptionHistory";
 import { Suppliers } from "./collections/Suppliers";
 import { SupplierQuestionnaire } from "./collections/SupplierQuestionnaire";
 import { SupplierDataSource } from "./collections/SupplierDataSource";
+import { SupplierDocuments } from "./collections/SupplierDocuments";
+import { SupplyChainNetworks } from "./collections/SupplyChainNetworks";
 import { UsageMetrics } from "./collections/UsageMetrics";
 import { UserPolicies } from "./collections/UserPolicies";
 import { Users } from "./collections/Users";
@@ -90,6 +92,8 @@ export default buildConfig({
     Suppliers,
     SupplierQuestionnaire,
     SupplierDataSource,
+    SupplierDocuments,
+    SupplyChainNetworks,
     Scope3Sources,
     Scope3Activities,
     InternalDataRequests,

@@ -82,6 +82,8 @@ export interface Config {
     suppliers: Supplier;
     'supplier-questionnaires': SupplierQuestionnaire;
     'supplier-data-sources': SupplierDataSource;
+    'supplier-documents': SupplierDocument;
+    'supply-chain-networks': SupplyChainNetwork;
     'scope3-sources': Scope3Source;
     'scope3-activities': Scope3Activity;
     'internal-data-requests': InternalDataRequest;
@@ -135,6 +137,8 @@ export interface Config {
     suppliers: SuppliersSelect<false> | SuppliersSelect<true>;
     'supplier-questionnaires': SupplierQuestionnairesSelect<false> | SupplierQuestionnairesSelect<true>;
     'supplier-data-sources': SupplierDataSourcesSelect<false> | SupplierDataSourcesSelect<true>;
+    'supplier-documents': SupplierDocumentsSelect<false> | SupplierDocumentsSelect<true>;
+    'supply-chain-networks': SupplyChainNetworksSelect<false> | SupplyChainNetworksSelect<true>;
     'scope3-sources': Scope3SourcesSelect<false> | Scope3SourcesSelect<true>;
     'scope3-activities': Scope3ActivitiesSelect<false> | Scope3ActivitiesSelect<true>;
     'internal-data-requests': InternalDataRequestsSelect<false> | InternalDataRequestsSelect<true>;
@@ -869,6 +873,438 @@ export interface SupplierDataSource {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-documents".
+ */
+export interface SupplierDocument {
+  id: string;
+  organisation: string | Organisation;
+  supplier: string | Supplier;
+  filename: string;
+  docType:
+    | 'sustainability_report'
+    | 'esg_report'
+    | 'certification'
+    | 'carbon_data'
+    | 'audit_report'
+    | 'verification'
+    | 'policy'
+    | 'other';
+  /**
+   * File size in bytes
+   */
+  fileSize?: number | null;
+  /**
+   * e.g., application/pdf, image/png
+   */
+  mimeType?: string | null;
+  /**
+   * S3 or local storage path
+   */
+  filePath: string;
+  /**
+   * Document version (e.g., 1.0, 1.1)
+   */
+  version?: string | null;
+  /**
+   * If replaced by newer version
+   */
+  supersededBy?: (string | null) | SupplierDocument;
+  uploadedBy: string | User;
+  /**
+   * When file was uploaded
+   */
+  uploadedAt: string;
+  /**
+   * For certifications that expire
+   */
+  expiryDate?: string | null;
+  /**
+   * Searchable tags
+   */
+  tags?: string[] | null;
+  /**
+   * Optional document description
+   */
+  description?: string | null;
+  virusScanStatus?: ('pending' | 'clean' | 'infected' | 'inconclusive') | null;
+  /**
+   * Detailed virus scan results
+   */
+  virusScanResult?: string | null;
+  /**
+   * Compliance checkpoints this document satisfies
+   */
+  linkedCheckpoints?: (string | ComplianceCheckpoint)[] | null;
+  /**
+   * Audit findings this document addresses
+   */
+  linkedFindings?: (string | VerificationFinding)[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "compliance-checkpoints".
+ */
+export interface ComplianceCheckpoint {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Parent compliance record
+   */
+  ghgProtocolCompliance: string | GhgProtocolCompliance;
+  /**
+   * Unique checkpoint identifier (e.g., GHG-001)
+   */
+  checkpointId: string;
+  category:
+    | 'scope-boundaries'
+    | 'data-collection'
+    | 'calculation-methods'
+    | 'emission-factors'
+    | 'quality-assurance'
+    | 'documentation'
+    | 'organizational-boundaries'
+    | 'operational-boundaries'
+    | 'restatements'
+    | 'uncertainty';
+  /**
+   * Human-readable requirement name
+   */
+  requirementName: string;
+  /**
+   * GHG Protocol section/subsection (e.g., Section 4.2.3)
+   */
+  requirementCode: string;
+  /**
+   * Full requirement text from GHG Protocol
+   */
+  requirementText: string;
+  status: 'not-started' | 'in-progress' | 'completed' | 'verified' | 'waived';
+  /**
+   * Internal notes or implementation details
+   */
+  notes?: string | null;
+  /**
+   * Supporting evidence and documentation
+   */
+  evidenceLinks?:
+    | {
+        /**
+         * URL or reference to supporting evidence
+         */
+        url?: string | null;
+        documentType?:
+          ('data-source' | 'calculation-sheet' | 'policy-document' | 'audit-report' | 'third-party' | 'other') | null;
+        /**
+         * How this evidence supports the requirement
+         */
+        description?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * User who verified this checkpoint
+   */
+  verifiedBy?: (string | null) | User;
+  /**
+   * When checkpoint was verified
+   */
+  verifiedAt?: string | null;
+  /**
+   * Which emission scopes this applies to
+   */
+  applicableScopes?: ('scope1' | 'scope2' | 'scope3')[] | null;
+  /**
+   * If waived, explain why this requirement is not applicable
+   */
+  waiverReason?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ghg-protocol-compliance".
+ */
+export interface GhgProtocolCompliance {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * e.g. 2024, 2025
+   */
+  complianceYear: string;
+  /**
+   * Total Scope 1 emissions (tCO2e)
+   */
+  scope1Total: number;
+  /**
+   * Total Scope 2 emissions (tCO2e)
+   */
+  scope2Total: number;
+  /**
+   * Total Scope 3 emissions (tCO2e)
+   */
+  scope3Total: number;
+  /**
+   * Organizational and operational boundaries defined
+   */
+  boundaryDefinition: string;
+  /**
+   * Emissions calculation methodology used
+   */
+  methodology: string;
+  /**
+   * Data quality assessment (0-100)
+   */
+  dataQualityScore: number;
+  dataQualityBreakdown?: {
+    /**
+     * Completeness score (0-100)
+     */
+    completeness?: number | null;
+    /**
+     * Accuracy score (0-100)
+     */
+    accuracy?: number | null;
+    /**
+     * Consistency score (0-100)
+     */
+    consistency?: number | null;
+    /**
+     * Recency score (0-100)
+     */
+    recency?: number | null;
+  };
+  /**
+   * Overall compliance score (0-100)
+   */
+  complianceScore: number;
+  /**
+   * Has this compliance been verified?
+   */
+  isVerified: boolean;
+  /**
+   * Locked after assurance auditor sign-off (immutable)
+   */
+  isLocked: boolean;
+  /**
+   * User who verified this compliance
+   */
+  verifiedBy?: (string | null) | User;
+  /**
+   * When verification occurred
+   */
+  verifiedAt?: string | null;
+  /**
+   * Assurance auditor who locked this
+   */
+  lockedBy?: (string | null) | User;
+  /**
+   * When this was locked for audit
+   */
+  lockedAt?: string | null;
+  /**
+   * Number of fulfilled checkpoints
+   */
+  checkpointsFulfilled?: number | null;
+  /**
+   * Total checkpoints in compliance framework
+   */
+  checkpointsTotal?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "verification-findings".
+ */
+export interface VerificationFinding {
+  id: string;
+  /**
+   * Associated assurance engagement
+   */
+  engagement: string | AssuranceEngagement;
+  /**
+   * Type of finding
+   */
+  category: 'data-quality' | 'methodology' | 'scope' | 'calculation' | 'completeness' | 'other';
+  severity: 'critical' | 'major' | 'minor' | 'info';
+  /**
+   * Brief finding title
+   */
+  title: string;
+  /**
+   * Detailed description of finding
+   */
+  description: string;
+  /**
+   * Which metric/datapoint this affects
+   */
+  affectedMetric?: string | null;
+  /**
+   * Supporting evidence links/references
+   */
+  evidence?:
+    | {
+        /**
+         * URL or reference to evidence
+         */
+        url?: string | null;
+        /**
+         * How this supports the finding
+         */
+        description?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Business impact of this finding
+   */
+  impact?: ('high' | 'medium' | 'low') | null;
+  /**
+   * Recommended action/resolution
+   */
+  recommendation?: string | null;
+  status: 'open' | 'acknowledged' | 'resolved' | 'closed';
+  /**
+   * Provider user who submitted this finding
+   */
+  submittedBy: string | User;
+  /**
+   * When finding was submitted
+   */
+  submittedAt: string;
+  /**
+   * When finding was resolved
+   */
+  resolvedAt?: string | null;
+  /**
+   * Notes on how finding was resolved
+   */
+  resolutionNotes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "assurance-engagements".
+ */
+export interface AssuranceEngagement {
+  id: string;
+  organisation: string | Organisation;
+  reportingPeriod: string | ReportingPeriod;
+  provider: {
+    /**
+     * Assurance provider name
+     */
+    name: string;
+    /**
+     * Primary contact email
+     */
+    email: string;
+    /**
+     * Primary contact name
+     */
+    contactPerson?: string | null;
+    /**
+     * Provider organization name
+     */
+    providerOrg?: string | null;
+  };
+  scope: 'scope1' | 'scope2' | 'scope3' | 'all';
+  /**
+   * Optional framework focus
+   */
+  framework?: ('csrd' | 'brsr' | 'gri' | 'sasb') | null;
+  status: 'draft' | 'submitted' | 'reviewing' | 'findings_submitted' | 'approved' | 'signed_off';
+  /**
+   * When engagement was requested
+   */
+  requestedAt: string;
+  /**
+   * When engagement was formally submitted to provider
+   */
+  submittedAt?: string | null;
+  /**
+   * When findings were approved by organization
+   */
+  approvedAt?: string | null;
+  /**
+   * When provider signed off on assurance
+   */
+  signedOffAt?: string | null;
+  /**
+   * Data gaps identified for this engagement
+   */
+  dataGaps?:
+    | {
+        /**
+         * Missing metric or data point
+         */
+        metric: string;
+        severity: 'high' | 'medium' | 'low';
+        /**
+         * Why this metric is missing or incomplete
+         */
+        description: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Internal notes about engagement
+   */
+  notes?: string | null;
+  /**
+   * User who created engagement
+   */
+  createdBy?: (string | null) | User;
+  /**
+   * Provider user assigned to this engagement (external user)
+   */
+  assignedTo?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supply-chain-networks".
+ */
+export interface SupplyChainNetwork {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Supply chain relationship name
+   */
+  name: string;
+  /**
+   * Supplier in this relationship
+   */
+  supplier_id: string | Supplier;
+  /**
+   * Parent supplier (if this is a Tier 2/3)
+   */
+  parent_supplier_id?: (string | null) | Supplier;
+  /**
+   * Tier level: 1 (direct), 2, 3, etc.
+   */
+  tier_level: number;
+  /**
+   * Annual spend with this supplier
+   */
+  spend?: number | null;
+  /**
+   * Annual emissions from this supplier (tonnes CO2e)
+   */
+  emissions?: number | null;
+  /**
+   * Strategic importance of this relationship
+   */
+  relationship_strength?: ('critical' | 'high' | 'medium' | 'low') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "scope3-sources".
  */
 export interface Scope3Source {
@@ -1248,178 +1684,6 @@ export interface ComplianceTarget {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "ghg-protocol-compliance".
- */
-export interface GhgProtocolCompliance {
-  id: string;
-  organisation: string | Organisation;
-  /**
-   * e.g. 2024, 2025
-   */
-  complianceYear: string;
-  /**
-   * Total Scope 1 emissions (tCO2e)
-   */
-  scope1Total: number;
-  /**
-   * Total Scope 2 emissions (tCO2e)
-   */
-  scope2Total: number;
-  /**
-   * Total Scope 3 emissions (tCO2e)
-   */
-  scope3Total: number;
-  /**
-   * Organizational and operational boundaries defined
-   */
-  boundaryDefinition: string;
-  /**
-   * Emissions calculation methodology used
-   */
-  methodology: string;
-  /**
-   * Data quality assessment (0-100)
-   */
-  dataQualityScore: number;
-  dataQualityBreakdown?: {
-    /**
-     * Completeness score (0-100)
-     */
-    completeness?: number | null;
-    /**
-     * Accuracy score (0-100)
-     */
-    accuracy?: number | null;
-    /**
-     * Consistency score (0-100)
-     */
-    consistency?: number | null;
-    /**
-     * Recency score (0-100)
-     */
-    recency?: number | null;
-  };
-  /**
-   * Overall compliance score (0-100)
-   */
-  complianceScore: number;
-  /**
-   * Has this compliance been verified?
-   */
-  isVerified: boolean;
-  /**
-   * Locked after assurance auditor sign-off (immutable)
-   */
-  isLocked: boolean;
-  /**
-   * User who verified this compliance
-   */
-  verifiedBy?: (string | null) | User;
-  /**
-   * When verification occurred
-   */
-  verifiedAt?: string | null;
-  /**
-   * Assurance auditor who locked this
-   */
-  lockedBy?: (string | null) | User;
-  /**
-   * When this was locked for audit
-   */
-  lockedAt?: string | null;
-  /**
-   * Number of fulfilled checkpoints
-   */
-  checkpointsFulfilled?: number | null;
-  /**
-   * Total checkpoints in compliance framework
-   */
-  checkpointsTotal?: number | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "compliance-checkpoints".
- */
-export interface ComplianceCheckpoint {
-  id: string;
-  organisation: string | Organisation;
-  /**
-   * Parent compliance record
-   */
-  ghgProtocolCompliance: string | GhgProtocolCompliance;
-  /**
-   * Unique checkpoint identifier (e.g., GHG-001)
-   */
-  checkpointId: string;
-  category:
-    | 'scope-boundaries'
-    | 'data-collection'
-    | 'calculation-methods'
-    | 'emission-factors'
-    | 'quality-assurance'
-    | 'documentation'
-    | 'organizational-boundaries'
-    | 'operational-boundaries'
-    | 'restatements'
-    | 'uncertainty';
-  /**
-   * Human-readable requirement name
-   */
-  requirementName: string;
-  /**
-   * GHG Protocol section/subsection (e.g., Section 4.2.3)
-   */
-  requirementCode: string;
-  /**
-   * Full requirement text from GHG Protocol
-   */
-  requirementText: string;
-  status: 'not-started' | 'in-progress' | 'completed' | 'verified' | 'waived';
-  /**
-   * Internal notes or implementation details
-   */
-  notes?: string | null;
-  /**
-   * Supporting evidence and documentation
-   */
-  evidenceLinks?:
-    | {
-        /**
-         * URL or reference to supporting evidence
-         */
-        url?: string | null;
-        documentType?:
-          ('data-source' | 'calculation-sheet' | 'policy-document' | 'audit-report' | 'third-party' | 'other') | null;
-        /**
-         * How this evidence supports the requirement
-         */
-        description?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * User who verified this checkpoint
-   */
-  verifiedBy?: (string | null) | User;
-  /**
-   * When checkpoint was verified
-   */
-  verifiedAt?: string | null;
-  /**
-   * Which emission scopes this applies to
-   */
-  applicableScopes?: ('scope1' | 'scope2' | 'scope3')[] | null;
-  /**
-   * If waived, explain why this requirement is not applicable
-   */
-  waiverReason?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "compliance-history".
  */
 export interface ComplianceHistory {
@@ -1654,157 +1918,6 @@ export interface FrameworkMapping {
    * User who triggered the calculation
    */
   calculatedBy?: (string | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "assurance-engagements".
- */
-export interface AssuranceEngagement {
-  id: string;
-  organisation: string | Organisation;
-  reportingPeriod: string | ReportingPeriod;
-  provider: {
-    /**
-     * Assurance provider name
-     */
-    name: string;
-    /**
-     * Primary contact email
-     */
-    email: string;
-    /**
-     * Primary contact name
-     */
-    contactPerson?: string | null;
-    /**
-     * Provider organization name
-     */
-    providerOrg?: string | null;
-  };
-  scope: 'scope1' | 'scope2' | 'scope3' | 'all';
-  /**
-   * Optional framework focus
-   */
-  framework?: ('csrd' | 'brsr' | 'gri' | 'sasb') | null;
-  status: 'draft' | 'submitted' | 'reviewing' | 'findings_submitted' | 'approved' | 'signed_off';
-  /**
-   * When engagement was requested
-   */
-  requestedAt: string;
-  /**
-   * When engagement was formally submitted to provider
-   */
-  submittedAt?: string | null;
-  /**
-   * When findings were approved by organization
-   */
-  approvedAt?: string | null;
-  /**
-   * When provider signed off on assurance
-   */
-  signedOffAt?: string | null;
-  /**
-   * Data gaps identified for this engagement
-   */
-  dataGaps?:
-    | {
-        /**
-         * Missing metric or data point
-         */
-        metric: string;
-        severity: 'high' | 'medium' | 'low';
-        /**
-         * Why this metric is missing or incomplete
-         */
-        description: string;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Internal notes about engagement
-   */
-  notes?: string | null;
-  /**
-   * User who created engagement
-   */
-  createdBy?: (string | null) | User;
-  /**
-   * Provider user assigned to this engagement (external user)
-   */
-  assignedTo?: (string | null) | User;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "verification-findings".
- */
-export interface VerificationFinding {
-  id: string;
-  /**
-   * Associated assurance engagement
-   */
-  engagement: string | AssuranceEngagement;
-  /**
-   * Type of finding
-   */
-  category: 'data-quality' | 'methodology' | 'scope' | 'calculation' | 'completeness' | 'other';
-  severity: 'critical' | 'major' | 'minor' | 'info';
-  /**
-   * Brief finding title
-   */
-  title: string;
-  /**
-   * Detailed description of finding
-   */
-  description: string;
-  /**
-   * Which metric/datapoint this affects
-   */
-  affectedMetric?: string | null;
-  /**
-   * Supporting evidence links/references
-   */
-  evidence?:
-    | {
-        /**
-         * URL or reference to evidence
-         */
-        url?: string | null;
-        /**
-         * How this supports the finding
-         */
-        description?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Business impact of this finding
-   */
-  impact?: ('high' | 'medium' | 'low') | null;
-  /**
-   * Recommended action/resolution
-   */
-  recommendation?: string | null;
-  status: 'open' | 'acknowledged' | 'resolved' | 'closed';
-  /**
-   * Provider user who submitted this finding
-   */
-  submittedBy: string | User;
-  /**
-   * When finding was submitted
-   */
-  submittedAt: string;
-  /**
-   * When finding was resolved
-   */
-  resolvedAt?: string | null;
-  /**
-   * Notes on how finding was resolved
-   */
-  resolutionNotes?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2808,6 +2921,14 @@ export interface PayloadLockedDocument {
         value: string | SupplierDataSource;
       } | null)
     | ({
+        relationTo: 'supplier-documents';
+        value: string | SupplierDocument;
+      } | null)
+    | ({
+        relationTo: 'supply-chain-networks';
+        value: string | SupplyChainNetwork;
+      } | null)
+    | ({
         relationTo: 'scope3-sources';
         value: string | Scope3Source;
       } | null)
@@ -3347,6 +3468,48 @@ export interface SupplierDataSourcesSelect<T extends boolean = true> {
   updatedAt?: T;
   expiresAt?: T;
   notes?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-documents_select".
+ */
+export interface SupplierDocumentsSelect<T extends boolean = true> {
+  organisation?: T;
+  supplier?: T;
+  filename?: T;
+  docType?: T;
+  fileSize?: T;
+  mimeType?: T;
+  filePath?: T;
+  version?: T;
+  supersededBy?: T;
+  uploadedBy?: T;
+  uploadedAt?: T;
+  expiryDate?: T;
+  tags?: T;
+  description?: T;
+  virusScanStatus?: T;
+  virusScanResult?: T;
+  linkedCheckpoints?: T;
+  linkedFindings?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supply-chain-networks_select".
+ */
+export interface SupplyChainNetworksSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  supplier_id?: T;
+  parent_supplier_id?: T;
+  tier_level?: T;
+  spend?: T;
+  emissions?: T;
+  relationship_strength?: T;
+  updatedAt?: T;
   createdAt?: T;
 }
 /**
