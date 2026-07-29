@@ -2,14 +2,20 @@ import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 import { getCurrentContext } from "@/lib/auth";
 import config from "@/payload.config";
+import { createPdfGenerator } from "@/lib/billing/pdfGenerator";
+import type {
+  Invoice as BillingInvoice,
+  Plan as BillingPlan,
+  Subscription as BillingSubscription,
+} from "@/lib/billing/types";
 
 /**
  * GET /api/app/billing/invoices/[id]/download
- * Download invoice PDF
+ * Download invoice PDF (generates on-demand if not cached)
  */
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const ctx = await getCurrentContext();
@@ -21,8 +27,7 @@ export async function GET(
     const payload = await getPayload({ config });
 
     const invoice = await payload.findByID({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      collection: "invoices" as any,
+      collection: "invoices",
       id,
     });
 
@@ -30,25 +35,71 @@ export async function GET(
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
-    // Verify invoice belongs to user's org
-    if (invoice.organisation !== ctx.activeOrg.id) {
+    const invoiceOrgId =
+      typeof invoice.organisation === "object"
+        ? invoice.organisation.id
+        : String(invoice.organisation);
+
+    if (invoiceOrgId !== ctx.activeOrg.id) {
       return NextResponse.json(
         { error: "You don't have access to this invoice" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    // If PDF URL exists, redirect to it
     if (invoice.pdfUrl) {
       return NextResponse.redirect(invoice.pdfUrl);
     }
 
-    // Otherwise return invoice data with suggestion to generate PDF
-    return NextResponse.json({
-      error: "PDF not yet generated",
-      invoice,
-      message: "PDF generation is queued and will be available shortly",
-    }, { status: 202 });
+    try {
+      const subscriptionId =
+        typeof invoice.subscription === "object"
+          ? invoice.subscription.id
+          : String(invoice.subscription);
+
+      const subscription = await payload.findByID({
+        collection: "subscriptions",
+        id: subscriptionId,
+      });
+
+      const planId =
+        typeof subscription.plan === "object" ? subscription.plan.id : subscription.plan;
+
+      const plan = await payload.findByID({
+        collection: "plans",
+        id: String(planId),
+      });
+
+      const org = await payload.findByID({
+        collection: "organisations",
+        id: invoiceOrgId,
+      });
+
+      const pdfGenerator = createPdfGenerator();
+      const pdfBuffer = await pdfGenerator.generateInvoicePdf(
+        invoice as unknown as BillingInvoice,
+        { id: org.id, name: org.name },
+        subscription as unknown as BillingSubscription,
+        plan as unknown as BillingPlan,
+      );
+
+      return new NextResponse(pdfBuffer as unknown as BodyInit, {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${invoice.invoiceNumber}.pdf"`,
+          "Cache-Control": "public, max-age=31536000",
+        },
+      });
+    } catch (genError) {
+      console.error("Error generating PDF:", genError);
+      return NextResponse.json(
+        {
+          error: "Failed to generate PDF",
+          message: "Please try again later",
+        },
+        { status: 500 },
+      );
+    }
   } catch (error) {
     console.error("Error downloading invoice:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

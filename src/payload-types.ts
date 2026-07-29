@@ -95,6 +95,11 @@ export interface Config {
     'assurance-engagements': AssuranceEngagement;
     'verification-findings': VerificationFinding;
     'assurance-reports': AssuranceReport;
+    plans: Plan;
+    subscriptions: Subscription;
+    'usage-metrics': UsageMetric;
+    invoices: Invoice;
+    'payment-history': PaymentHistory;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -130,6 +135,11 @@ export interface Config {
     'assurance-engagements': AssuranceEngagementsSelect<false> | AssuranceEngagementsSelect<true>;
     'verification-findings': VerificationFindingsSelect<false> | VerificationFindingsSelect<true>;
     'assurance-reports': AssuranceReportsSelect<false> | AssuranceReportsSelect<true>;
+    plans: PlansSelect<false> | PlansSelect<true>;
+    subscriptions: SubscriptionsSelect<false> | SubscriptionsSelect<true>;
+    'usage-metrics': UsageMetricsSelect<false> | UsageMetricsSelect<true>;
+    invoices: InvoicesSelect<false> | InvoicesSelect<true>;
+    'payment-history': PaymentHistorySelect<false> | PaymentHistorySelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -1480,6 +1490,317 @@ export interface AssuranceReport {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "plans".
+ */
+export interface Plan {
+  id: string;
+  /**
+   * Plan tier identifier
+   */
+  name: 'starter' | 'professional' | 'enterprise' | 'trial';
+  /**
+   * Display name for UI
+   */
+  displayName: string;
+  /**
+   * Price in USD per month
+   */
+  monthlyPrice: number;
+  /**
+   * Price in USD per year (annual discount applied)
+   */
+  annualPrice: number;
+  /**
+   * Monthly datapoint limit (0 = unlimited)
+   */
+  dataPointsPerMonth: number;
+  /**
+   * Monthly report limit (0 = unlimited)
+   */
+  reportsPerMonth: number;
+  /**
+   * Storage limit in GB (0 = unlimited)
+   */
+  storageGB: number;
+  /**
+   * Active concurrent users limit (0 = unlimited)
+   */
+  activeUsersLimit: number;
+  /**
+   * List of plan features
+   */
+  features?:
+    | {
+        name: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Overage charge per 100 datapoints
+   */
+  overageRatePerUnit: number;
+  /**
+   * Trial period in days (0 = no trial)
+   */
+  trialDays?: number | null;
+  /**
+   * Active plans are selectable by users
+   */
+  isActive?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscriptions".
+ */
+export interface Subscription {
+  id: string;
+  /**
+   * Organization subscribed to this plan
+   */
+  organisation: string | Organisation;
+  /**
+   * Selected plan
+   */
+  plan: string | Plan;
+  status: 'active' | 'trialing' | 'past_due' | 'canceled' | 'suspended';
+  billingCycle: 'monthly' | 'annual';
+  /**
+   * Start of current billing period
+   */
+  currentPeriodStart: string;
+  /**
+   * End of current billing period
+   */
+  currentPeriodEnd: string;
+  /**
+   * Trial expiration (null if not in trial)
+   */
+  trialEndsAt?: string | null;
+  /**
+   * Cancellation timestamp
+   */
+  cancelledAt?: string | null;
+  /**
+   * Stripe subscription ID for sync
+   */
+  stripeSubscriptionId?: string | null;
+  /**
+   * Stripe customer ID
+   */
+  stripeCustomerId?: string | null;
+  /**
+   * Number of paid seats
+   */
+  seats: number;
+  /**
+   * Auto-renew on period end
+   */
+  autoRenew: boolean;
+  createdAt: string;
+  updatedAt: string;
+  /**
+   * Send invoice emails when generated
+   */
+  sendInvoices: boolean;
+  /**
+   * Email address for billing notifications (defaults to org email)
+   */
+  contactEmail?: string | null;
+  /**
+   * Send email alerts when usage reaches 80% of quota
+   */
+  sendUsageAlerts: boolean;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "usage-metrics".
+ */
+export interface UsageMetric {
+  id: string;
+  /**
+   * Associated subscription
+   */
+  subscription: string | Subscription;
+  /**
+   * Organization for quick filtering
+   */
+  organisation: string | Organisation;
+  /**
+   * Date of usage (start of day)
+   */
+  date: string;
+  /**
+   * Datapoints created today
+   */
+  dataPointsCreated: number;
+  /**
+   * Cumulative datapoints this billing period
+   */
+  dataPointsCumulative: number;
+  /**
+   * Reports published today
+   */
+  reportsPublished: number;
+  /**
+   * Cumulative reports this billing period
+   */
+  reportsCumulative: number;
+  /**
+   * API calls made today
+   */
+  apiCallsCount: number;
+  /**
+   * Storage used in GB
+   */
+  storageUsedGB: number;
+  /**
+   * Concurrent active users
+   */
+  activeUsersCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "invoices".
+ */
+export interface Invoice {
+  id: string;
+  /**
+   * Associated subscription
+   */
+  subscription: string | Subscription;
+  /**
+   * Organization for quick filtering
+   */
+  organisation: string | Organisation;
+  /**
+   * Human-readable invoice number
+   */
+  invoiceNumber: string;
+  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'failed' | 'refunded';
+  /**
+   * Billing period start
+   */
+  periodStart: string;
+  /**
+   * Billing period end
+   */
+  periodEnd: string;
+  /**
+   * Invoice issue date
+   */
+  issueDate: string;
+  /**
+   * Payment due date
+   */
+  dueDate: string;
+  /**
+   * Payment received date
+   */
+  paidDate?: string | null;
+  /**
+   * Total invoice amount (USD)
+   */
+  amount: number;
+  currency: 'USD';
+  /**
+   * Line items (plan, seats, etc.)
+   */
+  lineItems: {
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    amount: number;
+    id?: string | null;
+  }[];
+  /**
+   * Overage charges beyond plan limits
+   */
+  overageCharges?:
+    | {
+        metric: string;
+        units: number;
+        unitPrice: number;
+        amount: number;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Tax amount
+   */
+  taxes?: number | null;
+  /**
+   * Discount amount
+   */
+  discount?: number | null;
+  /**
+   * Internal notes
+   */
+  notes?: string | null;
+  /**
+   * Stripe invoice ID
+   */
+  stripeInvoiceId?: string | null;
+  /**
+   * URL to PDF invoice
+   */
+  pdfUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-history".
+ */
+export interface PaymentHistory {
+  id: string;
+  /**
+   * Associated subscription
+   */
+  subscription: string | Subscription;
+  /**
+   * Organization for quick filtering
+   */
+  organisation: string | Organisation;
+  /**
+   * Associated invoice
+   */
+  invoice?: (string | null) | Invoice;
+  /**
+   * Payment amount (USD)
+   */
+  amount: number;
+  currency: 'USD';
+  status: 'success' | 'pending' | 'failed' | 'refunded';
+  paymentMethod: 'stripe' | 'wire' | 'check' | 'other';
+  /**
+   * Internal transaction ID
+   */
+  transactionId?: string | null;
+  /**
+   * Stripe charge ID
+   */
+  stripeChargeId?: string | null;
+  /**
+   * Payment timestamp
+   */
+  paidAt: string;
+  /**
+   * Reason for failed payment
+   */
+  failureReason?: string | null;
+  /**
+   * Reason for refund
+   */
+  refundReason?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -1613,6 +1934,26 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'assurance-reports';
         value: string | AssuranceReport;
+      } | null)
+    | ({
+        relationTo: 'plans';
+        value: string | Plan;
+      } | null)
+    | ({
+        relationTo: 'subscriptions';
+        value: string | Subscription;
+      } | null)
+    | ({
+        relationTo: 'usage-metrics';
+        value: string | UsageMetric;
+      } | null)
+    | ({
+        relationTo: 'invoices';
+        value: string | Invoice;
+      } | null)
+    | ({
+        relationTo: 'payment-history';
+        value: string | PaymentHistory;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -2339,6 +2680,134 @@ export interface AssuranceReportsSelect<T extends boolean = true> {
   pdf?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "plans_select".
+ */
+export interface PlansSelect<T extends boolean = true> {
+  name?: T;
+  displayName?: T;
+  monthlyPrice?: T;
+  annualPrice?: T;
+  dataPointsPerMonth?: T;
+  reportsPerMonth?: T;
+  storageGB?: T;
+  activeUsersLimit?: T;
+  features?:
+    | T
+    | {
+        name?: T;
+        id?: T;
+      };
+  overageRatePerUnit?: T;
+  trialDays?: T;
+  isActive?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscriptions_select".
+ */
+export interface SubscriptionsSelect<T extends boolean = true> {
+  organisation?: T;
+  plan?: T;
+  status?: T;
+  billingCycle?: T;
+  currentPeriodStart?: T;
+  currentPeriodEnd?: T;
+  trialEndsAt?: T;
+  cancelledAt?: T;
+  stripeSubscriptionId?: T;
+  stripeCustomerId?: T;
+  seats?: T;
+  autoRenew?: T;
+  createdAt?: T;
+  updatedAt?: T;
+  sendInvoices?: T;
+  contactEmail?: T;
+  sendUsageAlerts?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "usage-metrics_select".
+ */
+export interface UsageMetricsSelect<T extends boolean = true> {
+  subscription?: T;
+  organisation?: T;
+  date?: T;
+  dataPointsCreated?: T;
+  dataPointsCumulative?: T;
+  reportsPublished?: T;
+  reportsCumulative?: T;
+  apiCallsCount?: T;
+  storageUsedGB?: T;
+  activeUsersCount?: T;
+  createdAt?: T;
+  updatedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "invoices_select".
+ */
+export interface InvoicesSelect<T extends boolean = true> {
+  subscription?: T;
+  organisation?: T;
+  invoiceNumber?: T;
+  status?: T;
+  periodStart?: T;
+  periodEnd?: T;
+  issueDate?: T;
+  dueDate?: T;
+  paidDate?: T;
+  amount?: T;
+  currency?: T;
+  lineItems?:
+    | T
+    | {
+        description?: T;
+        quantity?: T;
+        unitPrice?: T;
+        amount?: T;
+        id?: T;
+      };
+  overageCharges?:
+    | T
+    | {
+        metric?: T;
+        units?: T;
+        unitPrice?: T;
+        amount?: T;
+        id?: T;
+      };
+  taxes?: T;
+  discount?: T;
+  notes?: T;
+  stripeInvoiceId?: T;
+  pdfUrl?: T;
+  createdAt?: T;
+  updatedAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payment-history_select".
+ */
+export interface PaymentHistorySelect<T extends boolean = true> {
+  subscription?: T;
+  organisation?: T;
+  invoice?: T;
+  amount?: T;
+  currency?: T;
+  status?: T;
+  paymentMethod?: T;
+  transactionId?: T;
+  stripeChargeId?: T;
+  paidAt?: T;
+  failureReason?: T;
+  refundReason?: T;
+  createdAt?: T;
+  updatedAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

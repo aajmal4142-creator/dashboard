@@ -1,4 +1,5 @@
 import { getPayload } from "payload";
+import type { Where } from "payload";
 import { NextResponse } from "next/server";
 import { getCurrentContext } from "@/lib/auth";
 import config from "@/payload.config";
@@ -21,17 +22,19 @@ export async function GET(request: Request) {
 
     const payload = await getPayload({ config });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const whereClause: any = {
+    const whereClause: Where = {
       organisation: { equals: ctx.activeOrg.id },
     };
 
-    if (status && ["draft", "sent", "paid", "overdue", "failed", "refunded"].includes(status)) {
+    if (
+      status &&
+      ["draft", "sent", "paid", "overdue", "failed", "refunded"].includes(status)
+    ) {
       whereClause.status = { equals: status };
     }
 
     const invoices = await payload.find({
-      collection: "invoices" as any,
+      collection: "invoices",
       where: whereClause,
       limit,
       page: Math.floor(offset / limit) + 1,

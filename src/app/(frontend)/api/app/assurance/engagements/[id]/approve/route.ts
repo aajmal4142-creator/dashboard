@@ -22,7 +22,7 @@ export async function POST(req: Request, ctx: Ctx) {
 
     // Verify engagement exists
     const engagement = await payload.findByID({
-      collection: "assurance-engagements" as any,
+      collection: "assurance-engagements",
       id,
       overrideAccess: true,
     });
@@ -40,27 +40,24 @@ export async function POST(req: Request, ctx: Ctx) {
     if (engagement.status !== "findings_submitted") {
       return NextResponse.json(
         { error: "Engagement must have findings submitted before approval" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Update engagement to approved status
     const updated = await payload.update({
-      collection: "assurance-engagements" as any,
+      collection: "assurance-engagements",
       id,
       data: {
         status: "approved",
-        approvedAt: new Date(),
+        approvedAt: new Date().toISOString(),
         notes: body.approvalNotes || engagement.notes,
-      } as any,
+      },
     });
 
     return NextResponse.json({ engagement: updated });
   } catch (error) {
     console.error("Error approving engagement:", error);
-    return NextResponse.json(
-      { error: "Failed to approve engagement" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to approve engagement" }, { status: 500 });
   }
 }

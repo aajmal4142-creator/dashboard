@@ -17,19 +17,18 @@ export async function POST(request: Request) {
     if (ctx.role !== "owner") {
       return NextResponse.json(
         { error: "Only owners can cancel subscriptions" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    const body = await request.json();
-    const { reason } = body;
+    const body = (await request.json()) as { reason?: string };
+    const { reason: _reason } = body;
 
     const payload = await getPayload({ config });
 
     // Get current subscription
     const result = await payload.find({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      collection: "subscriptions" as any,
+      collection: "subscriptions",
       where: {
         organisation: { equals: ctx.activeOrg.id },
       },
@@ -44,18 +43,17 @@ export async function POST(request: Request) {
     if (subscription.status === "canceled") {
       return NextResponse.json(
         { error: "Subscription already canceled" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     // Update subscription status
     const updated = await payload.update({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      collection: "subscriptions" as any,
+      collection: "subscriptions",
       id: subscription.id,
       data: {
         status: "canceled",
-        cancelledAt: new Date(),
+        cancelledAt: new Date().toISOString(),
       },
     });
 

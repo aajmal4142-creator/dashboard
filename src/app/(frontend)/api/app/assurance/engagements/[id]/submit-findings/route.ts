@@ -21,17 +21,14 @@ export async function POST(req: Request, ctx: Ctx) {
     };
 
     if (!body.findings || body.findings.length === 0) {
-      return NextResponse.json(
-        { error: "No findings provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No findings provided" }, { status: 400 });
     }
 
     const payload = await getPayload({ config });
 
     // Verify engagement exists and belongs to organization
     const engagement = await payload.findByID({
-      collection: "assurance-engagements" as any,
+      collection: "assurance-engagements",
       id,
       overrideAccess: true,
     });
@@ -47,13 +44,34 @@ export async function POST(req: Request, ctx: Ctx) {
 
     // Create findings in database
     const createdFindings = [];
+    const validCategories = [
+      "data-quality",
+      "methodology",
+      "scope",
+      "calculation",
+      "completeness",
+      "other",
+    ] as const;
+    const validSeverities = ["critical", "major", "minor", "info"] as const;
+
     for (const finding of body.findings) {
+      const category =
+        finding.category &&
+        validCategories.includes(finding.category as (typeof validCategories)[number])
+          ? (finding.category as (typeof validCategories)[number])
+          : "other";
+      const severity =
+        finding.severity &&
+        validSeverities.includes(finding.severity as (typeof validSeverities)[number])
+          ? (finding.severity as (typeof validSeverities)[number])
+          : "info";
+
       const created = await payload.create({
-        collection: "verification-findings" as any,
+        collection: "verification-findings",
         data: {
           engagement: id,
-          category: finding.category || "other",
-          severity: finding.severity || "info",
+          category,
+          severity,
           title: finding.title || "Unnamed finding",
           description: finding.description || "",
           affectedMetric: finding.affectedMetric,
@@ -62,7 +80,7 @@ export async function POST(req: Request, ctx: Ctx) {
           recommendation: finding.recommendation,
           status: "open",
           submittedBy: auth.user.id,
-          submittedAt: new Date(),
+          submittedAt: new Date().toISOString(),
         },
       });
       createdFindings.push(created);
@@ -70,22 +88,19 @@ export async function POST(req: Request, ctx: Ctx) {
 
     // Update engagement status
     const updatedEngagement = await payload.update({
-      collection: "assurance-engagements" as any,
+      collection: "assurance-engagements",
       id,
       data: {
         status: "findings_submitted",
-      } as any,
+      },
     });
 
     return NextResponse.json(
       { engagement: updatedEngagement, findings: createdFindings },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Error submitting findings:", error);
-    return NextResponse.json(
-      { error: "Failed to submit findings" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to submit findings" }, { status: 500 });
   }
 }

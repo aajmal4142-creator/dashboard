@@ -13,9 +13,8 @@ export default async function BillingDashboard() {
   const payload = await getPayload({ config });
 
   // Get subscription
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const subResult = await payload.find({
-    collection: "subscriptions" as any,
+    collection: "subscriptions",
     where: { organisation: { equals: ctx.activeOrg.id } },
     limit: 1,
   });
@@ -28,7 +27,10 @@ export default async function BillingDashboard() {
           <h1 className="text-3xl font-bold mb-6">Billing</h1>
           <div className="bg-white rounded-lg shadow p-8 text-center">
             <p className="text-gray-600 mb-6">No active subscription yet.</p>
-            <Link href="/billing/plans" className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg">
+            <Link
+              href="/billing/plans"
+              className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg"
+            >
               Choose a Plan
             </Link>
           </div>
@@ -38,10 +40,11 @@ export default async function BillingDashboard() {
   }
 
   // Get plan details
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const planId =
+    typeof subscription.plan === "object" ? subscription.plan.id : subscription.plan;
   const plan = await payload.findByID({
-    collection: "plans" as any,
-    id: String(subscription.plan),
+    collection: "plans",
+    id: String(planId),
   });
 
   return (
@@ -58,30 +61,48 @@ export default async function BillingDashboard() {
 
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold mb-2">Billing Cycle</h3>
-            <p className="text-2xl font-bold text-slate-900">{subscription.billingCycle}</p>
-            <p className="text-slate-600">Renews {new Date(subscription.currentPeriodEnd).toLocaleDateString()}</p>
+            <p className="text-2xl font-bold text-slate-900">
+              {subscription.billingCycle}
+            </p>
+            <p className="text-slate-600">
+              Renews {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+            </p>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold mb-2">Status</h3>
-            <p className="text-2xl font-bold text-green-600 capitalize">{subscription.status}</p>
+            <p className="text-2xl font-bold text-green-600 capitalize">
+              {subscription.status}
+            </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Link href="/billing/usage" className="bg-white rounded-lg shadow p-4 text-center hover:shadow-lg">
+          <Link
+            href="/billing/usage"
+            className="bg-white rounded-lg shadow p-4 text-center hover:shadow-lg"
+          >
             <p className="text-2xl mb-2">📊</p>
             <p className="font-semibold">Usage Details</p>
           </Link>
-          <Link href="/billing/invoices" className="bg-white rounded-lg shadow p-4 text-center hover:shadow-lg">
+          <Link
+            href="/billing/invoices"
+            className="bg-white rounded-lg shadow p-4 text-center hover:shadow-lg"
+          >
             <p className="text-2xl mb-2">📄</p>
             <p className="font-semibold">Invoices</p>
           </Link>
-          <Link href="/billing/plans" className="bg-white rounded-lg shadow p-4 text-center hover:shadow-lg">
+          <Link
+            href="/billing/plans"
+            className="bg-white rounded-lg shadow p-4 text-center hover:shadow-lg"
+          >
             <p className="text-2xl mb-2">⬆️</p>
             <p className="font-semibold">Change Plan</p>
           </Link>
-          <Link href="/billing/settings" className="bg-white rounded-lg shadow p-4 text-center hover:shadow-lg">
+          <Link
+            href="/billing/settings"
+            className="bg-white rounded-lg shadow p-4 text-center hover:shadow-lg"
+          >
             <p className="text-2xl mb-2">⚙️</p>
             <p className="font-semibold">Settings</p>
           </Link>

@@ -2,6 +2,7 @@ import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 import { getCurrentContext } from "@/lib/auth";
 import config from "@/payload.config";
+import type { BillingCycle } from "@/lib/billing/types";
 
 /**
  * PUT /api/app/billing/subscriptions/update
@@ -17,19 +18,21 @@ export async function PUT(request: Request) {
     if (ctx.role !== "owner" && ctx.role !== "admin") {
       return NextResponse.json(
         { error: "Only admins can update subscriptions" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    const body = await request.json();
+    const body = (await request.json()) as {
+      planId?: string;
+      billingCycle?: BillingCycle;
+      seats?: number;
+    };
     const { planId, billingCycle, seats } = body;
 
     const payload = await getPayload({ config });
 
-    // Get current subscription
     const result = await payload.find({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      collection: "subscriptions" as any,
+      collection: "subscriptions",
       where: {
         organisation: { equals: ctx.activeOrg.id },
       },
@@ -41,13 +44,15 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "No subscription found" }, { status: 404 });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updates: Record<string, any> = {};
+    const updates: {
+      plan?: string;
+      billingCycle?: BillingCycle;
+      seats?: number;
+    } = {};
 
     if (planId) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const plan = await payload.findByID({
-        collection: "plans" as any,
+        collection: "plans",
         id: planId,
       });
 
@@ -60,34 +65,24 @@ export async function PUT(request: Request) {
 
     if (billingCycle) {
       if (!["monthly", "annual"].includes(billingCycle)) {
-        return NextResponse.json(
-          { error: "Invalid billing cycle" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Invalid billing cycle" }, { status: 400 });
       }
       updates.billingCycle = billingCycle;
     }
 
     if (seats !== undefined) {
       if (seats < 1) {
-        return NextResponse.json(
-          { error: "Seats must be at least 1" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Seats must be at least 1" }, { status: 400 });
       }
       updates.seats = seats;
     }
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json(
-        { error: "No updates provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No updates provided" }, { status: 400 });
     }
 
     const updated = await payload.update({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      collection: "subscriptions" as any,
+      collection: "subscriptions",
       id: subscription.id,
       data: updates,
     });

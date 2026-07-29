@@ -19,7 +19,7 @@ export async function GET(_req: Request, ctx: Ctx) {
 
     // Verify engagement exists
     const engagement = await payload.findByID({
-      collection: "assurance-engagements" as any,
+      collection: "assurance-engagements",
       id,
       overrideAccess: true,
     });
@@ -47,13 +47,13 @@ export async function GET(_req: Request, ctx: Ctx) {
       const gaps = await detector.detectGaps(
         engagement.framework,
         emissionsData,
-        engagement.scope
+        engagement.scope,
       );
 
       const coverage = detector.calculateCoverage(
         engagement.framework,
         emissionsData,
-        engagement.scope
+        engagement.scope,
       );
 
       return NextResponse.json({
@@ -72,9 +72,6 @@ export async function GET(_req: Request, ctx: Ctx) {
     });
   } catch (error) {
     console.error("Error fetching data gaps:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch data gaps" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch data gaps" }, { status: 500 });
   }
 }

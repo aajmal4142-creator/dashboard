@@ -36,6 +36,9 @@ export interface Subscription {
   stripeCustomerId?: string;
   seats: number;
   autoRenew: boolean;
+  sendInvoices?: boolean;
+  contactEmail?: string;
+  sendUsageAlerts?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

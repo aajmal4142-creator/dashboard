@@ -17,7 +17,7 @@ export async function GET() {
     const payload = await getPayload({ config });
 
     const plans = await payload.find({
-      collection: "plans" as any,
+      collection: "plans",
       where: {
         isActive: { equals: true },
       },

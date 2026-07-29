@@ -30,8 +30,7 @@ export const Subscriptions: CollectionConfig = {
     {
       name: "plan",
       type: "relationship",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      relationTo: "plans" as any,
+      relationTo: "plans",
       required: true,
       index: true,
       admin: { description: "Selected plan" },
@@ -121,6 +120,27 @@ export const Subscriptions: CollectionConfig = {
       required: true,
       defaultValue: () => new Date(),
       admin: { readOnly: true },
+    },
+    {
+      name: "sendInvoices",
+      type: "checkbox",
+      required: true,
+      defaultValue: true,
+      admin: { description: "Send invoice emails when generated" },
+    },
+    {
+      name: "contactEmail",
+      type: "email",
+      admin: {
+        description: "Email address for billing notifications (defaults to org email)",
+      },
+    },
+    {
+      name: "sendUsageAlerts",
+      type: "checkbox",
+      required: true,
+      defaultValue: true,
+      admin: { description: "Send email alerts when usage reaches 80% of quota" },
     },
   ],
 };

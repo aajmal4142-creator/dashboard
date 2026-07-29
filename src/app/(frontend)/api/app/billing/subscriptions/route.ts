@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentContext } from "@/lib/auth";
 import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
+import type { BillingCycle } from "@/lib/billing/types";
 
 /**
  * GET /api/app/billing/subscriptions/current
@@ -15,23 +16,20 @@ export async function GET(_request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check ABAC permission
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const allowed = await requirePermission(
       ctx.user.id,
       ctx.activeOrg.id,
       "view",
       "billing",
       ctx.activeOrg.id,
-      "organisation"
+      "organisation",
     );
     if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const payload = await getPayload({ config });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await payload.find({
-      collection: "subscriptions" as any,
+      collection: "subscriptions",
       where: {
         organisation: { equals: ctx.activeOrg.id },
       },
@@ -40,17 +38,14 @@ export async function GET(_request: Request) {
 
     const subscription = result.docs?.[0];
     if (!subscription) {
-      return NextResponse.json(
-        { error: "No subscription found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "No subscription found" }, { status: 404 });
     }
 
-    // Populate plan details
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const planId =
+      typeof subscription.plan === "object" ? subscription.plan.id : subscription.plan;
     const plan = await payload.findByID({
-      collection: "plans" as any,
-      id: String(subscription.plan),
+      collection: "plans",
+      id: String(planId),
     });
 
     return NextResponse.json({
@@ -77,26 +72,25 @@ export async function POST(request: Request) {
     if (ctx.role !== "owner" && ctx.role !== "admin") {
       return NextResponse.json(
         { error: "Only admins can create subscriptions" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
-    const body = await request.json();
+    const body = (await request.json()) as {
+      planId?: string;
+      billingCycle?: BillingCycle;
+      seats?: number;
+    };
     const { planId, billingCycle = "monthly", seats = 1 } = body;
 
     if (!planId) {
-      return NextResponse.json(
-        { error: "planId is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "planId is required" }, { status: 400 });
     }
 
     const payload = await getPayload({ config });
 
-    // Verify plan exists
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const plan = await payload.findByID({
-      collection: "plans" as any,
+      collection: "plans",
       id: planId,
     });
 
@@ -104,10 +98,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Plan not found" }, { status: 404 });
     }
 
-    // Check if subscription already exists
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const existing = await payload.find({
-      collection: "subscriptions" as any,
+      collection: "subscriptions",
       where: {
         organisation: { equals: ctx.activeOrg.id },
       },
@@ -117,27 +109,29 @@ export async function POST(request: Request) {
     if (existing.docs?.length) {
       return NextResponse.json(
         { error: "Organization already has an active subscription" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
-    // Create subscription
     const now = new Date();
     const periodEnd = new Date(now);
     periodEnd.setMonth(periodEnd.getMonth() + 1);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const subscription = await payload.create({
-      collection: "subscriptions" as any,
+      collection: "subscriptions",
       data: {
         organisation: ctx.activeOrg.id,
         plan: planId,
         status: "trialing",
         billingCycle,
-        currentPeriodStart: now,
-        currentPeriodEnd: periodEnd,
+        currentPeriodStart: now.toISOString(),
+        currentPeriodEnd: periodEnd.toISOString(),
         seats,
         autoRenew: true,
+        sendInvoices: true,
+        sendUsageAlerts: true,
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
       },
     });
 

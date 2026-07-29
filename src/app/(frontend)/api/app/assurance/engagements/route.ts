@@ -15,7 +15,7 @@ export async function GET() {
 
   try {
     const engagements = await payload.find({
-      collection: "assurance-engagements" as any,
+      collection: "assurance-engagements",
       where: {
         organisation: {
           equals: auth.activeOrg.id,
@@ -30,10 +30,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error fetching engagements:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch engagements" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch engagements" }, { status: 500 });
   }
 }
 
@@ -49,17 +46,27 @@ export async function POST(req: Request) {
 
     // Validate required fields
     if (!body.reportingPeriod || !body.provider) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
+
+    const validFrameworks = ["csrd", "brsr", "gri", "sasb"] as const;
+    const framework =
+      body.framework &&
+      validFrameworks.includes(body.framework as (typeof validFrameworks)[number])
+        ? (body.framework as (typeof validFrameworks)[number])
+        : undefined;
+
+    const validScopes = ["scope1", "scope2", "scope3", "all"] as const;
+    const scope =
+      body.scope && validScopes.includes(body.scope as (typeof validScopes)[number])
+        ? (body.scope as (typeof validScopes)[number])
+        : "all";
 
     const payload = await getPayload({ config });
 
     // Create new engagement in draft status
     const engagement = await payload.create({
-      collection: "assurance-engagements" as any,
+      collection: "assurance-engagements",
       data: {
         organisation: auth.activeOrg.id,
         reportingPeriod: body.reportingPeriod,
@@ -69,25 +76,19 @@ export async function POST(req: Request) {
           contactPerson: body.provider.contactPerson,
           providerOrg: body.provider.providerOrg,
         },
-        scope: body.scope || "all",
-        framework: body.framework,
+        scope,
+        framework,
         status: "draft",
-        requestedAt: new Date(),
+        requestedAt: new Date().toISOString(),
         dataGaps: body.dataGaps || [],
         notes: body.notes,
         createdBy: auth.user.id,
       },
     });
 
-    return NextResponse.json(
-      { engagement },
-      { status: 201 }
-    );
+    return NextResponse.json({ engagement }, { status: 201 });
   } catch (error) {
     console.error("Error creating engagement:", error);
-    return NextResponse.json(
-      { error: "Failed to create engagement" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to create engagement" }, { status: 500 });
   }
 }

@@ -1,6 +1,5 @@
 import type { CollectionConfig } from "payload";
 import { tenantAccess } from "@/lib/access";
-import { ASSURANCE_ENGAGEMENTS_SLUG } from "./AssuranceEngagements";
 
 export const VERIFICATION_FINDINGS_SLUG = "verification-findings" as const;
 
@@ -23,7 +22,7 @@ export const VerificationFindings: CollectionConfig = {
     {
       name: "engagement",
       type: "relationship",
-      relationTo: ASSURANCE_ENGAGEMENTS_SLUG as any,
+      relationTo: "assurance-engagements",
       required: true,
       index: true,
       admin: { description: "Associated assurance engagement" },
