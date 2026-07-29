@@ -8,6 +8,12 @@ import sharp from "sharp";
 import { AssuranceEngagements } from "./collections/AssuranceEngagements";
 import { AssuranceReports } from "./collections/AssuranceReports";
 import { AuditLogs } from "./collections/AuditLogs";
+import { CarbonTrustCertifications } from "./collections/CarbonTrustCertifications";
+import { CarbonTrustChecklistItems } from "./collections/CarbonTrustChecklistItems";
+import { CarbonTrustDocuments } from "./collections/CarbonTrustDocuments";
+import { CarbonTrustCertificates } from "./collections/CarbonTrustCertificates";
+import { CarbonTrustAuditTrail } from "./collections/CarbonTrustAuditTrail";
+import { ESRSCompliance } from "./collections/ESRSCompliance";
 import { BenchmarkStats } from "./collections/BenchmarkStats";
 import { EcoVadisConnection } from "./collections/EcoVadisConnection";
 import { ComplianceObligations } from "./collections/ComplianceObligations";
@@ -32,6 +38,7 @@ import { PaymentHistory } from "./collections/PaymentHistory";
 import { Plans } from "./collections/Plans";
 import { PolicyEvaluations } from "./collections/PolicyEvaluations";
 import { PolicyRoles } from "./collections/PolicyRoles";
+import { RegulatoryDeadlines } from "./collections/RegulatoryDeadlines";
 import { ReportingPeriods } from "./collections/ReportingPeriods";
 import { Reports } from "./collections/Reports";
 import { Scope3Sources } from "./collections/Scope3Sources";
@@ -47,6 +54,8 @@ import { Users } from "./collections/Users";
 import { VerificationFindings } from "./collections/VerificationFindings";
 import { WebhookRegistrations } from "./collections/WebhookRegistrations";
 import { WebhookLogs } from "./collections/WebhookLogs";
+import { ISSBCompliance } from "./collections/ISSBCompliance";
+import { TCFDCompliance } from "./collections/TCFDCompliance";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -99,8 +108,10 @@ export default buildConfig({
     ComplianceCheckpoints,
     ComplianceHistory,
     PolicyEvaluations,
+    RegulatoryDeadlines,
     FrameworkMetrics,
     FrameworkMappings,
+    ESRSCompliance,
     AssuranceEngagements,
     VerificationFindings,
     AssuranceReports,
@@ -113,6 +124,13 @@ export default buildConfig({
     WebhookRegistrations,
     WebhookLogs,
     EcoVadisConnection,
+    ISSBCompliance,
+    TCFDCompliance,
+    CarbonTrustCertifications,
+    CarbonTrustChecklistItems,
+    CarbonTrustDocuments,
+    CarbonTrustCertificates,
+    CarbonTrustAuditTrail,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,
