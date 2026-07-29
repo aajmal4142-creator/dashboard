@@ -249,7 +249,7 @@ export async function syncUnGcForOrganisation(
                   unGcSignatory: true,
                   unGcVerifiedAt: new Date().toISOString(),
                 },
-              } as any,
+              },
             });
 
             results.updated++;
@@ -267,7 +267,7 @@ export async function syncUnGcForOrganisation(
                 sourceUrl: `https://www.unglobalcompact.org/what-is-gc/participants/search`,
                 updatedAt: new Date().toISOString(),
                 notes: `Matched against UN Global Compact database: ${match.companyName} (${match.country})`,
-              } as any,
+              },
             });
           }
         }

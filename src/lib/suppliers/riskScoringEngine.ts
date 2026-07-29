@@ -193,7 +193,7 @@ export async function calculateRiskScore(
           flags: breakdown.dataQuality === "low" ? ["incomplete_data"] : [],
           calculatedAt: new Date().toISOString(),
         },
-      } as any,
+      },
     });
 
     return breakdown;

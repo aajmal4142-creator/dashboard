@@ -156,7 +156,7 @@ export async function syncSupplierEuEtsData(
           sourceUrl: `https://ec.europa.eu/clima/ets/`,
           updatedAt: new Date().toISOString(),
           notes: `EU ETS Registry: ${match.installations} installations, ${match.sector} sector`,
-        } as any,
+        },
       });
     }
 

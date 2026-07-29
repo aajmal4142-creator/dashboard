@@ -314,7 +314,7 @@ export async function sendQuestionnaire(
   supplierId: string,
   supplierEmail: string,
   inviteToken: string,
-  orgName: string
+  _orgName: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const payload = await getPayload({ config });
@@ -337,7 +337,7 @@ export async function sendQuestionnaire(
         status: "sent",
         sentAt: new Date().toISOString(),
         invitedAt: new Date().toISOString(),
-      } as any,
+      },
     });
 
     return { success: true };
@@ -377,7 +377,7 @@ export async function submitQuestionnaire(
           status: "submitted",
           submittedAt: new Date().toISOString(),
           lastUpdatedAt: new Date().toISOString(),
-        } as any,
+        },
       });
     } else {
       // This shouldn't happen in normal flow, but handle it
@@ -423,8 +423,8 @@ export async function getCompletion(supplierId: string): Promise<{
       };
     }
 
-    const questionnaire = result.docs[0] as SupplierQuestionnaireType;
-    const responses = questionnaire.responses as Record<string, any>;
+    const questionnaire = result.docs[0] as unknown as SupplierQuestionnaireType;
+    const responses = questionnaire.responses as Record<string, unknown>;
     const completionPercent = calculateCompletion(responses || {});
     const template = generateQuestionnaireTemplate();
 
@@ -478,7 +478,7 @@ export async function remindSupplier(
       data: {
         reminderCount: reminderCount + 1,
         lastReminderAt: new Date().toISOString(),
-      } as any,
+      },
     });
 
     return { success: true };
