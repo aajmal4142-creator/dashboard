@@ -16,3 +16,8 @@ export {
 } from "./plans";
 export { getStripe, stripeConfigured, appOrigin } from "./stripe";
 export { getUsageMeters, type UsageMeters } from "./usage";
+
+// Days 36-45 Billing Expansion
+export * from "./types";
+export { createUsageTracker, UsageTracker } from "./usageTracker";
+export { createQuotaEnforcer, QuotaEnforcer } from "./quotaEnforcer";
