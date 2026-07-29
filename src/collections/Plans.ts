@@ -79,6 +79,41 @@ export const Plans: CollectionConfig = {
       admin: { description: "Active concurrent users limit (0 = unlimited)" },
     },
     {
+      name: "isFreeplan",
+      type: "checkbox",
+      defaultValue: false,
+      admin: { description: "Is this the free tier plan?" },
+    },
+    {
+      name: "apiCallsPerMonth",
+      type: "number",
+      required: true,
+      min: 0,
+      defaultValue: 0,
+      admin: { description: "Monthly API call limit (0 = unlimited)" },
+    },
+    {
+      name: "volumeDiscounts",
+      type: "array",
+      admin: { description: "Volume-based discount tiers" },
+      fields: [
+        {
+          name: "minSeats",
+          type: "number",
+          required: true,
+          admin: { description: "Minimum seat count for this discount" },
+        },
+        {
+          name: "discountPercent",
+          type: "number",
+          required: true,
+          min: 0,
+          max: 100,
+          admin: { description: "Discount percentage (0-100)" },
+        },
+      ],
+    },
+    {
       name: "features",
       type: "array",
       fields: [

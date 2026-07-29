@@ -129,6 +129,18 @@ export interface Config {
     'custom-roles': CustomRole;
     'saved-filters': SavedFilter;
     'bulk-operations': BulkOperation;
+    'free-tier-accounts': FreeTierAccount;
+    'iot-devices': IotDevice;
+    'erp-connections': ErpConnection;
+    'data-quality-rules': DataQualityRule;
+    'iso-14064-compliance': Iso14064Compliance;
+    'assurance-partners': AssurancePartner;
+    'report-templates': ReportTemplate;
+    'custom-emission-factors': CustomEmissionFactor;
+    'dunning-management': DunningManagement;
+    'email-data-collection-forms': EmailDataCollectionForm;
+    'product-level-footprinting': ProductLevelFootprinting;
+    'spend-based-emissions': SpendBasedEmission;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -198,6 +210,18 @@ export interface Config {
     'custom-roles': CustomRolesSelect<false> | CustomRolesSelect<true>;
     'saved-filters': SavedFiltersSelect<false> | SavedFiltersSelect<true>;
     'bulk-operations': BulkOperationsSelect<false> | BulkOperationsSelect<true>;
+    'free-tier-accounts': FreeTierAccountsSelect<false> | FreeTierAccountsSelect<true>;
+    'iot-devices': IotDevicesSelect<false> | IotDevicesSelect<true>;
+    'erp-connections': ErpConnectionsSelect<false> | ErpConnectionsSelect<true>;
+    'data-quality-rules': DataQualityRulesSelect<false> | DataQualityRulesSelect<true>;
+    'iso-14064-compliance': Iso14064ComplianceSelect<false> | Iso14064ComplianceSelect<true>;
+    'assurance-partners': AssurancePartnersSelect<false> | AssurancePartnersSelect<true>;
+    'report-templates': ReportTemplatesSelect<false> | ReportTemplatesSelect<true>;
+    'custom-emission-factors': CustomEmissionFactorsSelect<false> | CustomEmissionFactorsSelect<true>;
+    'dunning-management': DunningManagementSelect<false> | DunningManagementSelect<true>;
+    'email-data-collection-forms': EmailDataCollectionFormsSelect<false> | EmailDataCollectionFormsSelect<true>;
+    'product-level-footprinting': ProductLevelFootprintingSelect<false> | ProductLevelFootprintingSelect<true>;
+    'spend-based-emissions': SpendBasedEmissionsSelect<false> | SpendBasedEmissionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -2081,6 +2105,30 @@ export interface Plan {
    */
   activeUsersLimit: number;
   /**
+   * Is this the free tier plan?
+   */
+  isFreeplan?: boolean | null;
+  /**
+   * Monthly API call limit (0 = unlimited)
+   */
+  apiCallsPerMonth: number;
+  /**
+   * Volume-based discount tiers
+   */
+  volumeDiscounts?:
+    | {
+        /**
+         * Minimum seat count for this discount
+         */
+        minSeats: number;
+        /**
+         * Discount percentage (0-100)
+         */
+        discountPercent: number;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * List of plan features
    */
   features?:
@@ -3762,6 +3810,1187 @@ export interface BulkOperation {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "free-tier-accounts".
+ */
+export interface FreeTierAccount {
+  id: string;
+  /**
+   * Organization on free tier
+   */
+  organisation: string | Organisation;
+  status: 'active' | 'upgraded' | 'suspended';
+  /**
+   * Current month datapoints used
+   */
+  dataPointsUsed: number;
+  /**
+   * Current month reports generated
+   */
+  reportsGenerated: number;
+  /**
+   * Current month API calls
+   */
+  apiCallsUsed: number;
+  /**
+   * Whether limit approaching notification was sent
+   */
+  limitReachedNotificationSent?: boolean | null;
+  /**
+   * Date when account was upgraded from free tier
+   */
+  upgradedAt?: string | null;
+  /**
+   * MRR value at conversion (if upgraded)
+   */
+  conversionValue?: number | null;
+  /**
+   * Last date usage counters were reset
+   */
+  lastResetDate: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "iot-devices".
+ */
+export interface IotDevice {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Human-readable device name
+   */
+  deviceName: string;
+  /**
+   * Unique device identifier (MAC or IMEI)
+   */
+  deviceId: string;
+  deviceType: 'mqtt' | 'modbus' | 'opc_ua' | 'utility_energy' | 'utility_water' | 'utility_gas' | 'smart_meter';
+  /**
+   * Protocol version (e.g., MQTT v3.1.1)
+   */
+  protocol?: string | null;
+  /**
+   * Connection URL or broker address
+   */
+  connectionString?: string | null;
+  status?: ('connected' | 'disconnected' | 'error' | 'maintenance') | null;
+  /**
+   * Last successful data transmission
+   */
+  lastHeartbeat?: string | null;
+  dataPoints?:
+    | {
+        pointName: string;
+        unit: string;
+        dataType?: ('float' | 'int' | 'bool' | 'string') | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Enable anomaly detection for meter failures
+   */
+  anomalyDetectionEnabled?: boolean | null;
+  /**
+   * Threshold % for anomaly detection
+   */
+  anomalyThreshold?: number | null;
+  /**
+   * Physical location of meter
+   */
+  location?: string | null;
+  /**
+   * When meter was installed
+   */
+  installationDate?: string | null;
+  /**
+   * Encrypted credentials for device access (API key, username)
+   */
+  credentials?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "erp-connections".
+ */
+export interface ErpConnection {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Human-readable connection name
+   */
+  connectionName: string;
+  erpType: 'netsuite' | 'sap' | 'xero' | 'quickbooks' | 'workday' | 'oracle' | 'd365';
+  status?: ('connected' | 'disconnected' | 'syncing' | 'error' | 'paused') | null;
+  /**
+   * ERP API endpoint URL
+   */
+  apiEndpoint: string;
+  /**
+   * OAuth/API credentials (encrypted at rest)
+   */
+  credentials:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  syncSchedule?: ('manual' | 'hourly' | 'daily' | 'weekly') | null;
+  /**
+   * Enable Change Data Capture for real-time sync
+   */
+  cdcEnabled?: boolean | null;
+  /**
+   * Last successful data sync
+   */
+  lastSyncedAt?: string | null;
+  /**
+   * Next scheduled sync
+   */
+  nextSyncAt?: string | null;
+  /**
+   * Custom field mapping (GL account -> emissions category)
+   */
+  fieldMapping?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * ERP data entities to sync
+   */
+  dataEntities?:
+    | {
+        entityType: 'accounts' | 'cost_centers' | 'vendors' | 'purchase_orders' | 'invoices' | 'employees';
+        enabled?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  syncErrors?:
+    | {
+        timestamp: string;
+        errorMessage?: string | null;
+        failedRecords?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  reconciliationStatus?: ('pending' | 'in_progress' | 'reconciled' | 'failed') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "data-quality-rules".
+ */
+export interface DataQualityRule {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Human-readable rule name
+   */
+  ruleName: string;
+  /**
+   * Rule description and business logic
+   */
+  description?: string | null;
+  ruleType: 'range' | 'regex' | 'business' | 'cross_field' | 'uniqueness' | 'referential';
+  appliesTo: 'datapoints' | 'scope3' | 'supplier' | 'emissions';
+  /**
+   * Rule configuration (varies by type)
+   */
+  ruleConfig:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status?: ('active' | 'inactive' | 'testing') | null;
+  priority?: ('low' | 'medium' | 'high' | 'critical') | null;
+  action?: ('flag' | 'correct' | 'block' | 'warn') | null;
+  /**
+   * Rule version for history tracking
+   */
+  version: number;
+  /**
+   * User who created this rule
+   */
+  createdBy?: (string | null) | User;
+  /**
+   * User who last modified this rule
+   */
+  lastModifiedBy?: (string | null) | User;
+  /**
+   * Number of violations detected
+   */
+  violationCount?: number | null;
+  /**
+   * Test cases for rule validation
+   */
+  testCases?:
+    | {
+        testInput:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        expectedResult?: ('pass' | 'fail') | null;
+        testPassed?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "iso-14064-compliance".
+ */
+export interface Iso14064Compliance {
+  id: string;
+  organisation: string | Organisation;
+  status?: ('not_started' | 'in_progress' | 'pending_review' | 'verified' | 'non_compliant') | null;
+  checklist?:
+    | {
+        /**
+         * ISO 14064-1 requirement
+         */
+        requirement: string;
+        /**
+         * Detailed requirement description
+         */
+        description?: string | null;
+        status?: ('not_started' | 'in_progress' | 'completed' | 'na') | null;
+        evidence?:
+          | {
+              document?: (string | null) | Media;
+              description?: string | null;
+              uploadedAt?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        assignedTo?: (string | null) | User;
+        dueDate?: string | null;
+        completedAt?: string | null;
+        notes?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Compliance score percentage (0-100)
+   */
+  complianceScore: number;
+  gaps?:
+    | {
+        gap: string;
+        severity?: ('low' | 'medium' | 'high') | null;
+        remediationPlan?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Assigned auditor/reviewer
+   */
+  auditor?: (string | null) | User;
+  /**
+   * Date of last audit
+   */
+  lastAuditDate?: string | null;
+  /**
+   * Scheduled next audit
+   */
+  nextAuditDate?: string | null;
+  /**
+   * Final audit report document
+   */
+  auditReport?: (string | null) | Media;
+  /**
+   * Auditor verification notes
+   */
+  verificationNotes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "assurance-partners".
+ */
+export interface AssurancePartner {
+  id: string;
+  firmName: string;
+  website: string;
+  contactEmail: string;
+  phone: string;
+  /**
+   * Primary office location
+   */
+  location: string;
+  country: string;
+  certifications: {
+    cert: 'iso_14064_2' | 'csrd' | 'brsr' | 'gri' | 'sasb' | 'sbt';
+    certifiedYear?: number | null;
+    id?: string | null;
+  }[];
+  specializations?:
+    | {
+        /**
+         * e.g., Energy, Transport, Manufacturing
+         */
+        spec: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Number of consultants
+   */
+  teamSize?: number | null;
+  /**
+   * Years of experience
+   */
+  yearsInBusiness?: number | null;
+  /**
+   * Average rating from past clients
+   */
+  rating?: number | null;
+  /**
+   * Number of completed audit engagements
+   */
+  completedEngagements?: number | null;
+  reviews?:
+    | {
+        rating: number;
+        review?: string | null;
+        organisation?: string | null;
+        date: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Service pricing structure
+   */
+  pricing?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Service Level Agreement terms (response time, availability)
+   */
+  slaTerms?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  availability?: ('available' | 'limited' | 'booked') | null;
+  /**
+   * Engagement lead time in days
+   */
+  leadTime?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "report-templates".
+ */
+export interface ReportTemplate {
+  id: string;
+  /**
+   * Org that owns this template (null = system template)
+   */
+  organisation?: (string | null) | Organisation;
+  templateName: string;
+  description?: string | null;
+  framework: 'csrd' | 'brsr' | 'gri' | 'sasb' | 'custom';
+  type: 'html' | 'pdf' | 'excel' | 'pptx' | 'json';
+  sections?:
+    | {
+        sectionTitle: string;
+        sectionType: 'text' | 'chart' | 'table' | 'narrative' | 'dynamic';
+        /**
+         * Chart configuration (if type=chart)
+         */
+        chartConfig?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        /**
+         * Column definitions (if type=table)
+         */
+        tableColumns?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        /**
+         * Data source path or query
+         */
+        dataSource?: string | null;
+        order?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Template configuration (styling, layout, etc.)
+   */
+  templateConfig?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * HTML template code (if type=html)
+   */
+  htmlTemplate?: string | null;
+  /**
+   * Excel template file (if type=excel)
+   */
+  excelTemplate?: (string | null) | Media;
+  variables?:
+    | {
+        /**
+         * Variable name (e.g., company_name)
+         */
+        varName: string;
+        displayName: string;
+        type?: ('text' | 'number' | 'date' | 'list') | null;
+        required?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Available to all organizations
+   */
+  isPublic?: boolean | null;
+  /**
+   * Number of times this template has been used
+   */
+  usageCount?: number | null;
+  /**
+   * Template version
+   */
+  version?: number | null;
+  createdBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "custom-emission-factors".
+ */
+export interface CustomEmissionFactor {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Human-readable factor name
+   */
+  factorName: string;
+  /**
+   * Detailed description of the emissions factor
+   */
+  description?: string | null;
+  category: 'energy' | 'transport' | 'water' | 'waste' | 'procurement' | 'manufacturing' | 'travel' | 'commuting';
+  /**
+   * e.g., Grid Electricity, Natural Gas, Diesel
+   */
+  subcategory?: string | null;
+  /**
+   * Emissions factor value
+   */
+  value: number;
+  unit:
+    | 'kg_co2e_kwh'
+    | 'kg_co2e_liter'
+    | 'kg_co2e_kg'
+    | 'kg_co2e_m3'
+    | 'kg_co2e_mile'
+    | 'kg_co2e_km'
+    | 'kg_co2e_usd'
+    | 'kg_co2e_employee';
+  source: 'useeio' | 'exiobase' | 'ipcc' | 'epa' | 'defra' | 'ademe' | 'custom' | 'supplier';
+  /**
+   * Publication, report, or data source reference
+   */
+  sourceReference?: string | null;
+  /**
+   * Geographic region (e.g., US, EU, UK, India)
+   */
+  region?: string | null;
+  /**
+   * When this factor becomes effective
+   */
+  effectiveDate: string;
+  /**
+   * When this factor is superseded (optional)
+   */
+  expiryDate?: string | null;
+  status?: ('active' | 'deprecated' | 'testing' | 'draft') | null;
+  /**
+   * Confidence level in the factor accuracy
+   */
+  confidence?: ('low' | 'medium' | 'high') | null;
+  /**
+   * Uncertainty range as percentage (0-100)
+   */
+  uncertainty?: number | null;
+  /**
+   * If this replaces a previous factor, reference it
+   */
+  precedingFactorId?: (string | null) | CustomEmissionFactor;
+  applicability?:
+    | {
+        /**
+         * e.g., Company size, Region, Industry
+         */
+        condition: string;
+        /**
+         * Applicable value or range
+         */
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Additional metadata (GHG protocol scope, etc.)
+   */
+  metadata?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Number of calculations using this factor
+   */
+  usageCount?: number | null;
+  /**
+   * Last calculation using this factor
+   */
+  lastUsedAt?: string | null;
+  createdBy?: (string | null) | User;
+  /**
+   * User who approved this factor
+   */
+  approvedBy?: (string | null) | User;
+  /**
+   * When this factor was approved for use
+   */
+  approvalDate?: string | null;
+  auditTrail?:
+    | {
+        timestamp: string;
+        /**
+         * e.g., Created, Modified, Deprecated
+         */
+        action: string;
+        changedBy?: string | null;
+        details?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "dunning-management".
+ */
+export interface DunningManagement {
+  id: string;
+  subscription: string | Subscription;
+  status: 'active' | 'retrying' | 'failed' | 'resolved' | 'suspended' | 'canceled';
+  /**
+   * Stripe error message from failed payment
+   */
+  failureReason?: string | null;
+  failureCode?:
+    | (
+        | 'insufficient_funds'
+        | 'lost_card'
+        | 'stolen_card'
+        | 'expired_card'
+        | 'incorrect_cvc'
+        | 'processor_error'
+        | 'other'
+      )
+    | null;
+  /**
+   * When first payment failure occurred
+   */
+  initialFailureDate: string;
+  retrySchedule?: ('stripe_default' | 'aggressive' | 'conservative' | 'custom') | null;
+  /**
+   * Custom retry schedule (days after initial failure)
+   */
+  customRetryDays?:
+    | {
+        dayOffset: number;
+        id?: string | null;
+      }[]
+    | null;
+  retryAttempts?:
+    | {
+        attemptNumber: number;
+        attemptedAt: string;
+        status: 'success' | 'failed' | 'pending';
+        errorMessage?: string | null;
+        /**
+         * Stripe PaymentIntent ID
+         */
+        paymentIntentId?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Date of last retry attempt
+   */
+  lastRetryAt?: string | null;
+  /**
+   * Scheduled next retry (null if none)
+   */
+  nextRetryAt?: string | null;
+  /**
+   * Track dunning communication sent to customer
+   */
+  dunningEmailsSent?:
+    | {
+        emailType: 'payment_failed' | 'retry_scheduled' | 'final_notice' | 'account_suspended' | 'manual_link';
+        sentAt: string;
+        sentTo: string;
+        opened?: boolean | null;
+        clicked?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Manual payment link sent to customer
+   */
+  manualPaymentLink?: string | null;
+  /**
+   * Number of times customer accessed manual payment link
+   */
+  manualPaymentAttempts?: number | null;
+  /**
+   * When account was suspended due to payment failure
+   */
+  accountSuspendedAt?: string | null;
+  /**
+   * When account was recovered (payment successful)
+   */
+  recoveryDate?: string | null;
+  /**
+   * When subscription was canceled due to payment failure
+   */
+  canceledAt?: string | null;
+  /**
+   * Manual notes about this dunning case
+   */
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-data-collection-forms".
+ */
+export interface EmailDataCollectionForm {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Name of this email collection form
+   */
+  formName: string;
+  /**
+   * Form description for internal tracking
+   */
+  description?: string | null;
+  formType: 'supplier_questionnaire' | 'emissions_data' | 'product_data' | 'custom';
+  status?: ('draft' | 'active' | 'closed' | 'archived') | null;
+  /**
+   * Subject line for the email
+   */
+  emailSubject: string;
+  /**
+   * Email body text (supports variables: {{company}}, {{deadline}})
+   */
+  emailBody: string;
+  /**
+   * Form fields to extract data from responses
+   */
+  fields: {
+    /**
+     * Field identifier (e.g., energy_consumption)
+     */
+    fieldName: string;
+    /**
+     * Display label in email
+     */
+    fieldLabel: string;
+    fieldType: 'text' | 'number' | 'date' | 'select' | 'checkbox' | 'file';
+    required?: boolean | null;
+    /**
+     * Options for select/checkbox fields
+     */
+    options?:
+      | {
+          label?: string | null;
+          value?: string | null;
+          id?: string | null;
+        }[]
+      | null;
+    /**
+     * Regex or parser rule for data extraction
+     */
+    parseRule?: string | null;
+    id?: string | null;
+  }[];
+  template?: ('structured' | 'freeform' | 'attachment') | null;
+  /**
+   * Email addresses to send forms to
+   */
+  recipients?:
+    | {
+        email: string;
+        name?: string | null;
+        company?: string | null;
+        status?: ('pending' | 'sent' | 'opened' | 'responded' | 'failed') | null;
+        sentAt?: string | null;
+        openedAt?: string | null;
+        responseReceivedAt?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Collected responses
+   */
+  responses?:
+    | {
+        recipientEmail: string;
+        receivedAt: string;
+        /**
+         * Raw email body
+         */
+        rawMessage?: string | null;
+        /**
+         * Extracted structured data
+         */
+        parsedData?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        attachments?:
+          | {
+              file?: (string | null) | Media;
+              /**
+               * Data extracted from attachment
+               */
+              extractedData?:
+                | {
+                    [k: string]: unknown;
+                  }
+                | unknown[]
+                | string
+                | number
+                | boolean
+                | null;
+              id?: string | null;
+            }[]
+          | null;
+        status?: ('new' | 'reviewed' | 'imported' | 'rejected') | null;
+        /**
+         * Data quality assessment (0-100)
+         */
+        qualityScore?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Response deadline (displayed in email)
+   */
+  deadlineDate?: string | null;
+  reminderSchedule?: ('none' | 'one' | 'two' | 'weekly') | null;
+  /**
+   * Total recipients
+   */
+  recipientCount?: number | null;
+  /**
+   * Number of responses received
+   */
+  responseCount?: number | null;
+  /**
+   * Response rate percentage (0-100)
+   */
+  responseRate?: number | null;
+  /**
+   * Aggregated quality metrics for responses
+   */
+  dataQualityMetrics?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  createdBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "product-level-footprinting".
+ */
+export interface ProductLevelFootprinting {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Product name
+   */
+  productName: string;
+  /**
+   * Stock Keeping Unit (unique product code)
+   */
+  sku: string;
+  /**
+   * Product category (e.g., Electronics, Apparel)
+   */
+  category: string;
+  /**
+   * Product description
+   */
+  description?: string | null;
+  unit?: ('per_unit' | 'per_kg' | 'per_liter' | 'per_service') | null;
+  /**
+   * Components and materials in product
+   */
+  billOfMaterials?:
+    | {
+        /**
+         * Material name
+         */
+        material: string;
+        quantity: number;
+        /**
+         * kg, liter, meters, etc.
+         */
+        unit: string;
+        /**
+         * Supplier-specific emissions factor (kg CO2e)
+         */
+        supplierEmissionFactor?: number | null;
+        factorSource?: ('supplier' | 'industry' | 'custom') | null;
+        /**
+         * Calculated emissions for this material (kg CO2e)
+         */
+        materialCarbonFootprint?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Description of manufacturing process
+   */
+  manufacturingProcess?: string | null;
+  /**
+   * Manufacturing process emission sources
+   */
+  emissionsSources?:
+    | {
+        /**
+         * e.g., Electricity, Heat, Steam
+         */
+        source: string;
+        quantity: number;
+        unit: string;
+        emissionsFactor: number;
+        totalEmissions?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Total manufacturing stage emissions (kg CO2e)
+   */
+  totalManufacturingEmissions?: number | null;
+  /**
+   * Main package material
+   */
+  primaryPackaging?: string | null;
+  /**
+   * Weight in kg
+   */
+  primaryWeight?: number | null;
+  /**
+   * Shipping package material
+   */
+  secondaryPackaging?: string | null;
+  /**
+   * Weight in kg
+   */
+  secondaryWeight?: number | null;
+  /**
+   * Total packaging stage emissions (kg CO2e)
+   */
+  totalPackagingEmissions?: number | null;
+  /**
+   * Manufacturing location
+   */
+  transportOrigin?: string | null;
+  /**
+   * Distribution center or customer
+   */
+  transportDestination?: string | null;
+  /**
+   * Distance in km
+   */
+  transportDistance?: number | null;
+  transportMode?: ('ocean' | 'air' | 'truck' | 'rail') | null;
+  /**
+   * Product weight shipped (kg)
+   */
+  transportWeightShipped?: number | null;
+  /**
+   * Number of units in shipment
+   */
+  transportUnitsShipped?: number | null;
+  /**
+   * kg CO2e per unit
+   */
+  transportationEmissionsPerUnit?: number | null;
+  eolScenario?: ('landfill' | 'incineration' | 'recycling' | 'composting') | null;
+  /**
+   * Years to decompose (if applicable)
+   */
+  decompositionTime?: number | null;
+  /**
+   * kg CO2e from decomposition
+   */
+  emissionsFromDecomposition?: number | null;
+  /**
+   * CO2e reduction from recycling (negative value)
+   */
+  recyclingBenefit?: number | null;
+  /**
+   * Net kg CO2e from end-of-life
+   */
+  totalEndOfLifeEmissions?: number | null;
+  /**
+   * Cradle-to-grave total emissions (kg CO2e per unit)
+   */
+  totalCarbonFootprint: number;
+  /**
+   * Percentage contribution by lifecycle stage
+   */
+  breakdownByStage?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status?: ('draft' | 'published' | 'verified' | 'superseded') | null;
+  /**
+   * When footprint was last calculated
+   */
+  lastCalculatedAt?: string | null;
+  certifications?:
+    | {
+        /**
+         * e.g., Carbon Trust Standard, Product Carbon Label
+         */
+        cert?: string | null;
+        certificationDate?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  improvements?:
+    | {
+        improvement: string;
+        /**
+         * Potential CO2e reduction (kg)
+         */
+        potentialReduction?: number | null;
+        /**
+         * Cost to implement in USD
+         */
+        implementationCost?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "spend-based-emissions".
+ */
+export interface SpendBasedEmission {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Start of billing/accounting period
+   */
+  periodStart: string;
+  /**
+   * End of billing/accounting period
+   */
+  periodEnd: string;
+  category:
+    'raw_materials' | 'packaging' | 'fuel_energy' | 'waste' | 'services' | 'transportation' | 'facilities' | 'it';
+  /**
+   * More specific category (e.g., Electricity, Natural Gas)
+   */
+  subcategory?: string | null;
+  /**
+   * General Ledger account codes associated with this spend
+   */
+  glCodeRange?:
+    | {
+        glCode: string;
+        description?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Total spend in currency (usually USD)
+   */
+  totalSpend: number;
+  currency?: ('USD' | 'EUR' | 'GBP' | 'INR') | null;
+  /**
+   * kg CO2e per currency unit (from IO table)
+   */
+  emissionsFactor: number;
+  emissionsFactorSource: 'useeio' | 'exiobase' | 'custom' | 'supplier';
+  /**
+   * Version/year of the emissions factor (e.g., 2022)
+   */
+  emissionsFactorVersion?: string | null;
+  /**
+   * NAICS or industry classification code
+   */
+  industryCode?: string | null;
+  /**
+   * Calculated emissions: Spend × Factor (kg CO2e)
+   */
+  calculatedEmissions: number;
+  /**
+   * Confidence in this calculation
+   */
+  confidence?: ('low' | 'medium' | 'high') | null;
+  /**
+   * Uncertainty range as percentage (0-100)
+   */
+  uncertainty?: number | null;
+  /**
+   * Actually measured emissions (kg CO2e)
+   */
+  actualEmissions?: number | null;
+  /**
+   * Variance between calculated and actual (%)
+   */
+  variancePercent?: number | null;
+  /**
+   * Source of actual data (meter, invoice, etc.)
+   */
+  actualEmissionsSource?: string | null;
+  activityQuantity?: number | null;
+  /**
+   * kWh, kg, liters, etc.
+   */
+  activityUnit?: string | null;
+  /**
+   * Emissions factor per activity unit
+   */
+  activityFactor?: number | null;
+  /**
+   * Emissions calculated from activity (kg CO2e)
+   */
+  calculatedFromActivity?: number | null;
+  /**
+   * GHG Protocol scope
+   */
+  scope: '1' | '2' | '3';
+  dataQuality?: ('actual' | 'measured' | 'estimated' | 'supplier') | null;
+  /**
+   * Notes on calculation methodology or assumptions
+   */
+  notes?: string | null;
+  sourceDocuments?:
+    | {
+        /**
+         * Supporting document (invoice, report, etc.)
+         */
+        document?: (string | null) | Media;
+        description?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  auditTrail?:
+    | {
+        timestamp: string;
+        action: string;
+        changedBy?: (string | null) | User;
+        changes?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -4031,6 +5260,54 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'bulk-operations';
         value: string | BulkOperation;
+      } | null)
+    | ({
+        relationTo: 'free-tier-accounts';
+        value: string | FreeTierAccount;
+      } | null)
+    | ({
+        relationTo: 'iot-devices';
+        value: string | IotDevice;
+      } | null)
+    | ({
+        relationTo: 'erp-connections';
+        value: string | ErpConnection;
+      } | null)
+    | ({
+        relationTo: 'data-quality-rules';
+        value: string | DataQualityRule;
+      } | null)
+    | ({
+        relationTo: 'iso-14064-compliance';
+        value: string | Iso14064Compliance;
+      } | null)
+    | ({
+        relationTo: 'assurance-partners';
+        value: string | AssurancePartner;
+      } | null)
+    | ({
+        relationTo: 'report-templates';
+        value: string | ReportTemplate;
+      } | null)
+    | ({
+        relationTo: 'custom-emission-factors';
+        value: string | CustomEmissionFactor;
+      } | null)
+    | ({
+        relationTo: 'dunning-management';
+        value: string | DunningManagement;
+      } | null)
+    | ({
+        relationTo: 'email-data-collection-forms';
+        value: string | EmailDataCollectionForm;
+      } | null)
+    | ({
+        relationTo: 'product-level-footprinting';
+        value: string | ProductLevelFootprinting;
+      } | null)
+    | ({
+        relationTo: 'spend-based-emissions';
+        value: string | SpendBasedEmission;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -4950,6 +6227,15 @@ export interface PlansSelect<T extends boolean = true> {
   reportsPerMonth?: T;
   storageGB?: T;
   activeUsersLimit?: T;
+  isFreeplan?: T;
+  apiCallsPerMonth?: T;
+  volumeDiscounts?:
+    | T
+    | {
+        minSeats?: T;
+        discountPercent?: T;
+        id?: T;
+      };
   features?:
     | T
     | {
@@ -5690,6 +6976,536 @@ export interface BulkOperationsSelect<T extends boolean = true> {
   beforeSnapshot?: T;
   canUndo?: T;
   undoneAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "free-tier-accounts_select".
+ */
+export interface FreeTierAccountsSelect<T extends boolean = true> {
+  organisation?: T;
+  status?: T;
+  dataPointsUsed?: T;
+  reportsGenerated?: T;
+  apiCallsUsed?: T;
+  limitReachedNotificationSent?: T;
+  upgradedAt?: T;
+  conversionValue?: T;
+  lastResetDate?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "iot-devices_select".
+ */
+export interface IotDevicesSelect<T extends boolean = true> {
+  organisation?: T;
+  deviceName?: T;
+  deviceId?: T;
+  deviceType?: T;
+  protocol?: T;
+  connectionString?: T;
+  status?: T;
+  lastHeartbeat?: T;
+  dataPoints?:
+    | T
+    | {
+        pointName?: T;
+        unit?: T;
+        dataType?: T;
+        id?: T;
+      };
+  anomalyDetectionEnabled?: T;
+  anomalyThreshold?: T;
+  location?: T;
+  installationDate?: T;
+  credentials?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "erp-connections_select".
+ */
+export interface ErpConnectionsSelect<T extends boolean = true> {
+  organisation?: T;
+  connectionName?: T;
+  erpType?: T;
+  status?: T;
+  apiEndpoint?: T;
+  credentials?: T;
+  syncSchedule?: T;
+  cdcEnabled?: T;
+  lastSyncedAt?: T;
+  nextSyncAt?: T;
+  fieldMapping?: T;
+  dataEntities?:
+    | T
+    | {
+        entityType?: T;
+        enabled?: T;
+        id?: T;
+      };
+  syncErrors?:
+    | T
+    | {
+        timestamp?: T;
+        errorMessage?: T;
+        failedRecords?: T;
+        id?: T;
+      };
+  reconciliationStatus?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "data-quality-rules_select".
+ */
+export interface DataQualityRulesSelect<T extends boolean = true> {
+  organisation?: T;
+  ruleName?: T;
+  description?: T;
+  ruleType?: T;
+  appliesTo?: T;
+  ruleConfig?: T;
+  status?: T;
+  priority?: T;
+  action?: T;
+  version?: T;
+  createdBy?: T;
+  lastModifiedBy?: T;
+  violationCount?: T;
+  testCases?:
+    | T
+    | {
+        testInput?: T;
+        expectedResult?: T;
+        testPassed?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "iso-14064-compliance_select".
+ */
+export interface Iso14064ComplianceSelect<T extends boolean = true> {
+  organisation?: T;
+  status?: T;
+  checklist?:
+    | T
+    | {
+        requirement?: T;
+        description?: T;
+        status?: T;
+        evidence?:
+          | T
+          | {
+              document?: T;
+              description?: T;
+              uploadedAt?: T;
+              id?: T;
+            };
+        assignedTo?: T;
+        dueDate?: T;
+        completedAt?: T;
+        notes?: T;
+        id?: T;
+      };
+  complianceScore?: T;
+  gaps?:
+    | T
+    | {
+        gap?: T;
+        severity?: T;
+        remediationPlan?: T;
+        id?: T;
+      };
+  auditor?: T;
+  lastAuditDate?: T;
+  nextAuditDate?: T;
+  auditReport?: T;
+  verificationNotes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "assurance-partners_select".
+ */
+export interface AssurancePartnersSelect<T extends boolean = true> {
+  firmName?: T;
+  website?: T;
+  contactEmail?: T;
+  phone?: T;
+  location?: T;
+  country?: T;
+  certifications?:
+    | T
+    | {
+        cert?: T;
+        certifiedYear?: T;
+        id?: T;
+      };
+  specializations?:
+    | T
+    | {
+        spec?: T;
+        id?: T;
+      };
+  teamSize?: T;
+  yearsInBusiness?: T;
+  rating?: T;
+  completedEngagements?: T;
+  reviews?:
+    | T
+    | {
+        rating?: T;
+        review?: T;
+        organisation?: T;
+        date?: T;
+        id?: T;
+      };
+  pricing?: T;
+  slaTerms?: T;
+  availability?: T;
+  leadTime?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "report-templates_select".
+ */
+export interface ReportTemplatesSelect<T extends boolean = true> {
+  organisation?: T;
+  templateName?: T;
+  description?: T;
+  framework?: T;
+  type?: T;
+  sections?:
+    | T
+    | {
+        sectionTitle?: T;
+        sectionType?: T;
+        chartConfig?: T;
+        tableColumns?: T;
+        dataSource?: T;
+        order?: T;
+        id?: T;
+      };
+  templateConfig?: T;
+  htmlTemplate?: T;
+  excelTemplate?: T;
+  variables?:
+    | T
+    | {
+        varName?: T;
+        displayName?: T;
+        type?: T;
+        required?: T;
+        id?: T;
+      };
+  isPublic?: T;
+  usageCount?: T;
+  version?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "custom-emission-factors_select".
+ */
+export interface CustomEmissionFactorsSelect<T extends boolean = true> {
+  organisation?: T;
+  factorName?: T;
+  description?: T;
+  category?: T;
+  subcategory?: T;
+  value?: T;
+  unit?: T;
+  source?: T;
+  sourceReference?: T;
+  region?: T;
+  effectiveDate?: T;
+  expiryDate?: T;
+  status?: T;
+  confidence?: T;
+  uncertainty?: T;
+  precedingFactorId?: T;
+  applicability?:
+    | T
+    | {
+        condition?: T;
+        value?: T;
+        id?: T;
+      };
+  metadata?: T;
+  usageCount?: T;
+  lastUsedAt?: T;
+  createdBy?: T;
+  approvedBy?: T;
+  approvalDate?: T;
+  auditTrail?:
+    | T
+    | {
+        timestamp?: T;
+        action?: T;
+        changedBy?: T;
+        details?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "dunning-management_select".
+ */
+export interface DunningManagementSelect<T extends boolean = true> {
+  subscription?: T;
+  status?: T;
+  failureReason?: T;
+  failureCode?: T;
+  initialFailureDate?: T;
+  retrySchedule?: T;
+  customRetryDays?:
+    | T
+    | {
+        dayOffset?: T;
+        id?: T;
+      };
+  retryAttempts?:
+    | T
+    | {
+        attemptNumber?: T;
+        attemptedAt?: T;
+        status?: T;
+        errorMessage?: T;
+        paymentIntentId?: T;
+        id?: T;
+      };
+  lastRetryAt?: T;
+  nextRetryAt?: T;
+  dunningEmailsSent?:
+    | T
+    | {
+        emailType?: T;
+        sentAt?: T;
+        sentTo?: T;
+        opened?: T;
+        clicked?: T;
+        id?: T;
+      };
+  manualPaymentLink?: T;
+  manualPaymentAttempts?: T;
+  accountSuspendedAt?: T;
+  recoveryDate?: T;
+  canceledAt?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-data-collection-forms_select".
+ */
+export interface EmailDataCollectionFormsSelect<T extends boolean = true> {
+  organisation?: T;
+  formName?: T;
+  description?: T;
+  formType?: T;
+  status?: T;
+  emailSubject?: T;
+  emailBody?: T;
+  fields?:
+    | T
+    | {
+        fieldName?: T;
+        fieldLabel?: T;
+        fieldType?: T;
+        required?: T;
+        options?:
+          | T
+          | {
+              label?: T;
+              value?: T;
+              id?: T;
+            };
+        parseRule?: T;
+        id?: T;
+      };
+  template?: T;
+  recipients?:
+    | T
+    | {
+        email?: T;
+        name?: T;
+        company?: T;
+        status?: T;
+        sentAt?: T;
+        openedAt?: T;
+        responseReceivedAt?: T;
+        id?: T;
+      };
+  responses?:
+    | T
+    | {
+        recipientEmail?: T;
+        receivedAt?: T;
+        rawMessage?: T;
+        parsedData?: T;
+        attachments?:
+          | T
+          | {
+              file?: T;
+              extractedData?: T;
+              id?: T;
+            };
+        status?: T;
+        qualityScore?: T;
+        id?: T;
+      };
+  deadlineDate?: T;
+  reminderSchedule?: T;
+  recipientCount?: T;
+  responseCount?: T;
+  responseRate?: T;
+  dataQualityMetrics?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "product-level-footprinting_select".
+ */
+export interface ProductLevelFootprintingSelect<T extends boolean = true> {
+  organisation?: T;
+  productName?: T;
+  sku?: T;
+  category?: T;
+  description?: T;
+  unit?: T;
+  billOfMaterials?:
+    | T
+    | {
+        material?: T;
+        quantity?: T;
+        unit?: T;
+        supplierEmissionFactor?: T;
+        factorSource?: T;
+        materialCarbonFootprint?: T;
+        id?: T;
+      };
+  manufacturingProcess?: T;
+  emissionsSources?:
+    | T
+    | {
+        source?: T;
+        quantity?: T;
+        unit?: T;
+        emissionsFactor?: T;
+        totalEmissions?: T;
+        id?: T;
+      };
+  totalManufacturingEmissions?: T;
+  primaryPackaging?: T;
+  primaryWeight?: T;
+  secondaryPackaging?: T;
+  secondaryWeight?: T;
+  totalPackagingEmissions?: T;
+  transportOrigin?: T;
+  transportDestination?: T;
+  transportDistance?: T;
+  transportMode?: T;
+  transportWeightShipped?: T;
+  transportUnitsShipped?: T;
+  transportationEmissionsPerUnit?: T;
+  eolScenario?: T;
+  decompositionTime?: T;
+  emissionsFromDecomposition?: T;
+  recyclingBenefit?: T;
+  totalEndOfLifeEmissions?: T;
+  totalCarbonFootprint?: T;
+  breakdownByStage?: T;
+  status?: T;
+  lastCalculatedAt?: T;
+  certifications?:
+    | T
+    | {
+        cert?: T;
+        certificationDate?: T;
+        id?: T;
+      };
+  improvements?:
+    | T
+    | {
+        improvement?: T;
+        potentialReduction?: T;
+        implementationCost?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "spend-based-emissions_select".
+ */
+export interface SpendBasedEmissionsSelect<T extends boolean = true> {
+  organisation?: T;
+  periodStart?: T;
+  periodEnd?: T;
+  category?: T;
+  subcategory?: T;
+  glCodeRange?:
+    | T
+    | {
+        glCode?: T;
+        description?: T;
+        id?: T;
+      };
+  totalSpend?: T;
+  currency?: T;
+  emissionsFactor?: T;
+  emissionsFactorSource?: T;
+  emissionsFactorVersion?: T;
+  industryCode?: T;
+  calculatedEmissions?: T;
+  confidence?: T;
+  uncertainty?: T;
+  actualEmissions?: T;
+  variancePercent?: T;
+  actualEmissionsSource?: T;
+  activityQuantity?: T;
+  activityUnit?: T;
+  activityFactor?: T;
+  calculatedFromActivity?: T;
+  scope?: T;
+  dataQuality?: T;
+  notes?: T;
+  sourceDocuments?:
+    | T
+    | {
+        document?: T;
+        description?: T;
+        id?: T;
+      };
+  auditTrail?:
+    | T
+    | {
+        timestamp?: T;
+        action?: T;
+        changedBy?: T;
+        changes?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

@@ -67,6 +67,18 @@ import { TableauConnections } from "./collections/TableauConnections";
 import { CustomRoles } from "./collections/CustomRoles";
 import { SavedFilters } from "./collections/SavedFilters";
 import { BulkOperations } from "./collections/BulkOperations";
+import { FreeTierAccounts } from "./collections/FreeTierAccounts";
+import { IoTDevices } from "./collections/IoTDevices";
+import { ERPConnections } from "./collections/ERPConnections";
+import { DataQualityRules } from "./collections/DataQualityRules";
+import { ISO14064Compliance } from "./collections/ISO14064Compliance";
+import { AssurancePartners } from "./collections/AssurancePartners";
+import { ReportTemplates } from "./collections/ReportTemplates";
+import { CustomEmissionFactors } from "./collections/CustomEmissionFactors";
+import { DunningManagement } from "./collections/DunningManagement";
+import { EmailDataCollectionForms } from "./collections/EmailDataCollectionForms";
+import { ProductLevelFootprinting } from "./collections/ProductLevelFootprinting";
+import { SpendBasedEmissions } from "./collections/SpendBasedEmissions";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -153,6 +165,18 @@ export default buildConfig({
     CustomRoles,
     SavedFilters,
     BulkOperations,
+    FreeTierAccounts,
+    IoTDevices,
+    ERPConnections,
+    DataQualityRules,
+    ISO14064Compliance,
+    AssurancePartners,
+    ReportTemplates,
+    CustomEmissionFactors,
+    DunningManagement,
+    EmailDataCollectionForms,
+    ProductLevelFootprinting,
+    SpendBasedEmissions,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,

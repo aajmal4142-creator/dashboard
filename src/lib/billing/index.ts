@@ -26,3 +26,35 @@ export { createStripeService, StripeService } from "./stripeService";
 export { createProrataCalculator, ProrataCalculator } from "./prorataCalculator";
 export { createRenewalScheduler, RenewalScheduler } from "./renewalScheduler";
 export { createEmailService, EmailService } from "./emailService";
+
+// Sprint 8 Billing Features
+export {
+  checkDatapointQuota,
+  checkReportQuota,
+  checkApiQuota,
+  shouldSendLimitWarning,
+  incrementDatapointUsage,
+  incrementReportUsage,
+  incrementApiUsage,
+  type QuotaCheckResult,
+} from "./freeTierGates";
+export {
+  calculateOverageCharges,
+  getRealTimeOverageProjection,
+  type OverageCharges,
+} from "./overageCalculator";
+export {
+  getApplicableDiscount,
+  calculateDiscountedPrice,
+  applyVolumeDiscountToSubscription,
+  formatDiscountTierDisplay,
+  type VolumeTier,
+} from "./volumeDiscountCalculator";
+export {
+  createDunningCampaign,
+  scheduleRetryAttempt,
+  executeRetryAttempt,
+  suspendSubscriptionDueToDunning,
+  cancelSubscriptionDueToDunning,
+  generateManualPaymentLink,
+} from "./dunningService";
