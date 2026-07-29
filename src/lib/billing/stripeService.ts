@@ -1,12 +1,6 @@
 import type Stripe from "stripe";
 import type { Payload } from "payload";
-import type {
-  Plan,
-  BillingCycle,
-  Subscription,
-  Invoice,
-  PaymentRecord,
-} from "./types";
+import type { Plan, BillingCycle, Subscription } from "./types";
 import { getStripe } from "./stripe";
 
 export class StripeService {
@@ -36,8 +30,9 @@ export class StripeService {
       });
 
       // Update organisation with Stripe customer ID
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await this.payload.update({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         collection: "organisations" as any,
         id: organisation.id,
         data: {
@@ -103,7 +98,7 @@ export class StripeService {
       const updateData: Parameters<typeof this.stripe.subscriptions.update>[1] = {};
 
       if (updates.items) {
-        updateData.items = updates.items as any;
+        updateData.items = updates.items;
       }
 
       if (updates.metadata) {
@@ -149,7 +144,7 @@ export class StripeService {
           customer: customerId,
           description: item.description,
           amount: Math.round(item.unitPrice * item.quantity * 100), // Stripe uses cents
-        } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+        });
       }
 
       // Create and finalize the invoice
@@ -175,9 +170,7 @@ export class StripeService {
     try {
       switch (event.type) {
         case "charge.succeeded":
-          await this.handleChargeSucceeded(
-            event.data.object as Stripe.Charge,
-          );
+          await this.handleChargeSucceeded(event.data.object as Stripe.Charge);
           break;
 
         case "charge.failed":
@@ -185,33 +178,23 @@ export class StripeService {
           break;
 
         case "charge.refunded":
-          await this.handleChargeRefunded(
-            event.data.object as Stripe.Charge,
-          );
+          await this.handleChargeRefunded(event.data.object as Stripe.Charge);
           break;
 
         case "customer.subscription.updated":
-          await this.handleSubscriptionUpdated(
-            event.data.object as Stripe.Subscription,
-          );
+          await this.handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
           break;
 
         case "customer.subscription.deleted":
-          await this.handleSubscriptionDeleted(
-            event.data.object as Stripe.Subscription,
-          );
+          await this.handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
           break;
 
         case "invoice.payment_succeeded":
-          await this.handleInvoicePaymentSucceeded(
-            event.data.object as Stripe.Invoice,
-          );
+          await this.handleInvoicePaymentSucceeded(event.data.object as Stripe.Invoice);
           break;
 
         case "invoice.payment_failed":
-          await this.handleInvoicePaymentFailed(
-            event.data.object as Stripe.Invoice,
-          );
+          await this.handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
           break;
 
         default:
@@ -230,13 +213,9 @@ export class StripeService {
     if (!charge.customer) return;
 
     const customerId =
-      typeof charge.customer === "string"
-        ? charge.customer
-        : charge.customer.id;
+      typeof charge.customer === "string" ? charge.customer : charge.customer.id;
 
-    const organisationId = await this.getOrganisationIdFromCustomer(
-      customerId,
-    );
+    const organisationId = await this.getOrganisationIdFromCustomer(customerId);
     if (!organisationId) return;
 
     // Get subscription for this organisation
@@ -244,8 +223,9 @@ export class StripeService {
     if (!subscription) return;
 
     // Create payment record
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     await this.payload.create({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       collection: "payment-history" as any,
       data: {
         subscription: subscription.id,
@@ -269,13 +249,9 @@ export class StripeService {
     if (!charge.customer) return;
 
     const customerId =
-      typeof charge.customer === "string"
-        ? charge.customer
-        : charge.customer.id;
+      typeof charge.customer === "string" ? charge.customer : charge.customer.id;
 
-    const organisationId = await this.getOrganisationIdFromCustomer(
-      customerId,
-    );
+    const organisationId = await this.getOrganisationIdFromCustomer(customerId);
     if (!organisationId) return;
 
     // Get subscription for this organisation
@@ -283,8 +259,9 @@ export class StripeService {
     if (!subscription) return;
 
     // Create failed payment record
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     await this.payload.create({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       collection: "payment-history" as any,
       data: {
         subscription: subscription.id,
@@ -302,8 +279,9 @@ export class StripeService {
     });
 
     // Update subscription status to past_due if it's not already
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     await this.payload.update({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       collection: "subscriptions" as any,
       id: subscription.id,
       data: {
@@ -320,13 +298,9 @@ export class StripeService {
     if (!charge.customer) return;
 
     const customerId =
-      typeof charge.customer === "string"
-        ? charge.customer
-        : charge.customer.id;
+      typeof charge.customer === "string" ? charge.customer : charge.customer.id;
 
-    const organisationId = await this.getOrganisationIdFromCustomer(
-      customerId,
-    );
+    const organisationId = await this.getOrganisationIdFromCustomer(customerId);
     if (!organisationId) return;
 
     // Get subscription for this organisation
@@ -336,8 +310,8 @@ export class StripeService {
     // Find the original payment and create refund record
     const refundAmounts = charge.refunds?.data || [];
     for (const refund of refundAmounts) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await this.payload.create({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         collection: "payment-history" as any,
         data: {
           subscription: subscription.id,
@@ -367,9 +341,7 @@ export class StripeService {
         ? stripeSubscription.customer
         : stripeSubscription.customer.id;
 
-    const organisationId = await this.getOrganisationIdFromCustomer(
-      customerId,
-    );
+    const organisationId = await this.getOrganisationIdFromCustomer(customerId);
     if (!organisationId) return;
 
     // Get or create subscription record
@@ -382,16 +354,14 @@ export class StripeService {
       stripeSubscriptionId: stripeSubscription.id,
       stripeCustomerId: customerId,
       status: this.mapStripeSubStatus(stripeSubscription.status),
-      currentPeriodStart: new Date(
-        stripeSubAny.current_period_start * 1000,
-      ),
+      currentPeriodStart: new Date(stripeSubAny.current_period_start * 1000),
       currentPeriodEnd: new Date(stripeSubAny.current_period_end * 1000),
       autoRenew: !stripeSubAny.cancel_at_period_end,
     };
 
     if (subscription) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await this.payload.update({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         collection: "subscriptions" as any,
         id: subscription.id,
         data: subscriptionData,
@@ -411,16 +381,14 @@ export class StripeService {
         ? stripeSubscription.customer
         : stripeSubscription.customer.id;
 
-    const organisationId = await this.getOrganisationIdFromCustomer(
-      customerId,
-    );
+    const organisationId = await this.getOrganisationIdFromCustomer(customerId);
     if (!organisationId) return;
 
     const subscription = await this.getSubscriptionForOrg(organisationId);
     if (!subscription) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await this.payload.update({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       collection: "subscriptions" as any,
       id: subscription.id,
       data: {
@@ -434,22 +402,19 @@ export class StripeService {
   /**
    * Private: Handle invoice.payment_succeeded event
    */
-  private async handleInvoicePaymentSucceeded(
-    invoice: Stripe.Invoice,
-  ): Promise<void> {
+  private async handleInvoicePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
     if (!invoice.customer) return;
 
     const customerId =
       typeof invoice.customer === "string" ? invoice.customer : invoice.customer.id;
 
-    const organisationId = await this.getOrganisationIdFromCustomer(
-      customerId,
-    );
+    const organisationId = await this.getOrganisationIdFromCustomer(customerId);
     if (!organisationId) return;
 
     // Find and update the invoice in Payload
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const invoices = await this.payload.find({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       collection: "invoices" as any,
       where: {
         stripeInvoiceId: { equals: invoice.id },
@@ -461,8 +426,9 @@ export class StripeService {
     if (invoices.docs?.[0]) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const invoiceAny = invoice as any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       await this.payload.update({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         collection: "invoices" as any,
         id: invoices.docs[0].id,
         data: {
@@ -479,22 +445,19 @@ export class StripeService {
   /**
    * Private: Handle invoice.payment_failed event
    */
-  private async handleInvoicePaymentFailed(
-    invoice: Stripe.Invoice,
-  ): Promise<void> {
+  private async handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
     if (!invoice.customer) return;
 
     const customerId =
       typeof invoice.customer === "string" ? invoice.customer : invoice.customer.id;
 
-    const organisationId = await this.getOrganisationIdFromCustomer(
-      customerId,
-    );
+    const organisationId = await this.getOrganisationIdFromCustomer(customerId);
     if (!organisationId) return;
 
     // Find and update the invoice in Payload
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const invoices = await this.payload.find({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       collection: "invoices" as any,
       where: {
         stripeInvoiceId: { equals: invoice.id },
@@ -504,8 +467,8 @@ export class StripeService {
     });
 
     if (invoices.docs?.[0]) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await this.payload.update({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         collection: "invoices" as any,
         id: invoices.docs[0].id,
         data: {
@@ -522,8 +485,8 @@ export class StripeService {
   private async getOrganisationIdFromCustomer(
     customerId: string,
   ): Promise<string | null> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const orgs = await this.payload.find({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       collection: "organisations" as any,
       where: {
         stripeCustomerId: { equals: customerId },
@@ -541,8 +504,8 @@ export class StripeService {
   private async getSubscriptionForOrg(
     organisationId: string,
   ): Promise<Subscription | null> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const subs = await this.payload.find({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       collection: "subscriptions" as any,
       where: {
         organisation: { equals: organisationId },

@@ -56,6 +56,7 @@ export class UsageTracker {
 
       if (existingMetric) {
         await this.payload.update({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           collection: "usage-metrics" as any,
           id: existingMetric.id,
           data: {
@@ -69,6 +70,7 @@ export class UsageTracker {
           organisationId,
         );
         await this.payload.update({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           collection: "usage-metrics" as any,
           id: dailyMetric.id,
           data: {
@@ -94,6 +96,7 @@ export class UsageTracker {
 
       if (existingMetric) {
         await this.payload.update({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           collection: "usage-metrics" as any,
           id: existingMetric.id,
           data: {
@@ -106,6 +109,7 @@ export class UsageTracker {
           organisationId,
         );
         await this.payload.update({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           collection: "usage-metrics" as any,
           id: dailyMetric.id,
           data: {
@@ -133,6 +137,7 @@ export class UsageTracker {
 
       // Query all metrics from this month
       const metrics = await this.payload.find({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         collection: "usage-metrics" as any,
         where: {
           and: [
@@ -183,6 +188,7 @@ export class UsageTracker {
       }
 
       const result = await this.payload.find({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         collection: "usage-metrics" as any,
         where: {
           and: [
@@ -222,6 +228,7 @@ export class UsageTracker {
       const startOfNextMonth = new Date(month.getFullYear(), month.getMonth() + 1, 1);
 
       const metrics = await this.payload.find({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         collection: "usage-metrics" as any,
         where: {
           and: [
@@ -275,6 +282,7 @@ export class UsageTracker {
     if (existingMetric) {
       const currentValue = (existingMetric[field] as number) || 0;
       await this.payload.update({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         collection: "usage-metrics" as any,
         id: existingMetric.id,
         data: {
@@ -287,6 +295,7 @@ export class UsageTracker {
         organisationId,
       );
       await this.payload.update({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         collection: "usage-metrics" as any,
         id: dailyMetric.id,
         data: {
@@ -313,6 +322,7 @@ export class UsageTracker {
     if (existingMetric) {
       const currentValue = (existingMetric[field] as number) || 0;
       await this.payload.update({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         collection: "usage-metrics" as any,
         id: existingMetric.id,
         data: {
@@ -325,6 +335,7 @@ export class UsageTracker {
         organisationId,
       );
       await this.payload.update({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         collection: "usage-metrics" as any,
         id: dailyMetric.id,
         data: {
@@ -342,6 +353,7 @@ export class UsageTracker {
     date: Date,
   ): Promise<UsageMetric | null> {
     const result = await this.payload.find({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       collection: "usage-metrics" as any,
       where: {
         and: [
@@ -374,6 +386,7 @@ export class UsageTracker {
     }
 
     const created = await this.payload.create({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       collection: "usage-metrics" as any,
       data: {
         subscription: subscriptionId,
@@ -397,6 +410,7 @@ export class UsageTracker {
    */
   private async getSubscriptionForOrg(organisationId: string) {
     const result = await this.payload.find({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       collection: "subscriptions" as any,
       where: {
         organisation: { equals: organisationId },
