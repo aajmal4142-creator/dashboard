@@ -167,7 +167,7 @@ function stringSimilarity(str1: string, str2: string): number {
  */
 export async function matchSupplierInDatabase(
   supplierName: string,
-  country?: string
+  country?: string,
 ): Promise<UnGcCompany | null> {
   const database = await fetchUncGlobalCompactDatabase();
   const threshold = 0.75; // 75% match required
@@ -179,8 +179,7 @@ export async function matchSupplierInDatabase(
 
     // If country provided, boost score if it matches
     const countryBoost =
-      country &&
-      normalizeCompanyName(country) === normalizeCompanyName(company.country)
+      country && normalizeCompanyName(country) === normalizeCompanyName(company.country)
         ? 0.1
         : 0;
 
@@ -202,7 +201,7 @@ export async function matchSupplierInDatabase(
  */
 export async function syncUnGcForOrganisation(
   orgId: string,
-  dryRun: boolean = false
+  dryRun: boolean = false,
 ): Promise<{
   scanned: number;
   matched: number;
@@ -210,12 +209,13 @@ export async function syncUnGcForOrganisation(
   errors: string[];
 }> {
   const payload = await getPayload({ config });
-  const results: { scanned: number; matched: number; updated: number; errors: string[] } = {
-    scanned: 0,
-    matched: 0,
-    updated: 0,
-    errors: [],
-  };
+  const results: { scanned: number; matched: number; updated: number; errors: string[] } =
+    {
+      scanned: 0,
+      matched: 0,
+      updated: 0,
+      errors: [],
+    };
 
   try {
     // Fetch all suppliers for org
@@ -232,7 +232,7 @@ export async function syncUnGcForOrganisation(
       try {
         const match = await matchSupplierInDatabase(
           supplier.name,
-          supplier.country as string
+          supplier.country as string,
         );
 
         if (match) {
@@ -245,7 +245,7 @@ export async function syncUnGcForOrganisation(
               id: supplier.id,
               data: {
                 esgData: {
-                  ...(supplier.esgData as any),
+                  ...(supplier.esgData ?? {}),
                   unGcSignatory: true,
                   unGcVerifiedAt: new Date().toISOString(),
                 },
@@ -273,16 +273,14 @@ export async function syncUnGcForOrganisation(
         }
       } catch (error) {
         results.errors.push(
-          `Error processing ${supplier.name}: ${error instanceof Error ? error.message : "Unknown error"}`
+          `Error processing ${supplier.name}: ${error instanceof Error ? error.message : "Unknown error"}`,
         );
       }
     }
 
     return results;
   } catch (error) {
-    results.errors.push(
-      error instanceof Error ? error.message : "Unknown error"
-    );
+    results.errors.push(error instanceof Error ? error.message : "Unknown error");
     return results;
   }
 }
@@ -294,7 +292,7 @@ export async function syncUnGcForOrganisation(
 export async function setUnGcSignatoryStatus(
   supplierId: string,
   isSignatory: boolean,
-  notes?: string
+  notes?: string,
 ): Promise<{ success: boolean; error?: string }> {
   const payload = await getPayload({ config });
 
@@ -309,18 +307,23 @@ export async function setUnGcSignatoryStatus(
       id: supplierId,
       data: {
         esgData: {
-          ...(supplier.esgData as any),
+          ...(supplier.esgData ?? {}),
           unGcSignatory: isSignatory,
           unGcVerifiedAt: new Date().toISOString(),
         },
-      } as any,
+      },
     });
+
+    const organisationId =
+      typeof supplier.organisation === "string"
+        ? supplier.organisation
+        : supplier.organisation.id;
 
     // Log the manual verification
     await payload.create({
       collection: "supplier-data-sources",
       data: {
-        organisation: supplier.organisation,
+        organisation: organisationId,
         supplier: supplierId,
         metricName: "un_gc_signatory",
         value: isSignatory,
@@ -328,7 +331,7 @@ export async function setUnGcSignatoryStatus(
         confidence: 100,
         updatedAt: new Date().toISOString(),
         notes: notes || "Manually verified",
-      } as any,
+      },
     });
 
     return { success: true };
