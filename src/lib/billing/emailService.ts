@@ -148,6 +148,48 @@ export class EmailService {
   }
 
   /**
+   * Send renewal reminder email
+   */
+  async sendRenewalReminder(
+    subscription: Subscription,
+    daysUntilRenewal: number,
+    planName: string,
+    renewalAmount: number,
+    recipients: string[],
+  ): Promise<void> {
+    try {
+      const emailContent = this.generateRenewalReminderEmailHtml(
+        daysUntilRenewal,
+        planName,
+        renewalAmount,
+      );
+
+      await this.sendEmail({
+        to: recipients,
+        subject: `Subscription Renewal in ${daysUntilRenewal} Days`,
+        html: emailContent.html,
+        text: emailContent.text,
+      });
+
+      await this.logEmailEvent({
+        type: "renewal_reminder",
+        organisationId: subscription.organisation,
+        subscription: subscription.id,
+        recipients,
+        status: "sent",
+        metadata: {
+          daysUntilRenewal,
+          amount: renewalAmount,
+        },
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Error sending renewal reminder:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Internal method to send email via Resend API
    */
   private async sendEmail(params: {
@@ -579,6 +621,134 @@ Total Overage Charges: $${totalCharge.toFixed(2)}
 These charges will appear on your next invoice.
 
 To reduce overages, consider upgrading your plan or optimizing your usage.
+
+For questions, contact support@clearesg.ai
+    `.trim();
+
+    return { html, text };
+  }
+
+  private generateRenewalReminderEmailHtml(
+    daysUntilRenewal: number,
+    planName: string,
+    renewalAmount: number,
+  ): { html: string; text: string } {
+    const renewalDate = new Date();
+    renewalDate.setDate(renewalDate.getDate() + daysUntilRenewal);
+
+    const html = `
+    <html>
+      <head>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #1a202c;
+            line-height: 1.6;
+          }
+          .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .header {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 30px;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 24px;
+          }
+          .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 20px 0;
+          }
+          .amount {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1e40af;
+            margin: 16px 0;
+          }
+          .cta {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            margin: 20px 0;
+            font-weight: 600;
+          }
+          .footer {
+            border-top: 1px solid #e5e7eb;
+            margin-top: 30px;
+            padding-top: 20px;
+            font-size: 12px;
+            color: #6b7280;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Subscription Renewal Coming</h1>
+            <p style="margin: 8px 0 0 0; opacity: 0.9;">Your ${planName} subscription will renew in ${daysUntilRenewal} days</p>
+          </div>
+
+          <div class="info-box">
+            <div style="margin-bottom: 12px;">
+              <strong>Renewal Date:</strong> ${renewalDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>
+            <div>
+              <strong>Plan:</strong> ${planName}
+            </div>
+          </div>
+
+          <div style="background: #f9fafb; padding: 20px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 0 0 16px 0; color: #4b5563;"><strong>Amount to be charged:</strong></p>
+            <div class="amount">$${renewalAmount.toFixed(2)}</div>
+            <p style="margin: 16px 0 0 0; font-size: 14px; color: #6b7280;">This charge will be applied to your account on ${renewalDate.toLocaleDateString()}</p>
+          </div>
+
+          <div style="background: #fafafa; padding: 16px; border-radius: 6px; margin: 20px 0;">
+            <p style="margin: 0 0 12px 0;"><strong>What you can do:</strong></p>
+            <ul style="margin: 0; padding-left: 20px; color: #4b5563;">
+              <li>Review your current plan and usage</li>
+              <li>Update your billing information if needed</li>
+              <li>Contact support if you have any questions</li>
+              <li>Manage your subscription settings anytime</li>
+            </ul>
+          </div>
+
+          <a href="#" class="cta">Manage Your Subscription</a>
+
+          <div class="footer">
+            <p style="margin: 0 0 12px 0;"><strong>Need help?</strong> Contact our support team at support@clearesg.ai</p>
+            <p style="margin: 0;">ClearESG © 2026. All rights reserved. | <a href="#" style="color: #3b82f6;">Privacy Policy</a></p>
+          </div>
+        </div>
+      </body>
+    </html>
+    `;
+
+    const text = `
+Subscription Renewal Coming
+
+Your ${planName} subscription will renew in ${daysUntilRenewal} days
+
+Renewal Date: ${renewalDate.toLocaleDateString()}
+Plan: ${planName}
+Amount to be charged: $${renewalAmount.toFixed(2)}
+
+This charge will be applied to your account on ${renewalDate.toLocaleDateString()}.
+
+You can manage your subscription settings, review your plan, and update your billing information anytime.
 
 For questions, contact support@clearesg.ai
     `.trim();

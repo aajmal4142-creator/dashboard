@@ -603,6 +603,136 @@ export class StripeService {
 
     return priceIds[planName] || null;
   }
+
+  /**
+   * Switch billing cycle for an existing subscription
+   */
+  async switchBillingCycle(
+    subscriptionId: string,
+    newCycle: BillingCycle,
+    planName: string,
+    prorataAmount?: number,
+  ): Promise<void> {
+    try {
+      // Get the Stripe subscription
+      const stripeSubscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+
+      // Get new price ID for the same plan but different cycle
+      const newPriceId =
+        newCycle === "annual"
+          ? this.getAnnualPriceId(planName)
+          : this.getMonthlyPriceId(planName);
+
+      if (!newPriceId) {
+        throw new Error(`No Stripe price ID found for plan ${planName} (${newCycle})`);
+      }
+
+      // Get the current subscription item ID
+      const currentItem = stripeSubscription.items.data[0];
+      if (!currentItem) {
+        throw new Error("No subscription item found");
+      }
+
+      // Update subscription with new price
+      await this.stripe.subscriptions.update(subscriptionId, {
+        items: [
+          {
+            id: currentItem.id,
+            price: newPriceId,
+          },
+        ],
+        metadata: {
+          ...stripeSubscription.metadata,
+          billingCycle: newCycle,
+          cycleSwitchDate: new Date().toISOString(),
+        },
+      });
+
+      // Handle pro-rata adjustment if provided
+      if (prorataAmount !== undefined && prorataAmount !== 0) {
+        const customerId = stripeSubscription.customer;
+        if (typeof customerId !== "string") {
+          throw new Error("Invalid customer ID");
+        }
+
+        // Create invoice item for pro-rata adjustment
+        await this.stripe.invoiceItems.create({
+          customer: customerId,
+          amount: Math.round(prorataAmount * 100), // Convert to cents
+          currency: "usd",
+          description:
+            prorataAmount > 0
+              ? `Pro-rata credit for ${newCycle} billing`
+              : `Pro-rata charge for ${newCycle} billing`,
+        });
+
+        // Create and finalize invoice for the adjustment
+        const invoice = await this.stripe.invoices.create({
+          customer: customerId,
+          collection_method: "charge_automatically",
+        });
+
+        await this.stripe.invoices.finalizeInvoice(invoice.id);
+      }
+
+      logger.info("Billing cycle switched in Stripe", {
+        subscriptionId,
+        newCycle,
+        prorataAmount,
+      });
+    } catch (error) {
+      console.error("Error switching billing cycle in Stripe:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Handle subscription renewal (process renewal invoice)
+   */
+  async handleRenewal(subscriptionId: string): Promise<string> {
+    try {
+      const stripeSubscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+
+      if (!stripeSubscription.customer) {
+        throw new Error("No customer found for subscription");
+      }
+
+      const customerId =
+        typeof stripeSubscription.customer === "string"
+          ? stripeSubscription.customer
+          : stripeSubscription.customer.id;
+
+      // Get the current subscription item to invoice for
+      const currentItem = stripeSubscription.items.data[0];
+      if (!currentItem) {
+        throw new Error("No subscription item found");
+      }
+
+      // Create invoice for renewal
+      const invoice = await this.stripe.invoices.create({
+        customer: customerId,
+        subscription: subscriptionId,
+        collection_method: "charge_automatically",
+        metadata: {
+          renewalDate: new Date().toISOString(),
+        },
+      });
+
+      // Finalize and attempt payment
+      const finalizedInvoice = await this.stripe.invoices.finalizeInvoice(invoice.id);
+
+      logger.info("Renewal invoice created", {
+        subscriptionId,
+        invoiceId: invoice.id,
+        amount: finalizedInvoice.amount_due,
+      });
+
+      return invoice.id;
+    } catch (error) {
+      console.error("Error handling renewal:", error);
+      throw error;
+    }
+  }
 }
 
 /**

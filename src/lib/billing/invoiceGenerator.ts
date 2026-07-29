@@ -74,17 +74,42 @@ export class InvoiceGenerator {
     seats: number,
   ): Array<{ description: string; quantity: number; unitPrice: number; amount: number }> {
     const items = [];
-    const planPrice =
-      billingCycle === "monthly" ? plan.monthlyPrice : plan.annualPrice / 12;
-    items.push({
-      description: `${plan.displayName} Plan`,
-      quantity: 1,
-      unitPrice: planPrice,
-      amount: planPrice,
-    });
+
+    if (billingCycle === "annual") {
+      // Annual billing: show full year price with discount breakdown
+      const monthlyTotal = plan.monthlyPrice * 12;
+      const annualPrice = plan.annualPrice;
+      const discountAmount = monthlyTotal - annualPrice;
+      const discountPercent = Math.round((discountAmount / monthlyTotal) * 100);
+
+      items.push({
+        description: `${plan.displayName} Plan (Annual)`,
+        quantity: 1,
+        unitPrice: annualPrice,
+        amount: annualPrice,
+      });
+
+      // Show discount as negative line item if applicable
+      if (discountAmount > 0) {
+        items.push({
+          description: `Annual Discount (${discountPercent}%)`,
+          quantity: 1,
+          unitPrice: -discountAmount,
+          amount: -discountAmount,
+        });
+      }
+    } else {
+      // Monthly billing: charge monthly price
+      items.push({
+        description: `${plan.displayName} Plan (Monthly)`,
+        quantity: 1,
+        unitPrice: plan.monthlyPrice,
+        amount: plan.monthlyPrice,
+      });
+    }
 
     if (seats > 1) {
-      const seatPrice = planPrice * 0.1;
+      const seatPrice = plan.monthlyPrice * 0.1;
       items.push({
         description: `Additional Seats (${seats - 1})`,
         quantity: seats - 1,

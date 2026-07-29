@@ -142,5 +142,26 @@ export const Subscriptions: CollectionConfig = {
       defaultValue: true,
       admin: { description: "Send email alerts when usage reaches 80% of quota" },
     },
+    {
+      name: "nextRenewalDate",
+      type: "date",
+      required: true,
+      index: true,
+      admin: { description: "Next renewal/billing date" },
+    },
+    {
+      name: "lastRenewalDate",
+      type: "date",
+      admin: { readOnly: true, description: "Last renewal date" },
+    },
+    {
+      name: "annualDiscountPercentage",
+      type: "number",
+      required: true,
+      defaultValue: 0,
+      min: 0,
+      max: 100,
+      admin: { description: "Discount percentage applied (only for annual billing)" },
+    },
   ],
 };

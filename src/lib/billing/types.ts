@@ -30,12 +30,15 @@ export interface Subscription {
   billingCycle: BillingCycle;
   currentPeriodStart: Date;
   currentPeriodEnd: Date;
+  nextRenewalDate: Date;
+  lastRenewalDate?: Date;
   trialEndsAt?: Date;
   cancelledAt?: Date;
   stripeSubscriptionId?: string;
   stripeCustomerId?: string;
   seats: number;
   autoRenew: boolean;
+  annualDiscountPercentage: number;
   sendInvoices?: boolean;
   contactEmail?: string;
   sendUsageAlerts?: boolean;

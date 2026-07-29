@@ -65,5 +65,43 @@ export const Suppliers: CollectionConfig = {
     { name: "lastReminderAt", type: "date" },
     { name: "submittedData", type: "json" },
     { name: "reminderCount", type: "number", defaultValue: 0, min: 0 },
+    {
+      name: "ecovadis",
+      type: "group",
+      fields: [
+        { name: "score", type: "number", min: 0, max: 100 },
+        { name: "assessmentDate", type: "date" },
+        {
+          name: "categories",
+          type: "json",
+          admin: {
+            description:
+              "Environment, Labor, Ethics, Procurement scores and trend",
+          },
+        },
+        { name: "lastAssessed", type: "date" },
+        { name: "trend", type: "text" },
+        { name: "ecoVadisUrl", type: "text" },
+      ],
+    },
+    {
+      name: "riskMetrics",
+      type: "group",
+      fields: [
+        { name: "score", type: "number", min: 0, max: 100 },
+        {
+          name: "tier",
+          type: "select",
+          options: [
+            { label: "Low", value: "low" },
+            { label: "Medium", value: "medium" },
+            { label: "High", value: "high" },
+            { label: "Critical", value: "critical" },
+          ],
+        },
+        { name: "flags", type: "json" },
+        { name: "calculatedAt", type: "date" },
+      ],
+    },
   ],
 };

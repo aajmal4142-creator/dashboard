@@ -9,8 +9,12 @@ import { AssuranceEngagements } from "./collections/AssuranceEngagements";
 import { AssuranceReports } from "./collections/AssuranceReports";
 import { AuditLogs } from "./collections/AuditLogs";
 import { BenchmarkStats } from "./collections/BenchmarkStats";
+import { EcoVadisConnection } from "./collections/EcoVadisConnection";
 import { ComplianceObligations } from "./collections/ComplianceObligations";
 import { ComplianceTargets } from "./collections/ComplianceTargets";
+import { GhgProtocolCompliance } from "./collections/GhgProtocolCompliance";
+import { ComplianceCheckpoints } from "./collections/ComplianceCheckpoints";
+import { ComplianceHistory } from "./collections/ComplianceHistory";
 import { Datapoints } from "./collections/Datapoints";
 import { DerivedMetricDefinitions } from "./collections/DerivedMetricDefinitions";
 import { EmissionFactors } from "./collections/EmissionFactors";
@@ -33,11 +37,14 @@ import { Reports } from "./collections/Reports";
 import { Scope3Sources } from "./collections/Scope3Sources";
 import { Scope3Activities } from "./collections/Scope3Activities";
 import { Subscriptions } from "./collections/Subscriptions";
+import { SubscriptionHistory } from "./collections/SubscriptionHistory";
 import { Suppliers } from "./collections/Suppliers";
 import { UsageMetrics } from "./collections/UsageMetrics";
 import { UserPolicies } from "./collections/UserPolicies";
 import { Users } from "./collections/Users";
 import { VerificationFindings } from "./collections/VerificationFindings";
+import { WebhookRegistrations } from "./collections/WebhookRegistrations";
+import { WebhookLogs } from "./collections/WebhookLogs";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -83,18 +90,25 @@ export default buildConfig({
     AuditLogs,
     BenchmarkStats,
     ComplianceObligations,
+    ComplianceTargets,
+    GhgProtocolCompliance,
+    ComplianceCheckpoints,
+    ComplianceHistory,
     PolicyEvaluations,
     FrameworkMetrics,
-    ComplianceTargets,
     FrameworkMappings,
     AssuranceEngagements,
     VerificationFindings,
     AssuranceReports,
     Plans,
     Subscriptions,
+    SubscriptionHistory,
     UsageMetrics,
     Invoices,
     PaymentHistory,
+    WebhookRegistrations,
+    WebhookLogs,
+    EcoVadisConnection,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,
