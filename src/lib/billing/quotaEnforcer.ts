@@ -126,7 +126,8 @@ export class QuotaEnforcer {
 
       // Get plan
       const plan = await this.payload.findByID({
-        collection: "plans",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        collection: "plans" as any,
         id: String(subscription.plan),
       });
 
@@ -283,7 +284,8 @@ export class QuotaEnforcer {
       startOfMonth.setHours(0, 0, 0, 0);
 
       const result = await this.payload.find({
-        collection: "usage-metrics",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        collection: "usage-metrics" as any,
         where: {
           and: [
             { subscription: { equals: subscription.id } },
