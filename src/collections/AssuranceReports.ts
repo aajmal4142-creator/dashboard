@@ -24,7 +24,7 @@ export const AssuranceReports: CollectionConfig = {
     {
       name: "engagement",
       type: "relationship",
-      relationTo: ASSURANCE_ENGAGEMENTS_SLUG as any,
+      relationTo: ASSURANCE_ENGAGEMENTS_SLUG,
       required: true,
       index: true,
       admin: { description: "Associated assurance engagement" },

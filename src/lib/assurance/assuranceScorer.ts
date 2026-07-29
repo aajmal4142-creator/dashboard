@@ -3,7 +3,6 @@ import type {
   ConfidenceReport,
   DataGap,
   VerificationFinding,
-  SeverityLevel,
 } from "./types";
 import { FindingsSeverityScorer } from "./severityScorer";
 
@@ -21,7 +20,7 @@ export class AssuranceScorer {
   calculateAssuranceScore(
     findings: VerificationFinding[],
     dataGaps: DataGap[],
-    coverage: number = 100
+    coverage: number = 100,
   ): number {
     let score = 100;
 
@@ -55,7 +54,7 @@ export class AssuranceScorer {
 
     // Critical findings = max deduction
     if (severity.criticalCount > 0) {
-      return 100 - (20 / severity.criticalCount); // Even 1 critical = -80 points
+      return 100 - 20 / severity.criticalCount; // Even 1 critical = -80 points
     }
 
     // Major findings
@@ -93,8 +92,9 @@ export class AssuranceScorer {
    * Calculate boost for resolved issues (0-100)
    */
   private calculateResolutionBoost(findings: VerificationFinding[]): number {
-    const resolved = findings.filter((f) => f.status === "resolved" || f.status === "closed")
-      .length;
+    const resolved = findings.filter(
+      (f) => f.status === "resolved" || f.status === "closed",
+    ).length;
     const total = findings.length;
 
     if (total === 0) return 0;
@@ -120,7 +120,6 @@ export class AssuranceScorer {
     findings: VerificationFinding[],
     dataGaps: DataGap[],
     coverage: number = 100,
-    totalDataPoints: number = 100
   ): ConfidenceReport {
     const assuranceScore = this.calculateAssuranceScore(findings, dataGaps, coverage);
     const assuranceLevel = this.determineAssuranceLevel(assuranceScore);
@@ -133,18 +132,14 @@ export class AssuranceScorer {
     // Assess findings risk
     const severity = this.severityScorer.aggregateSeverity(findings);
     const findingsRisk: "high" | "medium" | "low" =
-      severity.criticalCount > 0
-        ? "high"
-        : severity.majorCount > 0
-          ? "medium"
-          : "low";
+      severity.criticalCount > 0 ? "high" : severity.majorCount > 0 ? "medium" : "low";
 
     // Generate recommendations
     const recommendations = this.generateRecommendations(
       findings,
       dataGaps,
       coverage,
-      assuranceScore
+      assuranceScore,
     );
 
     return {
@@ -164,7 +159,7 @@ export class AssuranceScorer {
     findings: VerificationFinding[],
     dataGaps: DataGap[],
     coverage: number,
-    score: number
+    score: number,
   ): string[] {
     const recommendations: string[] = [];
 
@@ -172,28 +167,34 @@ export class AssuranceScorer {
     const criticalFindings = this.severityScorer.criticalFindings(findings);
     if (criticalFindings.length > 0) {
       recommendations.push(
-        `Address ${criticalFindings.length} critical finding(s) before publishing assurance report`
+        `Address ${criticalFindings.length} critical finding(s) before publishing assurance report`,
       );
     }
 
     // Data gap recommendations
     const criticalGaps = dataGaps.filter((g) => g.severity === "high");
     if (criticalGaps.length > 0) {
-      recommendations.push(`Collect missing data for ${criticalGaps.length} critical metric(s)`);
+      recommendations.push(
+        `Collect missing data for ${criticalGaps.length} critical metric(s)`,
+      );
     }
 
     // Coverage recommendations
     if (coverage < 80) {
       recommendations.push(
-        `Improve data coverage from ${Math.round(coverage)}% to at least 80% for reasonable assurance`
+        `Improve data coverage from ${Math.round(coverage)}% to at least 80% for reasonable assurance`,
       );
     }
 
     // Score-based recommendations
     if (score < 50) {
-      recommendations.push("Conduct comprehensive audit to address underlying data quality issues");
+      recommendations.push(
+        "Conduct comprehensive audit to address underlying data quality issues",
+      );
     } else if (score < 70) {
-      recommendations.push("Resolve major findings and collect missing data to achieve reasonable assurance");
+      recommendations.push(
+        "Resolve major findings and collect missing data to achieve reasonable assurance",
+      );
     } else if (score < 90) {
       recommendations.push("Consider periodic re-assessment to maintain assurance level");
     }
@@ -213,7 +214,7 @@ export class AssuranceScorer {
   assessReadiness(
     findings: VerificationFinding[],
     dataGaps: DataGap[],
-    coverage: number
+    coverage: number,
   ): {
     isReady: boolean;
     blockers: string[];
@@ -226,7 +227,7 @@ export class AssuranceScorer {
     const criticalFindings = this.severityScorer.criticalFindings(findings);
     if (criticalFindings.length > 0) {
       blockers.push(
-        `${criticalFindings.length} critical finding(s) must be resolved before sign-off`
+        `${criticalFindings.length} critical finding(s) must be resolved before sign-off`,
       );
     }
 
@@ -244,7 +245,9 @@ export class AssuranceScorer {
     // Warnings for non-critical issues
     const majorFindings = this.severityScorer.filterBySeverity(findings, "major");
     if (majorFindings.length > 3) {
-      warnings.push(`Multiple major findings (${majorFindings.length}) should be addressed`);
+      warnings.push(
+        `Multiple major findings (${majorFindings.length}) should be addressed`,
+      );
     }
 
     const mediumGaps = dataGaps.filter((g) => g.severity === "medium");
@@ -264,7 +267,7 @@ export class AssuranceScorer {
    */
   compare(
     scoreA: number,
-    scoreB: number
+    scoreB: number,
   ): { improved: boolean; change: number; message: string } {
     const change = scoreB - scoreA;
     const improved = change > 0;
