@@ -14,6 +14,9 @@ import { CarbonTrustDocuments } from "./collections/CarbonTrustDocuments";
 import { CarbonTrustCertificates } from "./collections/CarbonTrustCertificates";
 import { CarbonTrustAuditTrail } from "./collections/CarbonTrustAuditTrail";
 import { BenchmarkStats } from "./collections/BenchmarkStats";
+import { Scenarios } from "./collections/Scenarios";
+import { DecarbonizationPathways } from "./collections/DecarbonizationPathways";
+import { TrendForecasts } from "./collections/TrendForecasts";
 import { ComplianceObligations } from "./collections/ComplianceObligations";
 import { ComplianceTargets } from "./collections/ComplianceTargets";
 import { GhgProtocolCompliance } from "./collections/GhgProtocolCompliance";
@@ -125,6 +128,9 @@ export default buildConfig({
     CarbonTrustDocuments,
     CarbonTrustCertificates,
     CarbonTrustAuditTrail,
+    Scenarios,
+    DecarbonizationPathways,
+    TrendForecasts,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,

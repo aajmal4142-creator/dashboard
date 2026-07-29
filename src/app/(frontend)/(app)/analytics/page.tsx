@@ -1,0 +1,93 @@
+"use client";
+
+import { Suspense } from "react";
+import { PageFrame } from "@/components/shell/PageFrame";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertCircle, BarChart3, TrendingUp, Zap, Target } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+import BenchmarkingDashboard from "./BenchmarkingDashboard";
+import ScenarioBuilder from "./ScenarioBuilder";
+import PathwayPlanner from "./PathwayPlanner";
+import TrendForecasting from "./TrendForecasting";
+import ConsumptionIntensity from "./ConsumptionIntensity";
+
+function AnalyticsLoading() {
+  return (
+    <div className="space-y-4">
+      <div className="h-64 bg-muted animate-pulse rounded-lg" />
+    </div>
+  );
+}
+
+export default function AnalyticsPage() {
+  return (
+    <PageFrame eyebrow="Analytics" title="Analytics & Insights">
+      <div className="space-y-6">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            This analytics suite provides peer benchmarking, scenario modeling,
+            decarbonization pathways, trend forecasting, and intensity metrics for
+            strategic decision-making.
+          </AlertDescription>
+        </Alert>
+
+        <Tabs defaultValue="benchmarks" className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="benchmarks" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Benchmarks</span>
+            </TabsTrigger>
+            <TabsTrigger value="scenarios" className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              <span className="hidden sm:inline">Scenarios</span>
+            </TabsTrigger>
+            <TabsTrigger value="pathways" className="flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              <span className="hidden sm:inline">Pathways</span>
+            </TabsTrigger>
+            <TabsTrigger value="forecasts" className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              <span className="hidden sm:inline">Forecasts</span>
+            </TabsTrigger>
+            <TabsTrigger value="intensity" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Intensity</span>
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="benchmarks" className="space-y-4 mt-4">
+            <Suspense fallback={<AnalyticsLoading />}>
+              <BenchmarkingDashboard />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="scenarios" className="space-y-4 mt-4">
+            <Suspense fallback={<AnalyticsLoading />}>
+              <ScenarioBuilder />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="pathways" className="space-y-4 mt-4">
+            <Suspense fallback={<AnalyticsLoading />}>
+              <PathwayPlanner />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="forecasts" className="space-y-4 mt-4">
+            <Suspense fallback={<AnalyticsLoading />}>
+              <TrendForecasting />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="intensity" className="space-y-4 mt-4">
+            <Suspense fallback={<AnalyticsLoading />}>
+              <ConsumptionIntensity />
+            </Suspense>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </PageFrame>
+  );
+}

@@ -115,6 +115,9 @@ export interface Config {
     'carbon-trust-documents': CarbonTrustDocument;
     'carbon-trust-certificates': CarbonTrustCertificate;
     'carbon-trust-audit-trail': CarbonTrustAuditTrail;
+    scenarios: Scenario;
+    'decarbonization-pathways': DecarbonizationPathway;
+    'trend-forecasts': TrendForecast;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -170,6 +173,9 @@ export interface Config {
     'carbon-trust-documents': CarbonTrustDocumentsSelect<false> | CarbonTrustDocumentsSelect<true>;
     'carbon-trust-certificates': CarbonTrustCertificatesSelect<false> | CarbonTrustCertificatesSelect<true>;
     'carbon-trust-audit-trail': CarbonTrustAuditTrailSelect<false> | CarbonTrustAuditTrailSelect<true>;
+    scenarios: ScenariosSelect<false> | ScenariosSelect<true>;
+    'decarbonization-pathways': DecarbonizationPathwaysSelect<false> | DecarbonizationPathwaysSelect<true>;
+    'trend-forecasts': TrendForecastsSelect<false> | TrendForecastsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -2838,6 +2844,141 @@ export interface CarbonTrustAuditTrail {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scenarios".
+ */
+export interface Scenario {
+  id: string;
+  organisation: string | Organisation;
+  name: string;
+  type: 'baseline' | 'optimistic' | 'pessimistic' | 'custom';
+  baselineYear: number;
+  targetYear: number;
+  variables?:
+    | {
+        leverId: string;
+        leverName: string;
+        currentValue: number;
+        targetValue: number;
+        capexRequired?: number | null;
+        paybackYears?: number | null;
+        implementationTimeline?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  assumptions?:
+    | {
+        name: string;
+        value: number;
+        id?: string | null;
+      }[]
+    | null;
+  results?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  versionNumber?: number | null;
+  status?: ('draft' | 'calculated' | 'approved') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "decarbonization-pathways".
+ */
+export interface DecarbonizationPathway {
+  id: string;
+  organisation: string | Organisation;
+  name: string;
+  description?: string | null;
+  baselineYear: number;
+  targetYear: number;
+  baselineEmissions: number;
+  targetEmissions: number;
+  targetReduction?: number | null;
+  stages?:
+    | {
+        year: number;
+        targetEmissions: number;
+        leversApplied?:
+          | {
+              leverId: string;
+              leverName: string;
+              emissionReduction?: number | null;
+              capexRequired?: number | null;
+              id?: string | null;
+            }[]
+          | null;
+        cumulativeCapex?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * SBTi target alignment (1.5C, 2C, etc.)
+   */
+  scienceBasedTargetAlignment?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  status?: ('draft' | 'in_progress' | 'approved' | 'completed') | null;
+  approval?: {
+    approvedBy?: (string | null) | User;
+    approvedAt?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "trend-forecasts".
+ */
+export interface TrendForecast {
+  id: string;
+  organisation: string | Organisation;
+  metricKey: string;
+  model: 'arima' | 'ets' | 'hybrid';
+  baselineDate: string;
+  forecastPeriodMonths: number;
+  forecastData?:
+    | {
+        month: number;
+        date: string;
+        forecast: number;
+        lowerBound80?: number | null;
+        upperBound80?: number | null;
+        lowerBound95?: number | null;
+        upperBound95?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  historicalData?:
+    | {
+        date: string;
+        actualValue: number;
+        id?: string | null;
+      }[]
+    | null;
+  accuracy?: {
+    rmse?: number | null;
+    mae?: number | null;
+    mape?: number | null;
+  };
+  trendDirection?: ('increasing' | 'decreasing' | 'stable') | null;
+  seasonalityDetected?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -3051,6 +3192,18 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'carbon-trust-audit-trail';
         value: string | CarbonTrustAuditTrail;
+      } | null)
+    | ({
+        relationTo: 'scenarios';
+        value: string | Scenario;
+      } | null)
+    | ({
+        relationTo: 'decarbonization-pathways';
+        value: string | DecarbonizationPathway;
+      } | null)
+    | ({
+        relationTo: 'trend-forecasts';
+        value: string | TrendForecast;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -4268,6 +4421,123 @@ export interface CarbonTrustAuditTrailSelect<T extends boolean = true> {
   ipAddress?: T;
   userAgent?: T;
   metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scenarios_select".
+ */
+export interface ScenariosSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  type?: T;
+  baselineYear?: T;
+  targetYear?: T;
+  variables?:
+    | T
+    | {
+        leverId?: T;
+        leverName?: T;
+        currentValue?: T;
+        targetValue?: T;
+        capexRequired?: T;
+        paybackYears?: T;
+        implementationTimeline?: T;
+        id?: T;
+      };
+  assumptions?:
+    | T
+    | {
+        name?: T;
+        value?: T;
+        id?: T;
+      };
+  results?: T;
+  versionNumber?: T;
+  status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "decarbonization-pathways_select".
+ */
+export interface DecarbonizationPathwaysSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  description?: T;
+  baselineYear?: T;
+  targetYear?: T;
+  baselineEmissions?: T;
+  targetEmissions?: T;
+  targetReduction?: T;
+  stages?:
+    | T
+    | {
+        year?: T;
+        targetEmissions?: T;
+        leversApplied?:
+          | T
+          | {
+              leverId?: T;
+              leverName?: T;
+              emissionReduction?: T;
+              capexRequired?: T;
+              id?: T;
+            };
+        cumulativeCapex?: T;
+        id?: T;
+      };
+  scienceBasedTargetAlignment?: T;
+  status?: T;
+  approval?:
+    | T
+    | {
+        approvedBy?: T;
+        approvedAt?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "trend-forecasts_select".
+ */
+export interface TrendForecastsSelect<T extends boolean = true> {
+  organisation?: T;
+  metricKey?: T;
+  model?: T;
+  baselineDate?: T;
+  forecastPeriodMonths?: T;
+  forecastData?:
+    | T
+    | {
+        month?: T;
+        date?: T;
+        forecast?: T;
+        lowerBound80?: T;
+        upperBound80?: T;
+        lowerBound95?: T;
+        upperBound95?: T;
+        id?: T;
+      };
+  historicalData?:
+    | T
+    | {
+        date?: T;
+        actualValue?: T;
+        id?: T;
+      };
+  accuracy?:
+    | T
+    | {
+        rmse?: T;
+        mae?: T;
+        mape?: T;
+      };
+  trendDirection?: T;
+  seasonalityDetected?: T;
   updatedAt?: T;
   createdAt?: T;
 }
