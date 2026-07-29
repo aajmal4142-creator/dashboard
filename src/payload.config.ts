@@ -56,6 +56,10 @@ import { Users } from "./collections/Users";
 import { VerificationFindings } from "./collections/VerificationFindings";
 import { WebhookRegistrations } from "./collections/WebhookRegistrations";
 import { WebhookLogs } from "./collections/WebhookLogs";
+import { SalesforceConnections } from "./collections/SalesforceConnections";
+import { NetSuiteConnections } from "./collections/NetSuiteConnections";
+import { AccountingConnections } from "./collections/AccountingConnections";
+import { IntegrationSyncLogs } from "./collections/IntegrationSyncLogs";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -131,6 +135,10 @@ export default buildConfig({
     Scenarios,
     DecarbonizationPathways,
     TrendForecasts,
+    SalesforceConnections,
+    NetSuiteConnections,
+    AccountingConnections,
+    IntegrationSyncLogs,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,

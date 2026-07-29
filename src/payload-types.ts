@@ -118,6 +118,10 @@ export interface Config {
     scenarios: Scenario;
     'decarbonization-pathways': DecarbonizationPathway;
     'trend-forecasts': TrendForecast;
+    'salesforce-connections': SalesforceConnection;
+    'netsuite-connections': NetsuiteConnection;
+    'accounting-connections': AccountingConnection;
+    'integration-sync-logs': IntegrationSyncLog;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -176,6 +180,10 @@ export interface Config {
     scenarios: ScenariosSelect<false> | ScenariosSelect<true>;
     'decarbonization-pathways': DecarbonizationPathwaysSelect<false> | DecarbonizationPathwaysSelect<true>;
     'trend-forecasts': TrendForecastsSelect<false> | TrendForecastsSelect<true>;
+    'salesforce-connections': SalesforceConnectionsSelect<false> | SalesforceConnectionsSelect<true>;
+    'netsuite-connections': NetsuiteConnectionsSelect<false> | NetsuiteConnectionsSelect<true>;
+    'accounting-connections': AccountingConnectionsSelect<false> | AccountingConnectionsSelect<true>;
+    'integration-sync-logs': IntegrationSyncLogsSelect<false> | IntegrationSyncLogsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -2979,6 +2987,241 @@ export interface TrendForecast {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "salesforce-connections".
+ */
+export interface SalesforceConnection {
+  id: string;
+  organisationId: string | Organisation;
+  status?: ('pending' | 'connected' | 'failed' | 'expired') | null;
+  /**
+   * Salesforce instance URL
+   */
+  instanceUrl?: string | null;
+  /**
+   * OAuth access token
+   */
+  accessToken?: string | null;
+  /**
+   * OAuth refresh token
+   */
+  refreshToken?: string | null;
+  /**
+   * Token expiration time
+   */
+  expiresAt?: string | null;
+  /**
+   * Maps Salesforce Account IDs to ClearESG organisation IDs, e.g., { salesforceAccountId: organisationId }
+   */
+  accountMapping?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  syncConfig?: {
+    /**
+     * Sync Salesforce Accounts as supplier orgs
+     */
+    enableAccountSync?: boolean | null;
+    /**
+     * Sync contact data to ClearESG teams
+     */
+    enableContactSync?: boolean | null;
+    /**
+     * Write ESG metrics back to Salesforce records
+     */
+    enableMetricsWrite?: boolean | null;
+    syncFrequency?: ('manual' | 'hourly' | 'daily' | 'weekly') | null;
+  };
+  lastSyncAt?: string | null;
+  lastSyncStatus?: string | null;
+  syncErrorCount?: number | null;
+  connectedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "netsuite-connections".
+ */
+export interface NetsuiteConnection {
+  id: string;
+  organisationId: string | Organisation;
+  status?: ('pending' | 'connected' | 'failed' | 'expired') | null;
+  /**
+   * NetSuite Account ID
+   */
+  accountId: string;
+  /**
+   * OAuth consumer key
+   */
+  consumerKey?: string | null;
+  /**
+   * OAuth consumer secret
+   */
+  consumerSecret?: string | null;
+  /**
+   * OAuth access token
+   */
+  accessToken?: string | null;
+  /**
+   * OAuth refresh token
+   */
+  refreshToken?: string | null;
+  /**
+   * OAuth token secret (TBA)
+   */
+  accessTokenSecret?: string | null;
+  /**
+   * Token expiration time
+   */
+  expiresAt?: string | null;
+  /**
+   * Maps GL codes to emissions categories, e.g., { "6000": "electricity", "6100": "gas" }
+   */
+  glCodeMapping?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  syncConfig?: {
+    /**
+     * Sync General Ledger balances
+     */
+    enableGlSync?: boolean | null;
+    /**
+     * Sync invoices and POs
+     */
+    enableInvoiceSync?: boolean | null;
+    /**
+     * Calculate spend-based emissions
+     */
+    enableSpendCalculation?: boolean | null;
+    syncFrequency?: ('manual' | 'daily' | 'weekly' | 'monthly') | null;
+  };
+  lastSyncAt?: string | null;
+  lastSyncStatus?: string | null;
+  syncErrorCount?: number | null;
+  connectedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "accounting-connections".
+ */
+export interface AccountingConnection {
+  id: string;
+  organisationId: string | Organisation;
+  provider: 'xero' | 'quickbooks';
+  status?: ('pending' | 'connected' | 'failed' | 'expired') | null;
+  /**
+   * Xero Tenant ID or QB Realm ID
+   */
+  providerId: string;
+  /**
+   * OAuth access token
+   */
+  accessToken?: string | null;
+  /**
+   * OAuth refresh token
+   */
+  refreshToken?: string | null;
+  /**
+   * Token expiration time
+   */
+  expiresAt?: string | null;
+  /**
+   * Maps expense categories to GL codes for emissions calculation, e.g., { travel: 6200, utilities: 6100 }
+   */
+  expenseCategoryMapping?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  syncConfig?: {
+    /**
+     * Sync expense data
+     */
+    enableExpenseSync?: boolean | null;
+    /**
+     * Sync bank feeds for utility bills (Xero only)
+     */
+    enableBankFeedSync?: boolean | null;
+    /**
+     * Auto-categorize expenses by GL code
+     */
+    enableAutoCateg?: boolean | null;
+    syncFrequency?: ('manual' | 'daily' | 'weekly' | 'monthly') | null;
+  };
+  lastSyncAt?: string | null;
+  lastSyncStatus?: string | null;
+  syncErrorCount?: number | null;
+  connectedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "integration-sync-logs".
+ */
+export interface IntegrationSyncLog {
+  id: string;
+  organisationId: string | Organisation;
+  /**
+   * Foreign key to connection (salesforce-connections, etc.)
+   */
+  integrationId: string;
+  provider: 'salesforce' | 'netsuite' | 'xero' | 'quickbooks';
+  status?: ('success' | 'partial' | 'failed') | null;
+  recordsProcessed?: number | null;
+  recordsFailed?: number | null;
+  /**
+   * Sync details: counts, mapped fields, warnings
+   */
+  details?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Error log for failed records
+   */
+  errors?:
+    | {
+        message?: string | null;
+        recordId?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * How long the sync took
+   */
+  syncDurationMs?: number | null;
+  /**
+   * User ID or 'auto'
+   */
+  triggeredBy?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -3204,6 +3447,22 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'trend-forecasts';
         value: string | TrendForecast;
+      } | null)
+    | ({
+        relationTo: 'salesforce-connections';
+        value: string | SalesforceConnection;
+      } | null)
+    | ({
+        relationTo: 'netsuite-connections';
+        value: string | NetsuiteConnection;
+      } | null)
+    | ({
+        relationTo: 'accounting-connections';
+        value: string | AccountingConnection;
+      } | null)
+    | ({
+        relationTo: 'integration-sync-logs';
+        value: string | IntegrationSyncLog;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -4538,6 +4797,115 @@ export interface TrendForecastsSelect<T extends boolean = true> {
       };
   trendDirection?: T;
   seasonalityDetected?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "salesforce-connections_select".
+ */
+export interface SalesforceConnectionsSelect<T extends boolean = true> {
+  organisationId?: T;
+  status?: T;
+  instanceUrl?: T;
+  accessToken?: T;
+  refreshToken?: T;
+  expiresAt?: T;
+  accountMapping?: T;
+  syncConfig?:
+    | T
+    | {
+        enableAccountSync?: T;
+        enableContactSync?: T;
+        enableMetricsWrite?: T;
+        syncFrequency?: T;
+      };
+  lastSyncAt?: T;
+  lastSyncStatus?: T;
+  syncErrorCount?: T;
+  connectedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "netsuite-connections_select".
+ */
+export interface NetsuiteConnectionsSelect<T extends boolean = true> {
+  organisationId?: T;
+  status?: T;
+  accountId?: T;
+  consumerKey?: T;
+  consumerSecret?: T;
+  accessToken?: T;
+  refreshToken?: T;
+  accessTokenSecret?: T;
+  expiresAt?: T;
+  glCodeMapping?: T;
+  syncConfig?:
+    | T
+    | {
+        enableGlSync?: T;
+        enableInvoiceSync?: T;
+        enableSpendCalculation?: T;
+        syncFrequency?: T;
+      };
+  lastSyncAt?: T;
+  lastSyncStatus?: T;
+  syncErrorCount?: T;
+  connectedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "accounting-connections_select".
+ */
+export interface AccountingConnectionsSelect<T extends boolean = true> {
+  organisationId?: T;
+  provider?: T;
+  status?: T;
+  providerId?: T;
+  accessToken?: T;
+  refreshToken?: T;
+  expiresAt?: T;
+  expenseCategoryMapping?: T;
+  syncConfig?:
+    | T
+    | {
+        enableExpenseSync?: T;
+        enableBankFeedSync?: T;
+        enableAutoCateg?: T;
+        syncFrequency?: T;
+      };
+  lastSyncAt?: T;
+  lastSyncStatus?: T;
+  syncErrorCount?: T;
+  connectedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "integration-sync-logs_select".
+ */
+export interface IntegrationSyncLogsSelect<T extends boolean = true> {
+  organisationId?: T;
+  integrationId?: T;
+  provider?: T;
+  status?: T;
+  recordsProcessed?: T;
+  recordsFailed?: T;
+  details?: T;
+  errors?:
+    | T
+    | {
+        message?: T;
+        recordId?: T;
+        id?: T;
+      };
+  syncDurationMs?: T;
+  triggeredBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }

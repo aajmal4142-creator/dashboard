@@ -1,7 +1,6 @@
 /**
- * Optional utility / ERP on-ramp — scaffold only (Phase 5 §3).
- * Spreadsheet import remains the default data path.
- * Do not fabricate imported figures. Wire a real provider only with live credentials.
+ * Integration utilities and re-exports from enterprise integrations (Sprint 5).
+ * Supports Salesforce, NetSuite, Xero, and QuickBooks integrations.
  */
 
 export type IntegrationProvenance = {
@@ -54,3 +53,9 @@ export function utilityFillProvenance(provider: string): IntegrationProvenance {
     note: `Auto-filled from utility provider ${provider} — not meter-verified measured.`,
   };
 }
+
+// Re-export enterprise integration types
+export * from "./types";
+export { SalesforceService } from "./salesforce";
+export { NetSuiteService } from "./netsuite";
+export { AccountingService } from "./accounting";
