@@ -66,7 +66,7 @@ export class SyncUtils {
         data: {
           organisationId,
           integrationId,
-          provider: provider as "salesforce" | "netsuite" | "xero" | "quickbooks",
+          provider: provider as "xero" | "quickbooks" | "salesforce" | "netsuite",
           status: result.status,
           recordsProcessed: result.recordsProcessed,
           recordsFailed: result.recordsFailed,

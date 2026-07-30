@@ -56,20 +56,13 @@ import { Users } from "./collections/Users";
 import { VerificationFindings } from "./collections/VerificationFindings";
 import { WebhookRegistrations } from "./collections/WebhookRegistrations";
 import { WebhookLogs } from "./collections/WebhookLogs";
-import { SalesforceConnections } from "./collections/SalesforceConnections";
-import { NetSuiteConnections } from "./collections/NetSuiteConnections";
 import { AccountingConnections } from "./collections/AccountingConnections";
 import { IntegrationSyncLogs } from "./collections/IntegrationSyncLogs";
-import { SAPConnections } from "./collections/SAPConnections";
-import { DataWarehouseConnections } from "./collections/DataWarehouseConnections";
-import { PowerBIConnections } from "./collections/PowerBIConnections";
-import { TableauConnections } from "./collections/TableauConnections";
 import { CustomRoles } from "./collections/CustomRoles";
 import { SavedFilters } from "./collections/SavedFilters";
 import { BulkOperations } from "./collections/BulkOperations";
 import { FreeTierAccounts } from "./collections/FreeTierAccounts";
 import { IoTDevices } from "./collections/IoTDevices";
-import { ERPConnections } from "./collections/ERPConnections";
 import { DataQualityRules } from "./collections/DataQualityRules";
 import { ISO14064Compliance } from "./collections/ISO14064Compliance";
 import { AssurancePartners } from "./collections/AssurancePartners";
@@ -155,20 +148,13 @@ export default buildConfig({
     Scenarios,
     DecarbonizationPathways,
     TrendForecasts,
-    SalesforceConnections,
-    NetSuiteConnections,
     AccountingConnections,
     IntegrationSyncLogs,
-    SAPConnections,
-    DataWarehouseConnections,
-    PowerBIConnections,
-    TableauConnections,
     CustomRoles,
     SavedFilters,
     BulkOperations,
     FreeTierAccounts,
     IoTDevices,
-    ERPConnections,
     DataQualityRules,
     ISO14064Compliance,
     AssurancePartners,

@@ -1,6 +1,6 @@
 /**
- * Integration utilities and re-exports from enterprise integrations (Sprint 5).
- * Supports Salesforce, NetSuite, Xero, and QuickBooks integrations.
+ * Integration utilities and re-exports.
+ * Supports Xero and QuickBooks accounting integrations.
  */
 
 export type IntegrationProvenance = {
@@ -54,17 +54,7 @@ export function utilityFillProvenance(provider: string): IntegrationProvenance {
   };
 }
 
-// Re-export enterprise integration types
+// Re-export integration types and services
 export * from "./types";
-export { SalesforceService } from "./salesforce";
-export { NetSuiteService } from "./netsuite";
 export { AccountingService } from "./accounting";
-export { SAPService } from "./sap";
-export {
-  DataWarehouseService,
-  SnowflakeConnector,
-  BigQueryConnector,
-  DatabricksConnector,
-} from "./datawarehouse";
 export { WebhookManager } from "./webhooks";
-export { BIConnectorService, PowerBIConnector, TableauConnector } from "./biconnector";

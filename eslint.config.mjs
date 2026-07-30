@@ -22,6 +22,7 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     "src/payload-types.ts",
     "src/app/(payload)/admin/importMap.js",
+    "load-tests/**",
   ]),
 ]);
 

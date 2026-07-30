@@ -1,6 +1,6 @@
 import { getPayload } from "payload";
 import config from "@/payload.config";
-import type { ErpConnection } from "@/payload-types";
+import type { AccountingConnection } from "@/payload-types";
 
 export type SyncStatus = "pending" | "in_progress" | "completed" | "failed";
 
@@ -14,6 +14,10 @@ export type SyncResult = {
   nextSyncAt?: Date;
 };
 
+/**
+ * Orchestrates sync for free-tier accounting connections (Xero / QuickBooks).
+ * Paid ERP connectors have been removed.
+ */
 export async function orchestrateSync(
   orgId: string,
   connectionId: string,
@@ -21,9 +25,25 @@ export async function orchestrateSync(
   const payload = await getPayload({ config });
 
   const connection = await payload.findByID({
-    collection: "erp-connections",
+    collection: "accounting-connections",
     id: connectionId,
   });
+
+  const orgIdOf =
+    typeof connection.organisationId === "object"
+      ? connection.organisationId.id
+      : String(connection.organisationId);
+
+  if (orgIdOf !== orgId) {
+    return {
+      connectionId,
+      status: "failed",
+      recordsProcessed: 0,
+      errors: ["Connection not found for organisation"],
+      startedAt: new Date(),
+      completedAt: new Date(),
+    };
+  }
 
   const result: SyncResult = {
     connectionId,
@@ -34,50 +54,38 @@ export async function orchestrateSync(
   };
 
   try {
-    // Update connection status
     await payload.update({
-      collection: "erp-connections",
+      collection: "accounting-connections",
       id: connectionId,
       data: {
-        status: "syncing",
+        lastSyncStatus: "in_progress",
       },
     });
 
-    // Determine ERP type and sync accordingly
-    const erpType = connection.erpType;
-
-    switch (erpType) {
-      case "netsuite":
-        result.recordsProcessed = await syncNetSuite(orgId, connection);
-        break;
+    switch (connection.provider) {
       case "xero":
         result.recordsProcessed = await syncXero(orgId, connection);
         break;
       case "quickbooks":
         result.recordsProcessed = await syncQuickBooks(orgId, connection);
         break;
-      case "workday":
-        result.recordsProcessed = await syncWorkday(orgId, connection);
-        break;
       default:
-        result.errors.push(`Unknown ERP type: ${erpType}`);
+        result.errors.push(`Unsupported accounting provider: ${connection.provider}`);
     }
 
     result.status = result.errors.length === 0 ? "completed" : "failed";
     result.completedAt = new Date();
+    result.nextSyncAt = calculateNextSyncTime(
+      connection.syncConfig?.syncFrequency || "daily",
+    );
 
-    // Schedule next sync
-    const syncSchedule = connection.syncSchedule || "daily";
-    result.nextSyncAt = calculateNextSyncTime(syncSchedule);
-
-    // Update connection with results
     await payload.update({
-      collection: "erp-connections",
+      collection: "accounting-connections",
       id: connectionId,
       data: {
-        status: "connected",
-        lastSyncedAt: result.completedAt.toISOString(),
-        nextSyncAt: result.nextSyncAt.toISOString(),
+        status: result.status === "completed" ? "connected" : "failed",
+        lastSyncAt: result.completedAt.toISOString(),
+        lastSyncStatus: result.status,
       },
     });
 
@@ -89,10 +97,11 @@ export async function orchestrateSync(
     result.completedAt = new Date();
 
     await payload.update({
-      collection: "erp-connections",
+      collection: "accounting-connections",
       id: connectionId,
       data: {
-        status: "error",
+        status: "failed",
+        lastSyncStatus: message,
       },
     });
 
@@ -100,30 +109,19 @@ export async function orchestrateSync(
   }
 }
 
-async function syncNetSuite(orgId: string, _connection: ErpConnection): Promise<number> {
-  // Stub implementation - would call NetSuite API
-  console.log(`Syncing NetSuite for org ${orgId}`);
-  return 0;
-}
-
-async function syncXero(orgId: string, _connection: ErpConnection): Promise<number> {
-  // Stub implementation - would call Xero API
+async function syncXero(
+  orgId: string,
+  _connection: AccountingConnection,
+): Promise<number> {
   console.log(`Syncing Xero for org ${orgId}`);
   return 0;
 }
 
 async function syncQuickBooks(
   orgId: string,
-  _connection: ErpConnection,
+  _connection: AccountingConnection,
 ): Promise<number> {
-  // Stub implementation - would call QuickBooks API
   console.log(`Syncing QuickBooks for org ${orgId}`);
-  return 0;
-}
-
-async function syncWorkday(orgId: string, _connection: ErpConnection): Promise<number> {
-  // Stub implementation - would call Workday API
-  console.log(`Syncing Workday for org ${orgId}`);
   return 0;
 }
 

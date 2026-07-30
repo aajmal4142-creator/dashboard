@@ -35,17 +35,17 @@ export const IntegrationSyncLogs: CollectionConfig = {
       type: "text",
       required: true,
       index: true,
-      admin: { description: "Foreign key to connection (salesforce-connections, etc.)" },
+      admin: { description: "Foreign key to connection (accounting-connections, etc.)" },
     },
     {
       name: "provider",
       type: "select",
       required: true,
       options: [
-        { label: "Salesforce", value: "salesforce" },
-        { label: "NetSuite", value: "netsuite" },
         { label: "Xero", value: "xero" },
         { label: "QuickBooks", value: "quickbooks" },
+        { label: "CSV", value: "csv" },
+        { label: "Webhook", value: "webhook" },
       ],
     },
     {

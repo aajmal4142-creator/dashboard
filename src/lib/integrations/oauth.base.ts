@@ -194,8 +194,7 @@ export abstract class OAuthBase {
         );
 
         await this.payload.update({
-          collection: this.collectionName as
-            "salesforce-connections" | "netsuite-connections" | "sap-connections",
+          collection: this.collectionName as "accounting-connections",
           id: connection.id,
           data: {
             accessToken: newTokens.accessToken,
@@ -214,12 +213,11 @@ export abstract class OAuthBase {
           error instanceof OAuthErrorException && error.type === "token_revoked";
 
         await this.payload.update({
-          collection: this.collectionName as
-            "salesforce-connections" | "netsuite-connections" | "sap-connections",
+          collection: this.collectionName as "accounting-connections",
           id: connection.id,
           data: {
-            status: isRevoked ? "revoked" : "failed",
-            lastSyncStatus: errorMsg,
+            status: "failed",
+            lastSyncStatus: isRevoked ? `revoked: ${errorMsg}` : errorMsg,
           },
           overrideAccess: true,
         });

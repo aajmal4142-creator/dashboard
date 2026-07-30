@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 interface IntegrationStatus {
-  salesforce: Array<{ id: string; status: string; lastSyncAt?: string }>;
-  netsuite: Array<{ id: string; status: string; lastSyncAt?: string }>;
   accounting: Array<{
     id: string;
     provider: string;
@@ -40,146 +38,120 @@ export default function IntegrationsPage() {
   return (
     <div className="space-y-8 p-8">
       <div>
-        <h1 className="text-3xl font-bold">Enterprise Integrations</h1>
+        <h1 className="text-3xl font-bold">Data Integrations</h1>
         <p className="mt-2 text-gray-600">
-          Connect ClearESG with Salesforce, NetSuite, and accounting systems
+          Upload data via CSV, webhooks, or the manual data portal
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {/* Salesforce Card */}
+        {/* CSV Import Card */}
         <div className="rounded-lg border bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Salesforce</h2>
+              <h2 className="text-xl font-semibold">CSV Import</h2>
               <p className="mt-1 text-sm text-gray-600">
-                Sync accounts, contacts, and ESG metrics
+                Upload emissions data via CSV files
               </p>
             </div>
-            <div className="text-3xl">☁️</div>
+            <div className="text-3xl">📁</div>
           </div>
 
           <div className="mt-4 space-y-2">
-            {status?.salesforce.length ? (
-              <>
-                <p className="text-sm">
-                  Status:{" "}
-                  <span
-                    className={`font-semibold ${
-                      status.salesforce[0].status === "connected"
-                        ? "text-green-600"
-                        : "text-yellow-600"
-                    }`}
-                  >
-                    {status.salesforce[0].status}
-                  </span>
-                </p>
-                {status.salesforce[0].lastSyncAt && (
-                  <p className="text-xs text-gray-500">
-                    Last sync:{" "}
-                    {new Date(status.salesforce[0].lastSyncAt).toLocaleString()}
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-gray-500">Not connected</p>
-            )}
+            <p className="text-sm text-gray-600">Supports scope 1, 2, and 3 emissions</p>
           </div>
 
-          <Link
-            href="/integrations/salesforce"
-            className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Configure
-          </Link>
+          <button className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+            Upload CSV
+          </button>
         </div>
 
-        {/* NetSuite Card */}
+        {/* Webhooks Card */}
         <div className="rounded-lg border bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold">NetSuite</h2>
+              <h2 className="text-xl font-semibold">Webhooks</h2>
               <p className="mt-1 text-sm text-gray-600">
-                Sync GL balances and calculate spend-based emissions
+                Real-time data updates via webhooks
               </p>
             </div>
-            <div className="text-3xl">📊</div>
+            <div className="text-3xl">🔄</div>
           </div>
 
           <div className="mt-4 space-y-2">
-            {status?.netsuite.length ? (
-              <>
-                <p className="text-sm">
-                  Status:{" "}
-                  <span
-                    className={`font-semibold ${
-                      status.netsuite[0].status === "connected"
-                        ? "text-green-600"
-                        : "text-yellow-600"
-                    }`}
-                  >
-                    {status.netsuite[0].status}
-                  </span>
-                </p>
-                {status.netsuite[0].lastSyncAt && (
-                  <p className="text-xs text-gray-500">
-                    Last sync: {new Date(status.netsuite[0].lastSyncAt).toLocaleString()}
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-gray-500">Not connected</p>
-            )}
+            <p className="text-sm text-gray-600">Set up custom webhook endpoints</p>
           </div>
 
-          <Link
-            href="/integrations/netsuite"
-            className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
+          <button className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
             Configure
-          </Link>
+          </button>
         </div>
 
-        {/* Accounting Card */}
+        {/* Manual Portal Card */}
         <div className="rounded-lg border bg-white p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Accounting</h2>
+              <h2 className="text-xl font-semibold">Manual Portal</h2>
               <p className="mt-1 text-sm text-gray-600">
-                Connect Xero or QuickBooks for expense syncing
+                Enter data directly in the dashboard
               </p>
             </div>
-            <div className="text-3xl">💰</div>
+            <div className="text-3xl">✋</div>
           </div>
 
           <div className="mt-4 space-y-2">
-            {status?.accounting.length ? (
-              <>
-                <p className="text-sm">
-                  Providers:{" "}
-                  <span className="font-semibold">
-                    {status.accounting.map((a) => a.provider).join(", ")}
-                  </span>
-                </p>
-                {status.accounting[0].lastSyncAt && (
-                  <p className="text-xs text-gray-500">
-                    Last sync:{" "}
-                    {new Date(status.accounting[0].lastSyncAt).toLocaleString()}
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-gray-500">Not connected</p>
-            )}
+            <p className="text-sm text-gray-600">Forms for manual data entry</p>
           </div>
 
-          <Link
-            href="/integrations/accounting"
-            className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Configure
-          </Link>
+          <button className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+            Enter Data
+          </button>
         </div>
+      </div>
+
+      {/* Accounting Integrations Section */}
+      <div className="rounded-lg border bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold">Accounting Software</h2>
+        <p className="mt-2 text-sm text-gray-600 mb-4">
+          Connect Xero or QuickBooks for automated spend-based emissions calculations
+        </p>
+
+        {status?.accounting.length ? (
+          <div className="space-y-4">
+            {status.accounting.map((acc) => (
+              <div
+                key={acc.id}
+                className="flex items-center justify-between border-t pt-4"
+              >
+                <div>
+                  <p className="font-semibold capitalize">{acc.provider}</p>
+                  <p className="text-sm text-gray-600">
+                    Status:{" "}
+                    <span
+                      className={
+                        acc.status === "connected" ? "text-green-600" : "text-yellow-600"
+                      }
+                    >
+                      {acc.status}
+                    </span>
+                  </p>
+                </div>
+                <button className="rounded bg-gray-200 px-4 py-2 text-sm font-medium hover:bg-gray-300">
+                  Manage
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">No accounting integrations configured</p>
+        )}
+
+        <Link
+          href="/integrations/accounting"
+          className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          Add Connection
+        </Link>
       </div>
 
       {/* Sync Logs Section */}
