@@ -3092,7 +3092,7 @@ export interface TrendForecast {
 export interface SalesforceConnection {
   id: string;
   organisationId: string | Organisation;
-  status?: ('pending' | 'connected' | 'failed' | 'expired') | null;
+  status?: ('pending' | 'connected' | 'failed' | 'expired' | 'revoked') | null;
   /**
    * Salesforce instance URL
    */
@@ -3150,7 +3150,7 @@ export interface SalesforceConnection {
 export interface NetsuiteConnection {
   id: string;
   organisationId: string | Organisation;
-  status?: ('pending' | 'connected' | 'failed' | 'expired') | null;
+  status?: ('pending' | 'connected' | 'failed' | 'expired' | 'revoked') | null;
   /**
    * NetSuite Account ID
    */
@@ -3221,7 +3221,7 @@ export interface AccountingConnection {
   id: string;
   organisationId: string | Organisation;
   provider: 'xero' | 'quickbooks';
-  status?: ('pending' | 'connected' | 'failed' | 'expired') | null;
+  status?: ('pending' | 'connected' | 'failed' | 'expired' | 'revoked') | null;
   /**
    * Xero Tenant ID or QB Realm ID
    */
@@ -3327,7 +3327,7 @@ export interface IntegrationSyncLog {
 export interface SapConnection {
   id: string;
   organisationId: string | Organisation;
-  status?: ('pending' | 'connected' | 'failed' | 'expired') | null;
+  status?: ('pending' | 'connected' | 'failed' | 'expired' | 'revoked') | null;
   /**
    * SAP environment type
    */

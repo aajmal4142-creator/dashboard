@@ -46,6 +46,7 @@ export const SalesforceConnections: CollectionConfig = {
         { label: "Connected", value: "connected" },
         { label: "Failed", value: "failed" },
         { label: "Expired", value: "expired" },
+        { label: "Revoked", value: "revoked" },
       ],
       defaultValue: "pending",
       index: true,

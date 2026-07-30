@@ -1,105 +1,29 @@
 import type { Payload } from "payload";
-import type {
-  SAPGLPosting,
-  SAPBOM,
-  SAPProductionData,
-  SyncResult,
-  OAuthTokens,
-} from "./types";
+import type { SAPGLPosting, SAPBOM, SAPProductionData, SyncResult } from "./types";
+import { OAuthBase, type OAuthConfig } from "./oauth.base";
 
 const SAP_AUTH_URL = "https://oauth.sapfioritrial.com/oauth/authorize";
 const SAP_TOKEN_URL = "https://oauth.sapfioritrial.com/oauth/token";
 const SAP_API_URL = "https://sandbox.api.sap.com/s4hanacloud";
 
-export class SAPService {
+export class SAPService extends OAuthBase {
   constructor(
-    private payload: Payload,
-    private clientId: string,
-    private clientSecret: string,
-    private redirectUri: string,
-  ) {}
-
-  /**
-   * Generate SAP OAuth authorization URL
-   */
-  getAuthUrl(connectionId: string): string {
-    const params = new URLSearchParams({
-      client_id: this.clientId,
-      redirect_uri: this.redirectUri,
-      response_type: "code",
+    payload: Payload,
+    clientId: string,
+    clientSecret: string,
+    redirectUri: string,
+  ) {
+    const config: OAuthConfig = {
+      authUrl: SAP_AUTH_URL,
+      tokenUrl: SAP_TOKEN_URL,
+      clientId,
+      clientSecret,
+      redirectUri,
       scope: "s4hanacloud",
-      state: connectionId,
-    });
-    return `${SAP_AUTH_URL}?${params.toString()}`;
+    };
+    super(payload, config, "sap-connections");
   }
 
-  /**
-   * Exchange authorization code for access token
-   */
-  async exchangeCodeForToken(code: string): Promise<OAuthTokens> {
-    const response = await fetch(SAP_TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "authorization_code",
-        code,
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-        redirect_uri: this.redirectUri,
-      }).toString(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`SAP OAuth failed: ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as {
-      access_token: string;
-      refresh_token: string;
-      expires_in: number;
-    };
-
-    return {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresAt: new Date(Date.now() + data.expires_in * 1000).toISOString(),
-    };
-  }
-
-  /**
-   * Refresh expired access token
-   */
-  async refreshAccessToken(refreshToken: string): Promise<OAuthTokens> {
-    const response = await fetch(SAP_TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: refreshToken,
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-      }).toString(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Token refresh failed: ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as {
-      access_token: string;
-      expires_in: number;
-    };
-
-    return {
-      accessToken: data.access_token,
-      refreshToken,
-      expiresAt: new Date(Date.now() + data.expires_in * 1000).toISOString(),
-    };
-  }
-
-  /**
-   * Post GL transactions to SAP
-   */
   async postGLTransaction(
     accessToken: string,
     posting: SAPGLPosting,
@@ -114,6 +38,16 @@ export class SAPService {
     });
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw this.createOAuthError(
+          {
+            type: "token_revoked",
+            message: "Token revoked or permission denied",
+            retryable: false,
+          },
+          response.status,
+        );
+      }
       throw new Error(`Failed to post GL transaction: ${response.statusText}`);
     }
 

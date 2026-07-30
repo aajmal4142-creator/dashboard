@@ -31,9 +31,6 @@ export class PowerBIConnector {
     return `https://login.microsoftonline.com/${this.config.tenantId}/oauth2/v2.0/authorize?${params.toString()}`;
   }
 
-  /**
-   * Exchange authorization code for access token
-   */
   async exchangeCodeForToken(code: string, redirectUri: string): Promise<OAuthTokens> {
     const response = await fetch(
       `https://login.microsoftonline.com/${this.config.tenantId}/oauth2/v2.0/token`,
@@ -64,6 +61,46 @@ export class PowerBIConnector {
     return {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
+      expiresAt: new Date(Date.now() + data.expires_in * 1000).toISOString(),
+    };
+  }
+
+  async refreshAccessToken(refreshToken: string): Promise<OAuthTokens> {
+    const response = await fetch(
+      `https://login.microsoftonline.com/${this.config.tenantId}/oauth2/v2.0/token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          refresh_token: refreshToken,
+          client_id: this.config.clientId,
+          client_secret: this.config.clientSecret,
+          scope: "Dataset.ReadWrite.All Workspace.ReadWrite.All",
+        }).toString(),
+      },
+    );
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        const error = new Error("Token revoked or invalid") as Error & {
+          type: "token_revoked";
+        };
+        error.type = "token_revoked";
+        throw error;
+      }
+      throw new Error(`Power BI token refresh failed: ${response.statusText}`);
+    }
+
+    const data = (await response.json()) as {
+      access_token: string;
+      refresh_token?: string;
+      expires_in: number;
+    };
+
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token || refreshToken,
       expiresAt: new Date(Date.now() + data.expires_in * 1000).toISOString(),
     };
   }

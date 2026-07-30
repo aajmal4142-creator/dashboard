@@ -10,12 +10,29 @@ export type IntegrationProvider =
   | "powerbi"
   | "tableau";
 
-export type IntegrationConnectionStatus = "pending" | "connected" | "failed" | "expired";
+export type IntegrationConnectionStatus =
+  "pending" | "connected" | "failed" | "expired" | "revoked";
 
 export type OAuthTokens = {
   accessToken: string;
   refreshToken?: string;
   expiresAt?: string;
+};
+
+export type OAuthErrorType =
+  | "invalid_grant"
+  | "token_revoked"
+  | "token_expired"
+  | "network_error"
+  | "invalid_scope"
+  | "server_error"
+  | "rate_limit";
+
+export type OAuthError = {
+  type: OAuthErrorType;
+  message: string;
+  statusCode?: number;
+  retryable: boolean;
 };
 
 export type SyncResult = {

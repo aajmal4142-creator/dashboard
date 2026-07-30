@@ -1,117 +1,70 @@
 import type { Payload } from "payload";
-import type {
-  SalesforceAccount,
-  SalesforceContact,
-  SyncResult,
-  OAuthTokens,
-} from "./types";
+import type { SalesforceAccount, SalesforceContact, SyncResult } from "./types";
+import {
+  OAuthBase,
+  OAuthErrorException,
+  type OAuthConfig,
+  type OAuthConnection,
+  type TokenResponseBody,
+} from "./oauth.base";
+import { SyncUtils } from "./sync-utils";
+import type { SalesforceConnection } from "@/payload-types";
 
 const SALESFORCE_AUTH_URL = "https://login.salesforce.com/services/oauth2/authorize";
 const SALESFORCE_TOKEN_URL = "https://login.salesforce.com/services/oauth2/token";
 
-export class SalesforceService {
+export class SalesforceService extends OAuthBase {
+  private instanceUrl?: string;
+
   constructor(
-    private payload: Payload,
-    private clientId: string,
-    private clientSecret: string,
-    private redirectUri: string,
-  ) {}
-
-  /**
-   * Generate Salesforce OAuth authorization URL
-   */
-  getAuthUrl(connectionId: string): string {
-    const params = new URLSearchParams({
-      client_id: this.clientId,
-      redirect_uri: this.redirectUri,
-      response_type: "code",
+    payload: Payload,
+    clientId: string,
+    clientSecret: string,
+    redirectUri: string,
+    instanceUrl?: string,
+  ) {
+    const config: OAuthConfig = {
+      authUrl: SALESFORCE_AUTH_URL,
+      tokenUrl: SALESFORCE_TOKEN_URL,
+      clientId,
+      clientSecret,
+      redirectUri,
       scope: "api refresh_token",
-      state: connectionId,
-    });
-    return `${SALESFORCE_AUTH_URL}?${params.toString()}`;
+    };
+    super(payload, config, "salesforce-connections");
+    this.instanceUrl = instanceUrl;
   }
 
-  /**
-   * Exchange authorization code for access token
-   */
-  async exchangeCodeForToken(code: string): Promise<OAuthTokens> {
-    const response = await fetch(SALESFORCE_TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "authorization_code",
-        code,
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-        redirect_uri: this.redirectUri,
-      }).toString(),
-    });
+  protected parseTokenResponse(data: TokenResponseBody, previousRefreshToken?: string) {
+    if (data.instance_url && !this.instanceUrl) {
+      this.instanceUrl = data.instance_url;
+    }
+    return super.parseTokenResponse(data, previousRefreshToken);
+  }
 
-    if (!response.ok) {
-      throw new Error(`Salesforce OAuth failed: ${response.statusText}`);
+  async fetchAccounts(accessToken: string): Promise<SalesforceAccount[]> {
+    if (!this.instanceUrl) {
+      throw new Error("Instance URL not configured");
     }
 
-    const data = (await response.json()) as {
-      access_token: string;
-      refresh_token: string;
-      expires_in: number;
-      instance_url: string;
-    };
-
-    return {
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresAt: new Date(Date.now() + data.expires_in * 1000).toISOString(),
-    };
-  }
-
-  /**
-   * Refresh expired access token
-   */
-  async refreshAccessToken(refreshToken: string): Promise<OAuthTokens> {
-    const response = await fetch(SALESFORCE_TOKEN_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        grant_type: "refresh_token",
-        refresh_token: refreshToken,
-        client_id: this.clientId,
-        client_secret: this.clientSecret,
-      }).toString(),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Token refresh failed: ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as {
-      access_token: string;
-      expires_in: number;
-      instance_url: string;
-    };
-
-    return {
-      accessToken: data.access_token,
-      refreshToken,
-      expiresAt: new Date(Date.now() + data.expires_in * 1000).toISOString(),
-    };
-  }
-
-  /**
-   * Fetch Salesforce accounts
-   */
-  async fetchAccounts(
-    instanceUrl: string,
-    accessToken: string,
-  ): Promise<SalesforceAccount[]> {
     const response = await fetch(
-      `${instanceUrl}/services/data/v61.0/query?q=SELECT Id,Name,Industry,BillingCity,BillingCountry FROM Account`,
+      `${this.instanceUrl}/services/data/v61.0/query?q=SELECT Id,Name,Industry,BillingCity,BillingCountry FROM Account`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       },
     );
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw this.createOAuthError(
+          {
+            type: "token_revoked",
+            message: "Token revoked or permission denied",
+            retryable: false,
+          },
+          response.status,
+        );
+      }
       throw new Error(`Failed to fetch Salesforce accounts: ${response.statusText}`);
     }
 
@@ -134,21 +87,29 @@ export class SalesforceService {
     }));
   }
 
-  /**
-   * Fetch Salesforce contacts
-   */
-  async fetchContacts(
-    instanceUrl: string,
-    accessToken: string,
-  ): Promise<SalesforceContact[]> {
+  async fetchContacts(accessToken: string): Promise<SalesforceContact[]> {
+    if (!this.instanceUrl) {
+      throw new Error("Instance URL not configured");
+    }
+
     const response = await fetch(
-      `${instanceUrl}/services/data/v61.0/query?q=SELECT Id,AccountId,FirstName,LastName,Email,Phone,Title FROM Contact WHERE Email != null`,
+      `${this.instanceUrl}/services/data/v61.0/query?q=SELECT Id,AccountId,FirstName,LastName,Email,Phone,Title FROM Contact WHERE Email != null`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
       },
     );
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw this.createOAuthError(
+          {
+            type: "token_revoked",
+            message: "Token revoked or permission denied",
+            retryable: false,
+          },
+          response.status,
+        );
+      }
       throw new Error(`Failed to fetch Salesforce contacts: ${response.statusText}`);
     }
 
@@ -175,14 +136,14 @@ export class SalesforceService {
     }));
   }
 
-  /**
-   * Write ESG metrics to Salesforce custom fields
-   */
   async writeMetricsToAccounts(
-    instanceUrl: string,
     accessToken: string,
     metrics: Array<{ accountId: string; emissions: number; intensity: number }>,
   ): Promise<void> {
+    if (!this.instanceUrl) {
+      throw new Error("Instance URL not configured");
+    }
+
     const updates = metrics.map((m) => ({
       Id: m.accountId,
       ESG_Emissions_tCO2e__c: m.emissions,
@@ -190,92 +151,177 @@ export class SalesforceService {
     }));
 
     for (const update of updates) {
-      await fetch(`${instanceUrl}/services/data/v61.0/sobjects/Account/${update.Id}`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `${this.instanceUrl}/services/data/v61.0/sobjects/Account/${update.Id}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(update),
         },
-        body: JSON.stringify(update),
-      });
+      );
+
+      if (!response.ok && (response.status === 401 || response.status === 403)) {
+        throw this.createOAuthError(
+          {
+            type: "token_revoked",
+            message: "Token revoked or permission denied",
+            retryable: false,
+          },
+          response.status,
+        );
+      }
     }
   }
 
   /**
    * Sync Salesforce data with ClearESG
    */
-  async syncData(connectionId: string, _organisationId: string): Promise<SyncResult> {
+  async syncData(connectionId: string, organisationId: string): Promise<SyncResult> {
     const startTime = Date.now();
     const errors: Array<{ message: string; recordId?: string }> = [];
     let processed = 0;
     let failed = 0;
+    let createdCount = 0;
 
     try {
-      const connection = await this.payload.findByID({
+      const connection = (await this.payload.findByID({
         collection: "salesforce-connections",
         id: connectionId,
-      });
+      })) as SalesforceConnection;
 
       if (!connection?.instanceUrl || !connection?.accessToken) {
         throw new Error("Salesforce connection not properly configured");
       }
 
-      let accessToken = connection.accessToken as string;
+      const oauthConnection: OAuthConnection = {
+        id: connectionId,
+        accessToken: connection.accessToken,
+        refreshToken: connection.refreshToken ?? undefined,
+        expiresAt: connection.expiresAt ?? undefined,
+        status: connection.status ?? undefined,
+      };
 
-      if (connection.expiresAt && new Date(connection.expiresAt) < new Date()) {
-        if (!connection.refreshToken) {
-          throw new Error("Token expired and no refresh token available");
+      let accessToken: string;
+      try {
+        accessToken = await this.ensureValidToken(oauthConnection);
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        errors.push({ message: `Token validation failed: ${errorMsg}` });
+        failed += 1;
+        if (err instanceof OAuthErrorException && err.type === "token_revoked") {
+          return {
+            status: "failed",
+            recordsProcessed: processed,
+            recordsFailed: failed,
+            errors,
+            details: { reason: "connection_revoked" },
+            syncDurationMs: Date.now() - startTime,
+          };
         }
-        const tokens = await this.refreshAccessToken(connection.refreshToken as string);
-        accessToken = tokens.accessToken;
-        await this.payload.update({
-          collection: "salesforce-connections",
-          id: connectionId,
-          data: {
-            accessToken: tokens.accessToken,
-            expiresAt: tokens.expiresAt,
-          },
-          overrideAccess: true,
-        });
+        throw err;
       }
 
-      const config = connection.syncConfig as
-        | {
-            enableAccountSync?: boolean | null;
-            enableContactSync?: boolean | null;
-            enableMetricsWrite?: boolean | null;
-            syncFrequency?: string | null;
-          }
-        | null
-        | undefined;
+      this.instanceUrl = connection.instanceUrl;
+
+      const config = connection.syncConfig;
 
       if (config?.enableAccountSync) {
         try {
-          const accounts = await this.fetchAccounts(
-            connection.instanceUrl as string,
-            accessToken,
+          const accounts = await this.fetchAccounts(accessToken);
+
+          // Deduplicate before creating
+          const recordsToCreate = await SyncUtils.deduplicateBeforeCreate(
+            this.payload,
+            "suppliers",
+            accounts.map((acc) => ({
+              id: acc.id,
+              externalId: acc.id,
+              name: acc.name,
+              industry: acc.industry,
+              location: `${acc.billingCity}, ${acc.billingCountry}`,
+              sourceSystem: "salesforce",
+              externalId_sf: acc.id,
+            })),
+            "externalId_sf",
           );
+
+          for (const supplier of recordsToCreate) {
+            try {
+              await this.payload.create({
+                collection: "suppliers",
+                data: {
+                  organisation: organisationId,
+                  name: String(supplier.name ?? "Unknown"),
+                  contactEmail: "unknown@example.com",
+                  category: "other",
+                  country:
+                    typeof supplier.location === "string" ? supplier.location : undefined,
+                },
+                overrideAccess: true,
+              });
+              createdCount += 1;
+            } catch (err) {
+              errors.push({
+                message: `Failed to create supplier ${String(supplier.name)}: ${String(err)}`,
+                recordId: supplier.externalId,
+              });
+              failed += 1;
+            }
+          }
+
           processed += accounts.length;
         } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
           failed += 1;
-          errors.push({
-            message: `Account sync failed: ${String(err)}`,
-          });
+          errors.push({ message: `Account sync failed: ${errorMsg}` });
+
+          if (err instanceof OAuthErrorException && err.type === "token_revoked") {
+            await this.payload.update({
+              collection: "salesforce-connections",
+              id: connectionId,
+              data: { status: "revoked", lastSyncStatus: errorMsg },
+              overrideAccess: true,
+            });
+            return {
+              status: "failed",
+              recordsProcessed: processed,
+              recordsFailed: failed,
+              errors,
+              details: { reason: "connection_revoked" },
+              syncDurationMs: Date.now() - startTime,
+            };
+          }
         }
       }
 
       if (config?.enableContactSync) {
         try {
-          const contacts = await this.fetchContacts(
-            connection.instanceUrl as string,
-            accessToken,
-          );
+          const contacts = await this.fetchContacts(accessToken);
           processed += contacts.length;
         } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : String(err);
           failed += 1;
-          errors.push({
-            message: `Contact sync failed: ${String(err)}`,
-          });
+          errors.push({ message: `Contact sync failed: ${errorMsg}` });
+
+          if (err instanceof OAuthErrorException && err.type === "token_revoked") {
+            await this.payload.update({
+              collection: "salesforce-connections",
+              id: connectionId,
+              data: { status: "revoked", lastSyncStatus: errorMsg },
+              overrideAccess: true,
+            });
+            return {
+              status: "failed",
+              recordsProcessed: processed,
+              recordsFailed: failed,
+              errors,
+              details: { reason: "connection_revoked" },
+              syncDurationMs: Date.now() - startTime,
+            };
+          }
         }
       }
 
@@ -298,6 +344,7 @@ export class SalesforceService {
         details: {
           accountsSynced: config?.enableAccountSync ? processed : 0,
           contactsSynced: config?.enableContactSync ? processed : 0,
+          suppliersCreated: createdCount,
         },
         syncDurationMs: Date.now() - startTime,
       };
