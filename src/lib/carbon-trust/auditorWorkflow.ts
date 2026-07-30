@@ -1,4 +1,9 @@
 import type { Payload } from "payload";
+import {
+  generateCertificatePDF,
+  generateCertificateNumber,
+} from "./certificateGenerator";
+import { randomUUID } from "crypto";
 
 type ChecklistItemStatus =
   | "not_started"
@@ -35,7 +40,6 @@ export class AuditorWorkflow {
     organisationId: string,
     userId: string,
   ): Promise<void> {
-    // Verify certification exists and belongs to org
     const cert = await this.payload.findByID({
       collection: "carbon-trust-certifications",
       id: certificationId,
@@ -50,7 +54,6 @@ export class AuditorWorkflow {
       throw new Error(`Cannot submit certification in ${currentStatus} status`);
     }
 
-    // Update certification to submitted
     await this.payload.update({
       collection: "carbon-trust-certifications",
       id: certificationId,
@@ -60,17 +63,13 @@ export class AuditorWorkflow {
       },
     });
 
-    // Log audit trail
     await this.logAuditTrail(
       certificationId,
       organisationId,
       userId,
       "certification_submitted",
       "certification",
-      {
-        before: currentStatus,
-        after: "submitted",
-      },
+      { before: currentStatus, after: "submitted" },
       "Organization submitted certification for auditor review",
     );
   }
@@ -97,11 +96,7 @@ export class AuditorWorkflow {
       id: certificationId,
       data: {
         status: "under_review",
-        auditor: {
-          name: auditorName,
-          email: auditorEmail,
-          userId: auditorUserId,
-        },
+        auditor: { name: auditorName, email: auditorEmail, userId: auditorUserId },
       },
     });
 
@@ -111,10 +106,7 @@ export class AuditorWorkflow {
       assignedBy,
       "auditor_assigned",
       "certification",
-      {
-        before: null,
-        after: { name: auditorName, email: auditorEmail },
-      },
+      { before: null, after: { name: auditorName, email: auditorEmail } },
       `Auditor ${auditorName} assigned to certification`,
     );
   }
@@ -155,11 +147,61 @@ export class AuditorWorkflow {
       auditorId,
       approved ? "checklist_item_approved" : "checklist_item_review_feedback",
       "checklist_item",
-      {
-        before: currentStatus,
-        after: newStatus,
-      },
+      { before: currentStatus, after: newStatus },
       `${approved ? "Approved" : "Requested additional info for"} requirement: ${item.requirementName}`,
+    );
+  }
+
+  async requestAdditionalInfo(
+    checklistItemId: string,
+    certificationId: string,
+    organisationId: string,
+    auditorId: string,
+    reason: string,
+  ): Promise<void> {
+    await this.reviewChecklistItem(
+      checklistItemId,
+      certificationId,
+      organisationId,
+      auditorId,
+      reason,
+      false,
+    );
+  }
+
+  async batchApproveItems(
+    certificationId: string,
+    itemIds: string[],
+    organisationId: string,
+    auditorId: string,
+  ): Promise<void> {
+    for (const itemId of itemIds) {
+      const item = await this.payload.findByID({
+        collection: "carbon-trust-checklist-items",
+        id: itemId,
+      });
+
+      if ((item.certification as { id: string }).id === certificationId) {
+        await this.payload.update({
+          collection: "carbon-trust-checklist-items",
+          id: itemId,
+          data: {
+            status: "approved",
+            auditorApprovedAt: new Date().toISOString(),
+            auditorFeedback: "Approved by auditor (batch operation)",
+          },
+        });
+      }
+    }
+
+    await this.logAuditTrail(
+      certificationId,
+      organisationId,
+      auditorId,
+      "batch_items_approved",
+      "certification",
+      { before: null, after: { count: itemIds.length } },
+      `Batch approved ${itemIds.length} items`,
     );
   }
 
@@ -180,7 +222,6 @@ export class AuditorWorkflow {
 
     const currentStatus = cert.status as CertificationStatus;
 
-    // Verify all critical items are approved
     const checklistItems = await this.payload.find({
       collection: "carbon-trust-checklist-items",
       where: {
@@ -214,10 +255,7 @@ export class AuditorWorkflow {
       auditorId,
       "certification_approved",
       "certification",
-      {
-        before: currentStatus,
-        after: "approved",
-      },
+      { before: currentStatus, after: "approved" },
       "Auditor approved certification",
     );
   }
@@ -242,10 +280,7 @@ export class AuditorWorkflow {
     await this.payload.update({
       collection: "carbon-trust-certifications",
       id: certificationId,
-      data: {
-        status: "rejected",
-        rejectionReason,
-      },
+      data: { status: "rejected", rejectionReason },
     });
 
     await this.logAuditTrail(
@@ -254,20 +289,99 @@ export class AuditorWorkflow {
       auditorId,
       "certification_rejected",
       "certification",
-      {
-        before: currentStatus,
-        after: "rejected",
-      },
+      { before: currentStatus, after: "rejected" },
       `Certification rejected: ${rejectionReason}`,
     );
+  }
+
+  async finalizeCertification(
+    certificationId: string,
+    organisationId: string,
+    auditorId: string,
+  ): Promise<string> {
+    const cert = await this.payload.findByID({
+      collection: "carbon-trust-certifications",
+      id: certificationId,
+    });
+
+    if (!cert || (cert.organisation as { id: string }).id !== organisationId) {
+      throw new Error("Certification not found or access denied");
+    }
+
+    if (cert.status !== "approved") {
+      throw new Error("Only approved certifications can be finalized");
+    }
+
+    const org = await this.payload.findByID({
+      collection: "organisations",
+      id: organisationId,
+    });
+
+    const certificateNumber = generateCertificateNumber(organisationId, new Date());
+    const verificationToken = randomUUID();
+    const issuedAt = new Date();
+    const expiresAt = new Date(issuedAt);
+    expiresAt.setFullYear(expiresAt.getFullYear() + 3);
+
+    await generateCertificatePDF({
+      certificateNumber,
+      organisationName: org.name,
+      issuedDate: issuedAt,
+      expiresDate: expiresAt,
+      scope: "all",
+      auditorName: (cert.auditor as { name?: string })?.name || "ClearESG Auditor",
+      baselineYear: new Date().getFullYear() - 1,
+      verifiedEmissions: 0,
+    });
+
+    await this.payload.create({
+      collection: "carbon-trust-certificates",
+      data: {
+        organisation: organisationId,
+        certification: certificationId,
+        certificateNumber,
+        issuedAt: issuedAt.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        status: "active",
+        verificationToken,
+        verificationUrl: `/verify-certificate/${verificationToken}`,
+        scope: "all",
+        publiclyListed: true,
+        createdBy: auditorId,
+        pdfUrl: `https://certificates.clearesg.local/${certificateNumber}.pdf`,
+        pdfS3Key: `certificates/${certificateNumber}.pdf`,
+      },
+    });
+
+    await this.payload.update({
+      collection: "carbon-trust-certifications",
+      id: certificationId,
+      data: {
+        status: "certified",
+        validityPeriod: {
+          issuedAt: issuedAt.toISOString(),
+          expiresAt: expiresAt.toISOString(),
+        },
+      },
+    });
+
+    await this.logAuditTrail(
+      certificationId,
+      organisationId,
+      auditorId,
+      "certified",
+      "certification",
+      { before: "approved", after: "certified" },
+      `Certificate finalized: ${certificateNumber}. Audit trail locked.`,
+    );
+
+    return certificateNumber;
   }
 
   async calculateCompletionPercentage(certificationId: string): Promise<number> {
     const items = await this.payload.find({
       collection: "carbon-trust-checklist-items",
-      where: {
-        certification: { equals: certificationId },
-      },
+      where: { certification: { equals: certificationId } },
       limit: 1000,
     });
 
@@ -286,9 +400,7 @@ export class AuditorWorkflow {
   ): Promise<AuditTrailEntry[]> {
     const result = await this.payload.find({
       collection: "carbon-trust-audit-trail",
-      where: {
-        certification: { equals: certificationId },
-      },
+      where: { certification: { equals: certificationId } },
       sort: "-createdAt",
       limit,
     });

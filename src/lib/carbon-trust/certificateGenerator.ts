@@ -1,9 +1,8 @@
 import crypto from "crypto";
 
 interface CertificateData {
-  certificationId: string;
-  organisationName: string;
   certificateNumber: string;
+  organisationName: string;
   issuedDate: Date;
   expiresDate: Date;
   scope: "scope1" | "scope2" | "scope3" | "all";
@@ -12,208 +11,101 @@ interface CertificateData {
   verifiedEmissions: number;
 }
 
-interface GeneratedCertificate {
-  pdfBytes: Buffer;
-  certificateNumber: string;
-  verificationToken: string;
-}
-
-export async function generateCertificatePDF(
-  data: CertificateData,
-): Promise<GeneratedCertificate> {
-  // Create verification token
-  const verificationToken = crypto.randomBytes(32).toString("hex");
-
+export async function generateCertificatePDF(data: CertificateData): Promise<Buffer> {
   // Format dates
-  const issuedDateStr = data.issuedDate.toLocaleDateString("en-GB");
-  const expiresDateStr = data.expiresDate.toLocaleDateString("en-GB");
+  const issuedDateStr = data.issuedDate.toLocaleDateString("en-GB", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const expiresDateStr = data.expiresDate.toLocaleDateString("en-GB", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   // Scope label mapping
-  const scopeLabels = {
+  const scopeLabels: Record<string, string> = {
     scope1: "Scope 1: Direct Emissions",
     scope2: "Scope 2: Indirect Emissions (Energy)",
     scope3: "Scope 3: Other Indirect Emissions",
     all: "All Scopes (1, 2, and 3)",
   };
 
-  // Create PDF content as HTML string (to be rendered server-side)
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8" />
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          margin: 0;
-          padding: 40px;
-          background: #f5f5f5;
-        }
-        .certificate {
-          background: white;
-          border: 3px solid #1a5f3d;
-          padding: 60px;
-          max-width: 900px;
-          margin: 0 auto;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-          position: relative;
-        }
-        .header {
-          text-align: center;
-          border-bottom: 2px solid #1a5f3d;
-          padding-bottom: 30px;
-          margin-bottom: 40px;
-        }
-        .logo {
-          font-size: 24px;
-          font-weight: bold;
-          color: #1a5f3d;
-          margin-bottom: 10px;
-        }
-        .title {
-          font-size: 28px;
-          font-weight: bold;
-          color: #1a5f3d;
-          margin-bottom: 10px;
-        }
-        .subtitle {
-          font-size: 16px;
-          color: #666;
-        }
-        .content {
-          margin: 40px 0;
-          line-height: 1.8;
-        }
-        .field {
-          margin: 20px 0;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .field-label {
-          font-weight: bold;
-          color: #333;
-          flex: 0 0 40%;
-        }
-        .field-value {
-          color: #1a5f3d;
-          font-size: 16px;
-          flex: 1;
-          text-align: right;
-        }
-        .footer {
-          margin-top: 60px;
-          border-top: 2px solid #1a5f3d;
-          padding-top: 30px;
-          text-align: center;
-        }
-        .verification-section {
-          background: #f0f5f3;
-          padding: 20px;
-          border-radius: 8px;
-          margin-top: 30px;
-          font-size: 12px;
-          color: #666;
-        }
-        .cert-number {
-          font-family: monospace;
-          font-size: 14px;
-          background: #eee;
-          padding: 5px 10px;
-          border-radius: 4px;
-          display: inline-block;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="certificate">
-        <div class="header">
-          <div class="logo">🌍 CARBON TRUST STANDARD</div>
-          <div class="title">Certificate of Verification</div>
-          <div class="subtitle">Independent Third-Party Verification</div>
-        </div>
+  // Return SVG representation (can be converted to PDF by client or via service)
+  // In production, use pdfkit or puppeteer to generate actual PDF
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 800 1100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .bg { fill: white; }
+      .border { stroke: #1a5f3d; stroke-width: 8; fill: none; }
+      .line { stroke: #1a5f3d; stroke-width: 2; }
+      .logo { font-size: 32px; font-weight: bold; fill: #1a5f3d; text-anchor: middle; }
+      .title { font-size: 44px; font-weight: bold; fill: #1a5f3d; text-anchor: middle; }
+      .subtitle { font-size: 20px; fill: #666; text-anchor: middle; }
+      .label { font-size: 16px; font-weight: bold; fill: #333; }
+      .value { font-size: 18px; fill: #1a5f3d; font-weight: 500; }
+      .body { font-size: 14px; fill: #333; line-height: 20px; }
+      .footer { font-size: 11px; fill: #999; text-anchor: middle; }
+    </style>
+  </defs>
 
-        <div class="content">
-          <p>This certifies that</p>
-          <div class="field">
-            <div class="field-label">Organization:</div>
-            <div class="field-value"><strong>${data.organisationName}</strong></div>
-          </div>
+  <rect class="bg" width="800" height="1100"/>
+  <rect class="border" x="20" y="20" width="760" height="1060"/>
 
-          <p>has successfully completed the Carbon Trust Standard verification process and demonstrated commitment to accurate carbon accounting and transparent reporting.</p>
+  <!-- Header -->
+  <text class="logo" x="400" y="80">🌍 CARBON TRUST STANDARD</text>
+  <text class="title" x="400" y="140">Certificate of Verification</text>
+  <text class="subtitle" x="400" y="175">Independent Third-Party Verification</text>
+  <line class="line" x1="60" y1="200" x2="740" y2="200"/>
 
-          <div class="field">
-            <div class="field-label">Certificate Number:</div>
-            <div class="field-value"><span class="cert-number">${data.certificateNumber}</span></div>
-          </div>
+  <!-- Body -->
+  <text class="body" x="60" y="240">This certifies that</text>
+  <text class="label" x="60" y="280">Organization:</text>
+  <text class="value" x="60" y="310">${data.organisationName}</text>
 
-          <div class="field">
-            <div class="field-label">Verification Scope:</div>
-            <div class="field-value">${scopeLabels[data.scope]}</div>
-          </div>
+  <text class="body" x="60" y="360">has successfully completed the Carbon Trust Standard verification process and demonstrated</text>
+  <text class="body" x="60" y="380">commitment to accurate carbon accounting and transparent reporting.</text>
 
-          <div class="field">
-            <div class="field-label">Baseline Year:</div>
-            <div class="field-value">${data.baselineYear}</div>
-          </div>
+  <text class="label" x="60" y="430">Certificate Number:</text>
+  <text class="value" x="60" y="460" style="font-family: monospace;">${data.certificateNumber}</text>
 
-          <div class="field">
-            <div class="field-label">Verified Emissions (tCO2e):</div>
-            <div class="field-value">${data.verifiedEmissions.toLocaleString("en-GB", { maximumFractionDigits: 2 })}</div>
-          </div>
+  <text class="label" x="60" y="510">Verification Scope:</text>
+  <text class="value" x="60" y="540">${scopeLabels[data.scope]}</text>
 
-          <div class="field">
-            <div class="field-label">Issued Date:</div>
-            <div class="field-value">${issuedDateStr}</div>
-          </div>
+  <text class="label" x="60" y="590">Baseline Year:</text>
+  <text class="value" x="60" y="620">${data.baselineYear}</text>
 
-          <div class="field">
-            <div class="field-label">Expiration Date:</div>
-            <div class="field-value">${expiresDateStr}</div>
-          </div>
+  <text class="label" x="60" y="670">Verified Emissions (tCO2e):</text>
+  <text class="value" x="60" y="700">${data.verifiedEmissions.toLocaleString("en-GB")}</text>
 
-          <div class="field">
-            <div class="field-label">Auditor:</div>
-            <div class="field-value">${data.auditorName}</div>
-          </div>
-        </div>
+  <text class="label" x="60" y="750">Issued Date:</text>
+  <text class="value" x="60" y="780">${issuedDateStr}</text>
 
-        <div class="verification-section">
-          <strong>Verification Token:</strong><br />
-          <code>${verificationToken}</code><br />
-          <p style="margin: 10px 0 0 0;">
-            This certificate can be independently verified at:
-            <br />https://clearesg.local/verify/${verificationToken}
-          </p>
-        </div>
+  <text class="label" x="60" y="830">Expiration Date:</text>
+  <text class="value" x="60" y="860">${expiresDateStr}</text>
 
-        <div class="footer">
-          <p style="margin: 0; color: #999; font-size: 12px;">
-            This certificate is valid for 3 years from the date of issue.
-            <br />Renewal applications must be submitted 90 days before expiration.
-          </p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+  <text class="label" x="60" y="910">Auditor:</text>
+  <text class="value" x="60" y="940">${data.auditorName}</text>
 
-  // For now, return placeholder implementation
-  // In production, would use a proper PDF library or HTML-to-PDF service
-  const pdfBytes = Buffer.from(htmlContent, "utf-8");
+  <line class="line" x1="60" y1="980" x2="740" y2="980"/>
 
-  return {
-    pdfBytes,
-    certificateNumber: data.certificateNumber,
-    verificationToken,
-  };
+  <!-- Footer -->
+  <text class="footer" x="400" y="1020">This certificate is valid for 3 years from the date of issue.</text>
+  <text class="footer" x="400" y="1040">For independent verification visit: https://verify.clearesg.local</text>
+  <text class="footer" x="400" y="1070">Renewal applications must be submitted 90 days before expiration.</text>
+</svg>`;
+
+  return Buffer.from(svg, "utf-8");
 }
 
 export function generateCertificateNumber(orgId: string, timestamp: Date): string {
   const year = timestamp.getFullYear();
   const month = String(timestamp.getMonth() + 1).padStart(2, "0");
+  const day = String(timestamp.getDate()).padStart(2, "0");
   const random = crypto.randomBytes(4).toString("hex").substring(0, 4).toUpperCase();
-  return `CT-${year}${month}-${random}`;
+  return `CT-${year}${month}${day}-${random}`;
 }
 
 export function calculateExpirationDate(issuedDate: Date): Date {
@@ -222,9 +114,19 @@ export function calculateExpirationDate(issuedDate: Date): Date {
   return expiration;
 }
 
-export function isExpiringSoon(expiresDate: Date): boolean {
+export function isExpiringSoon(expiresDate: Date, daysThreshold: number = 90): boolean {
   const today = new Date();
-  const ninetyDaysFromNow = new Date(today);
-  ninetyDaysFromNow.setDate(ninetyDaysFromNow.getDate() + 90);
-  return expiresDate <= ninetyDaysFromNow;
+  const thresholdDate = new Date(today);
+  thresholdDate.setDate(thresholdDate.getDate() + daysThreshold);
+  return expiresDate <= thresholdDate;
+}
+
+export function isExpired(expiresDate: Date): boolean {
+  return new Date() > expiresDate;
+}
+
+export function daysUntilExpiry(expiresDate: Date): number {
+  const today = new Date();
+  const diff = expiresDate.getTime() - today.getTime();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
