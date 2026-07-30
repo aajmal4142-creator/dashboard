@@ -3,24 +3,10 @@ import { getPayload } from "payload";
 import { getCurrentContext } from "@/lib/auth";
 import { FindingsSeverityScorer, AssuranceScorer } from "@/lib/assurance";
 import type { DataGap, VerificationFinding } from "@/lib/assurance";
+import type { VerificationFinding as PayloadVerificationFinding } from "@/payload-types";
 import config from "@/payload.config";
 
-function toLibFindings(
-  docs: Array<{
-    id: string;
-    engagement: string | { id: string };
-    category: VerificationFinding["category"];
-    severity: VerificationFinding["severity"];
-    title: string;
-    description: string;
-    affectedMetric?: string | null;
-    impact?: VerificationFinding["impact"] | null;
-    recommendation?: string | null;
-    status: VerificationFinding["status"];
-    submittedBy: string | { id: string };
-    submittedAt: string;
-  }>,
-): VerificationFinding[] {
+function toLibFindings(docs: PayloadVerificationFinding[]): VerificationFinding[] {
   return docs.map((doc) => ({
     id: doc.id,
     engagement: typeof doc.engagement === "object" ? doc.engagement.id : doc.engagement,
