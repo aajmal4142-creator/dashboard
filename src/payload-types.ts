@@ -141,6 +141,7 @@ export interface Config {
     'email-data-collection-forms': EmailDataCollectionForm;
     'product-level-footprinting': ProductLevelFootprinting;
     'spend-based-emissions': SpendBasedEmission;
+    'regulatory-deadlines': RegulatoryDeadline;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -222,6 +223,7 @@ export interface Config {
     'email-data-collection-forms': EmailDataCollectionFormsSelect<false> | EmailDataCollectionFormsSelect<true>;
     'product-level-footprinting': ProductLevelFootprintingSelect<false> | ProductLevelFootprintingSelect<true>;
     'spend-based-emissions': SpendBasedEmissionsSelect<false> | SpendBasedEmissionsSelect<true>;
+    'regulatory-deadlines': RegulatoryDeadlinesSelect<false> | RegulatoryDeadlinesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -4991,6 +4993,98 @@ export interface SpendBasedEmission {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "regulatory-deadlines".
+ */
+export interface RegulatoryDeadline {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * e.g., CSRD Annual Report Filing, BRSR Submission
+   */
+  name: string;
+  /**
+   * Optional context or notes about this deadline
+   */
+  description?: string | null;
+  /**
+   * ISO country/region code or scope
+   */
+  jurisdiction: 'EU' | 'IN' | 'GB' | 'US' | 'GLOBAL' | 'OTHER';
+  framework: 'CSRD' | 'BRSR' | 'GRI' | 'SASB' | 'TCFD' | 'ISO14064' | 'OTHER';
+  /**
+   * Deadline date for this obligation
+   */
+  dueDate: string;
+  /**
+   * Current status of the deadline
+   */
+  status: 'not_started' | 'in_progress' | 'completed' | 'submitted' | 'verified' | 'overdue';
+  /**
+   * Auto-linked report when status changes to submitted
+   */
+  linkedReport?: (string | null) | Report;
+  /**
+   * Date when work on this deadline was completed
+   */
+  completedDate?: string | null;
+  /**
+   * Date when deadline was officially submitted
+   */
+  submittedDate?: string | null;
+  /**
+   * Date when deadline was verified/approved
+   */
+  verifiedDate?: string | null;
+  /**
+   * User who verified the deadline completion
+   */
+  verifiedBy?: (string | null) | User;
+  /**
+   * Calendar display color
+   */
+  colour?: ('green' | 'yellow' | 'red' | 'blue' | 'gray') | null;
+  /**
+   * Email notification history
+   */
+  notificationsSent?:
+    | {
+        /**
+         * e.g., 90, 60, 30, 14, 7
+         */
+        daysUntilDeadline?: number | null;
+        sentAt?: string | null;
+        retryCount?: number | null;
+        status?: ('sent' | 'failed' | 'bounced') | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * User has opted out of notifications for this deadline
+   */
+  unsubscribed?: boolean | null;
+  /**
+   * iCal RRULE for recurring deadlines, e.g., FREQ=YEARLY;BYMONTH=4;BYMONTHDAY=22
+   */
+  recurrenceRule?: string | null;
+  /**
+   * Custom tags for filtering
+   */
+  tags?:
+    | {
+        tag?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Who created this deadline
+   */
+  createdBy?: (string | null) | User;
+  confirmedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -5308,6 +5402,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'spend-based-emissions';
         value: string | SpendBasedEmission;
+      } | null)
+    | ({
+        relationTo: 'regulatory-deadlines';
+        value: string | RegulatoryDeadline;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -7506,6 +7604,46 @@ export interface SpendBasedEmissionsSelect<T extends boolean = true> {
         changes?: T;
         id?: T;
       };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "regulatory-deadlines_select".
+ */
+export interface RegulatoryDeadlinesSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  description?: T;
+  jurisdiction?: T;
+  framework?: T;
+  dueDate?: T;
+  status?: T;
+  linkedReport?: T;
+  completedDate?: T;
+  submittedDate?: T;
+  verifiedDate?: T;
+  verifiedBy?: T;
+  colour?: T;
+  notificationsSent?:
+    | T
+    | {
+        daysUntilDeadline?: T;
+        sentAt?: T;
+        retryCount?: T;
+        status?: T;
+        id?: T;
+      };
+  unsubscribed?: T;
+  recurrenceRule?: T;
+  tags?:
+    | T
+    | {
+        tag?: T;
+        id?: T;
+      };
+  createdBy?: T;
+  confirmedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

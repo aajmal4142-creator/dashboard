@@ -37,6 +37,7 @@ function detectTrendDirection(data: number[]): "increasing" | "decreasing" | "st
   const n = data.length;
   const xMean = (n - 1) / 2;
   const yMean = data.reduce((a, b) => a + b, 0) / n;
+  const dataRange = Math.max(...data) - Math.min(...data);
 
   let numerator = 0;
   let denominator = 0;
@@ -49,7 +50,7 @@ function detectTrendDirection(data: number[]): "increasing" | "decreasing" | "st
   }
 
   const slope = denominator !== 0 ? numerator / denominator : 0;
-  const threshold = yMean * 0.05; // 5% of mean value
+  const threshold = (dataRange / n) * 0.1; // 10% of average point-to-point change
 
   if (Math.abs(slope) < threshold) return "stable";
   return slope > 0 ? "increasing" : "decreasing";

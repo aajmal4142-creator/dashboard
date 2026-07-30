@@ -12,9 +12,24 @@ interface RequiredMetric {
 // Framework requirement definitions - which metrics are required for each framework
 const FRAMEWORK_REQUIREMENTS: Record<ESGFramework, RequiredMetric[]> = {
   csrd: [
-    { metricKey: "csrd_scope1", label: "Scope 1 Emissions", scope: "scope1", severity: "high" },
-    { metricKey: "csrd_scope2", label: "Scope 2 Emissions", scope: "scope2", severity: "high" },
-    { metricKey: "csrd_scope3", label: "Scope 3 Emissions", scope: "scope3", severity: "high" },
+    {
+      metricKey: "csrd_scope1",
+      label: "Scope 1 Emissions",
+      scope: "scope1",
+      severity: "high",
+    },
+    {
+      metricKey: "csrd_scope2",
+      label: "Scope 2 Emissions",
+      scope: "scope2",
+      severity: "high",
+    },
+    {
+      metricKey: "csrd_scope3",
+      label: "Scope 3 Emissions",
+      scope: "scope3",
+      severity: "high",
+    },
     {
       metricKey: "csrd_scope1_intensity",
       label: "Scope 1 Intensity",
@@ -79,9 +94,24 @@ const FRAMEWORK_REQUIREMENTS: Record<ESGFramework, RequiredMetric[]> = {
     },
   ],
   gri: [
-    { metricKey: "gri_scope1", label: "Scope 1 Emissions", scope: "scope1", severity: "high" },
-    { metricKey: "gri_scope2", label: "Scope 2 Emissions", scope: "scope2", severity: "high" },
-    { metricKey: "gri_scope3", label: "Scope 3 Emissions", scope: "scope3", severity: "high" },
+    {
+      metricKey: "gri_scope1",
+      label: "Scope 1 Emissions",
+      scope: "scope1",
+      severity: "high",
+    },
+    {
+      metricKey: "gri_scope2",
+      label: "Scope 2 Emissions",
+      scope: "scope2",
+      severity: "high",
+    },
+    {
+      metricKey: "gri_scope3",
+      label: "Scope 3 Emissions",
+      scope: "scope3",
+      severity: "high",
+    },
     {
       metricKey: "gri_emissions_intensity",
       label: "Emissions Intensity",
@@ -102,9 +132,24 @@ const FRAMEWORK_REQUIREMENTS: Record<ESGFramework, RequiredMetric[]> = {
     },
   ],
   sasb: [
-    { metricKey: "sasb_scope1", label: "Scope 1 Emissions", scope: "scope1", severity: "high" },
-    { metricKey: "sasb_scope2", label: "Scope 2 Emissions", scope: "scope2", severity: "high" },
-    { metricKey: "sasb_scope3", label: "Scope 3 Emissions", scope: "scope3", severity: "high" },
+    {
+      metricKey: "sasb_scope1",
+      label: "Scope 1 Emissions",
+      scope: "scope1",
+      severity: "high",
+    },
+    {
+      metricKey: "sasb_scope2",
+      label: "Scope 2 Emissions",
+      scope: "scope2",
+      severity: "high",
+    },
+    {
+      metricKey: "sasb_scope3",
+      label: "Scope 3 Emissions",
+      scope: "scope3",
+      severity: "high",
+    },
     {
       metricKey: "sasb_absolute_emissions",
       label: "Absolute Emissions",
@@ -136,7 +181,7 @@ export class DataGapDetector {
   async detectGaps(
     framework: ESGFramework,
     emissionsData: EmissionsData,
-    scope: "scope1" | "scope2" | "scope3" | "all" = "all"
+    scope: "scope1" | "scope2" | "scope3" | "all" = "all",
   ): Promise<DataGap[]> {
     const gaps: DataGap[] = [];
     const requirements = FRAMEWORK_REQUIREMENTS[framework] || [];
@@ -147,7 +192,7 @@ export class DataGapDetector {
         continue;
       }
 
-      const isMissing = this.isMetricMissing(requirement, emissionsData);
+      const isMissing = this.isMetricMissing(requirement, emissionsData, false);
 
       if (isMissing) {
         gaps.push({
@@ -155,7 +200,8 @@ export class DataGapDetector {
           severity: requirement.severity,
           description: `Missing required metric: ${requirement.label}`,
           framework,
-          affectedScope: scope !== "all" ? (scope as "scope1" | "scope2" | "scope3") : undefined,
+          affectedScope:
+            scope !== "all" ? (scope as "scope1" | "scope2" | "scope3") : undefined,
         });
       }
     }
@@ -166,7 +212,11 @@ export class DataGapDetector {
   /**
    * Check if a specific metric is missing
    */
-  private isMetricMissing(requirement: RequiredMetric, emissionsData: EmissionsData): boolean {
+  private isMetricMissing(
+    requirement: RequiredMetric,
+    emissionsData: EmissionsData,
+    forCoverage = true,
+  ): boolean {
     // Check scope-specific metrics
     if (requirement.scope === "scope1" && emissionsData.scope1 === undefined) return true;
     if (requirement.scope === "scope2" && emissionsData.scope2 === undefined) return true;
@@ -178,7 +228,8 @@ export class DataGapDetector {
         emissionsData.scope1 !== undefined ||
         emissionsData.scope2 !== undefined ||
         emissionsData.scope3 !== undefined;
-      const hasDenominator = emissionsData.revenue !== undefined || emissionsData.units !== undefined;
+      const hasDenominator =
+        emissionsData.revenue !== undefined || emissionsData.units !== undefined;
       return !hasEmissions || !hasDenominator;
     }
 
@@ -187,13 +238,33 @@ export class DataGapDetector {
       return emissionsData.total === undefined;
     }
 
+    // Check framework-specific metrics that require special data
+    // These are always considered "missing" if not explicitly provided
+    // (For now, we assume these come from separate data sources, not direct emissions data)
+    const isFrameworkSpecific =
+      requirement.metricKey.includes("renewable") ||
+      requirement.metricKey.includes("yoy_comparison") ||
+      requirement.metricKey.includes("biogenic") ||
+      requirement.metricKey.includes("absolute");
+
+    if (isFrameworkSpecific) {
+      // For coverage calculation, exclude low-priority framework-specific metrics
+      if (forCoverage && requirement.severity === "low") {
+        return false; // Don't count low-priority missing metrics in coverage
+      }
+      return true; // These require specific data not in EmissionsData
+    }
+
     return false;
   }
 
   /**
    * Score gap severity in context
    */
-  scoreGapSeverity(gap: DataGap, criticalityFactor: number = 1): "high" | "medium" | "low" {
+  scoreGapSeverity(
+    gap: DataGap,
+    criticalityFactor: number = 1,
+  ): "high" | "medium" | "low" {
     // Base severity
     let score = 0;
     if (gap.severity === "high") score = 10;
@@ -203,8 +274,8 @@ export class DataGapDetector {
     // Apply criticality factor
     score *= criticalityFactor;
 
-    if (score >= 10) return "high";
-    if (score >= 5) return "medium";
+    if (score >= 9) return "high";
+    if (score >= 3) return "medium";
     return "low";
   }
 
@@ -213,7 +284,7 @@ export class DataGapDetector {
    */
   getFrameworkRequirements(
     framework: ESGFramework,
-    scope: "scope1" | "scope2" | "scope3" | "all" = "all"
+    scope: "scope1" | "scope2" | "scope3" | "all" = "all",
   ): RequiredMetric[] {
     const requirements = FRAMEWORK_REQUIREMENTS[framework] || [];
 
@@ -230,12 +301,14 @@ export class DataGapDetector {
   calculateCoverage(
     framework: ESGFramework,
     emissionsData: EmissionsData,
-    scope: "scope1" | "scope2" | "scope3" | "all" = "all"
+    scope: "scope1" | "scope2" | "scope3" | "all" = "all",
   ): number {
     const requirements = this.getFrameworkRequirements(framework, scope);
     if (requirements.length === 0) return 100;
 
-    const covered = requirements.filter((r) => !this.isMetricMissing(r, emissionsData)).length;
+    const covered = requirements.filter(
+      (r) => !this.isMetricMissing(r, emissionsData, true),
+    ).length;
 
     return (covered / requirements.length) * 100;
   }

@@ -230,7 +230,7 @@ const GHG_TO_SASB_MAPPING: Record<string, string[]> = {
 
 export function getFrameworkMapping(
   checkpointId: string,
-  framework: FrameworkType
+  framework: FrameworkType,
 ): FrameworkMapping {
   let mappedRequirements: string[] = [];
   let alignment: "full" | "partial" | "indirect" = "indirect";
@@ -266,7 +266,7 @@ export function getFrameworkMapping(
 function generateMappingNotes(
   checkpointId: string,
   framework: FrameworkType,
-  mappedRequirements: string[]
+  mappedRequirements: string[],
 ): string {
   if (mappedRequirements.length === 0) {
     return `This GHG Protocol checkpoint has indirect relevance to ${framework.toUpperCase()}.`;
@@ -276,8 +276,11 @@ function generateMappingNotes(
 }
 
 export function calculateFrameworkComplianceStatus(
-  checkpointStatuses: Record<string, "not-started" | "in-progress" | "completed" | "verified" | "waived">,
-  framework: FrameworkType
+  checkpointStatuses: Record<
+    string,
+    "not-started" | "in-progress" | "completed" | "verified" | "waived"
+  >,
+  framework: FrameworkType,
 ): FrameworkComplianceStatus {
   let mapping: Record<string, string[]>;
 
@@ -296,9 +299,10 @@ export function calculateFrameworkComplianceStatus(
       break;
   }
 
+  let fullyMappedRequirements = 0;
+  let totalRequirements = 0;
   let fullyMappedCheckpoints = 0;
   let partiallyMappedCheckpoints = 0;
-  let totalRequirements = 0;
 
   Object.entries(checkpointStatuses).forEach(([checkpointId, status]) => {
     const frameworkRequirements = mapping[checkpointId] || [];
@@ -306,6 +310,7 @@ export function calculateFrameworkComplianceStatus(
       totalRequirements += frameworkRequirements.length;
       if (status === "verified" || status === "waived") {
         fullyMappedCheckpoints++;
+        fullyMappedRequirements += frameworkRequirements.length;
       } else if (status === "completed" || status === "in-progress") {
         partiallyMappedCheckpoints++;
       }
@@ -314,7 +319,7 @@ export function calculateFrameworkComplianceStatus(
 
   const alignmentPercentage =
     totalRequirements > 0
-      ? Math.round((fullyMappedCheckpoints / totalRequirements) * 100)
+      ? Math.round((fullyMappedRequirements / totalRequirements) * 100)
       : 0;
 
   return {
@@ -327,7 +332,7 @@ export function calculateFrameworkComplianceStatus(
 }
 
 export function generateFrameworkComplianceNarrative(
-  status: FrameworkComplianceStatus
+  status: FrameworkComplianceStatus,
 ): string {
   const frameworkNames: Record<FrameworkType, string> = {
     csrd: "Corporate Sustainability Reporting Directive (CSRD)",
@@ -339,24 +344,24 @@ export function generateFrameworkComplianceNarrative(
   const parts: string[] = [];
   parts.push(`### ${frameworkNames[status.framework]} Compliance\n`);
   parts.push(
-    `**Alignment Score:** ${status.alignmentPercentage}% (${status.fullyMappedCheckpoints}/${status.totalRequirements} requirements met)\n`
+    `**Alignment Score:** ${status.alignmentPercentage}% (${status.fullyMappedCheckpoints}/${status.totalRequirements} requirements met)\n`,
   );
 
   if (status.alignmentPercentage >= 90) {
     parts.push(
-      `The organization is **highly aligned** with ${status.framework.toUpperCase()} requirements.`
+      `The organization is **highly aligned** with ${status.framework.toUpperCase()} requirements.`,
     );
   } else if (status.alignmentPercentage >= 70) {
     parts.push(
-      `The organization has **strong alignment** with ${status.framework.toUpperCase()} requirements.`
+      `The organization has **strong alignment** with ${status.framework.toUpperCase()} requirements.`,
     );
   } else if (status.alignmentPercentage >= 50) {
     parts.push(
-      `The organization has **moderate alignment** with ${status.framework.toUpperCase()} requirements.`
+      `The organization has **moderate alignment** with ${status.framework.toUpperCase()} requirements.`,
     );
   } else {
     parts.push(
-      `The organization should strengthen alignment with ${status.framework.toUpperCase()} requirements.`
+      `The organization should strengthen alignment with ${status.framework.toUpperCase()} requirements.`,
     );
   }
 

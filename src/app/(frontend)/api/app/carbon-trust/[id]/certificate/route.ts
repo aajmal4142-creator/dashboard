@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { getPayload } from "payload";
 import { getCurrentContext } from "@/lib/auth";
 import config from "@/payload.config";
@@ -8,7 +9,10 @@ import {
   calculateExpirationDate,
 } from "@/lib/carbon-trust/certificateGenerator";
 
-export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
   const auth = await getCurrentContext();
   const { id } = await params;
 
@@ -83,9 +87,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const issuedDate = new Date();
     const expiresDate = calculateExpirationDate(issuedDate);
     const certificateNumber = generateCertificateNumber(auth.activeOrg.id, issuedDate);
+    const verificationToken = randomUUID();
 
-    const { verificationToken } = await generateCertificatePDF({
-      certificationId: id,
+    await generateCertificatePDF({
       organisationName: orgName,
       certificateNumber,
       issuedDate,

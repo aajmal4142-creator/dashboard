@@ -79,6 +79,7 @@ import { DunningManagement } from "./collections/DunningManagement";
 import { EmailDataCollectionForms } from "./collections/EmailDataCollectionForms";
 import { ProductLevelFootprinting } from "./collections/ProductLevelFootprinting";
 import { SpendBasedEmissions } from "./collections/SpendBasedEmissions";
+import { RegulatoryDeadlines } from "./collections/RegulatoryDeadlines";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -177,6 +178,7 @@ export default buildConfig({
     EmailDataCollectionForms,
     ProductLevelFootprinting,
     SpendBasedEmissions,
+    RegulatoryDeadlines,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,

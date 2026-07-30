@@ -59,9 +59,9 @@ export function checkSBTiAlignment(
 ): DecarbonizationPathway["scienceBasedTargetAlignment"] {
   const yearsToTarget = targetYear - baselineYear;
 
-  // Calculate required annual reduction rate
+  // Calculate required compound annual reduction rate
   const requiredAnnualReduction =
-    (1 - targetEmissions / baselineEmissions) ** (1 / yearsToTarget) - 1;
+    1 - (targetEmissions / baselineEmissions) ** (1 / yearsToTarget);
 
   const alignment1_5C =
     requiredAnnualReduction >= SBTi_TARGETS.warming1_5C.annual_reduction;

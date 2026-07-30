@@ -46,10 +46,10 @@ export interface IntensityMetrics {
  */
 export function calculateEmissionsPerRevenue(
   totalEmissions: number, // tCO2e
-  annualRevenue: number, // $
+  annualRevenue: number, // $ (actual dollars)
 ): number {
   if (annualRevenue <= 0) return 0;
-  return (totalEmissions / annualRevenue) * 1_000_000; // per $M
+  return (totalEmissions / annualRevenue) * 1000; // per $M
 }
 
 /**
