@@ -52,5 +52,21 @@ export {
   recalculateRiskScoresForOrganisation,
   hasMovedToHighRisk,
   getRiskScoreWithExplanation,
+  upsertRiskMitigation,
+  buildRiskFactorInput,
+  supplierNeedsRiskRecalc,
+  calculateSupplierRisk,
+  badgeTierOf,
+  ENV_WEIGHT,
+  SOCIAL_WEIGHT,
+  GOV_WEIGHT,
   type RiskScoreBreakdown,
+  type RiskMitigation,
+  type RiskTier,
 } from "./riskScoringEngine";
+export {
+  computeOverallRisk,
+  riskTierOf,
+  movedToHighRisk,
+  isHighRiskTier,
+} from "./riskFormula";

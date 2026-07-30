@@ -27,6 +27,13 @@ const VALID_CATEGORIES = [
   "manufacturing",
   "travel",
   "commuting",
+  "raw_materials",
+  "packaging",
+  "fuel_energy",
+  "services",
+  "transportation",
+  "facilities",
+  "it",
 ];
 
 const VALID_UNITS = [
@@ -37,6 +44,9 @@ const VALID_UNITS = [
   "kg_co2e_mile",
   "kg_co2e_km",
   "kg_co2e_usd",
+  "kg_co2e_eur",
+  "kg_co2e_gbp",
+  "kg_co2e_inr",
   "kg_co2e_employee",
 ];
 

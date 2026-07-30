@@ -3,8 +3,9 @@ import { getPayload } from "payload";
 
 import { DataWorkspace, type DataRowState } from "@/components/data/DataWorkspace";
 import { getCurrentContext } from "@/lib/auth";
-import type { FactorRecord, Quality } from "@/lib/calc";
+import type { Quality } from "@/lib/calc";
 import { DATA_METRICS } from "@/lib/data";
+import { loadOrgEmissionFactors } from "@/lib/factors";
 import {
   applicableFrameworks,
   type DatapointProvenance,
@@ -82,22 +83,16 @@ export default async function DataPage() {
     voluntary,
   });
 
-  const factorsResult = await payload.find({
-    collection: "emission-factors",
-    limit: 500,
+  const orgDoc = await payload.findByID({
+    collection: "organisations",
+    id: ctx.activeOrg.id,
+    depth: 0,
     overrideAccess: true,
   });
-  const factors: FactorRecord[] = factorsResult.docs.map((f) => ({
-    id: String(f.id),
-    key: f.key,
-    value: f.value,
-    unit: f.unit,
-    source: f.source,
-    publicationYear: f.publicationYear,
-    region: f.region,
-    validFrom: f.validFrom ? String(f.validFrom) : undefined,
-    validUntil: f.validUntil ? String(f.validUntil) : undefined,
-  }));
+  const { factors, standard: emissionsStandard } = await loadOrgEmissionFactors(
+    payload,
+    orgDoc,
+  );
 
   const year = period
     ? new Date(String(period.endDate)).getFullYear()
@@ -112,6 +107,7 @@ export default async function DataPage() {
       year={year}
       canWrite={ctx.role !== "viewer" && ctx.role !== null}
       applicableFrameworks={frameworksApplicable}
+      emissionsStandard={emissionsStandard}
     />
   );
 }

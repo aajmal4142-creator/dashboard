@@ -6,6 +6,7 @@ import { RunwayEmissions } from "./RunwayEmissions";
 import { RunwayFiling } from "./RunwayFiling";
 import { RunwayFooter } from "./RunwayFooter";
 import { RunwayMainHeader, RunwayMetricsGrid } from "./RunwayMetricsGrid";
+import { RunwayPeerCard } from "./RunwayPeerCard";
 import { RunwayReadinessCard } from "./RunwayReadinessRail";
 import type { RunwayViewProps } from "./types";
 
@@ -49,7 +50,7 @@ export function RunwayView(props: RunwayViewProps) {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <div className="mt-6 grid gap-4 lg:grid-cols-3">
             <div className="rounded-[6px] border border-rule bg-surface-1 p-4 md:p-5">
               <RunwayEmissions
                 totalEmissions={props.totalEmissions}
@@ -84,6 +85,7 @@ export function RunwayView(props: RunwayViewProps) {
                 missingRevenue={props.missingRevenue}
               />
             </div>
+            <RunwayPeerCard peer={props.peerBenchmark} />
           </div>
 
           <RunwayAnomalies anomalies={props.anomalies} />

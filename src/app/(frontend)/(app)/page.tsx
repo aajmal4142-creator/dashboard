@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { getPayload } from "payload";
 
 import { getCurrentContext } from "@/lib/auth";
-import { calculate, type FactorRecord } from "@/lib/calc";
+import { calculate } from "@/lib/calc";
+import { loadOrgEmissionFactors } from "@/lib/factors";
 import { detectAnomalies } from "@/lib/governance/anomalies";
 import { calmStatus, readinessBreakdown } from "@/lib/governance/calmStatus";
 import { rankGaps } from "@/lib/governance/gaps";
@@ -13,7 +14,8 @@ import config from "@/payload.config";
 
 import { daysUntil, isPastDue } from "./runway/format";
 import { RunwayView } from "./runway/RunwayView";
-
+import { buildComparison } from "@/lib/benchmarks";
+import { mayPublishBenchmarkCohorts } from "@/lib/launch/gates";
 export default async function RunwayPage() {
   const ctx = await getCurrentContext();
   if (!ctx.activeOrg) {
@@ -217,22 +219,13 @@ export default async function RunwayPage() {
     ? new Date(String(period.endDate)).getFullYear()
     : new Date().getFullYear();
   const region = ctx.activeOrg.country || "GB";
-  const factorsResult = await payload.find({
-    collection: "emission-factors",
-    limit: 500,
+  const org = await payload.findByID({
+    collection: "organisations",
+    id: ctx.activeOrg.id,
+    depth: 0,
     overrideAccess: true,
   });
-  const factors: FactorRecord[] = factorsResult.docs.map((f) => ({
-    id: String(f.id),
-    key: f.key,
-    value: f.value,
-    unit: f.unit,
-    source: f.source,
-    publicationYear: f.publicationYear,
-    region: f.region,
-    validFrom: f.validFrom ? String(f.validFrom) : undefined,
-    validUntil: f.validUntil ? String(f.validUntil) : undefined,
-  }));
+  const { factors } = await loadOrgEmissionFactors(payload, org);
 
   let overall = 0;
   let scope1 = 0;
@@ -254,6 +247,60 @@ export default async function RunwayPage() {
   const s1Pct = totalEmissions > 0 ? (scope1 / totalEmissions) * 100 : 0;
   const s2Pct = totalEmissions > 0 ? (scope2 / totalEmissions) * 100 : 0;
   const s3Pct = totalEmissions > 0 ? (scope3 / totalEmissions) * 100 : 0;
+
+  let peerBenchmark: {
+    available: boolean;
+    message?: string;
+    you: number | null;
+    median: number | null;
+    best: number | null;
+    cohortSize: number | null;
+    percentileRank: number | null;
+  } = {
+    available: false,
+    message: mayPublishBenchmarkCohorts()
+      ? undefined
+      : "Sector cohorts are not published yet (benchmark consent unsigned).",
+    you: null,
+    median: null,
+    best: null,
+    cohortSize: null,
+    percentileRank: null,
+  };
+
+  if (mayPublishBenchmarkCohorts()) {
+    const comparison = await buildComparison(
+      payload,
+      {
+        id: ctx.activeOrg.id,
+        sector: ctx.activeOrg.sector,
+        revenueBand: ctx.activeOrg.revenueBand,
+        country: ctx.activeOrg.country,
+        benchmarkOptOut: ctx.activeOrg.benchmarkOptOut,
+      },
+      "electricity_kwh",
+    );
+    if (comparison.available) {
+      peerBenchmark = {
+        available: true,
+        you: comparison.comparison.you,
+        median: comparison.comparison.median,
+        best: comparison.comparison.best,
+        cohortSize: comparison.peerGroup.cohortSize,
+        percentileRank: comparison.percentileRank,
+      };
+    } else {
+      peerBenchmark = {
+        available: false,
+        message: comparison.message,
+        you: null,
+        median: null,
+        best: null,
+        cohortSize: null,
+        percentileRank: null,
+      };
+    }
+  }
 
   return (
     <RunwayView
@@ -313,6 +360,7 @@ export default async function RunwayPage() {
       missingCountry={!orgDoc.country}
       missingHeadcount={orgDoc.employeeCount == null}
       missingRevenue={!orgDoc.revenueBand}
+      peerBenchmark={peerBenchmark}
     />
   );
 }

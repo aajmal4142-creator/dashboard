@@ -61,12 +61,17 @@ export class SyncUtils {
     result: SyncResult,
   ): Promise<void> {
     try {
+      const allowed = new Set(["xero", "quickbooks", "csv", "webhook"]);
+      const normalizedProvider = allowed.has(provider)
+        ? (provider as "xero" | "quickbooks" | "csv" | "webhook")
+        : "webhook";
+
       await payload.create({
         collection: "integration-sync-logs",
         data: {
           organisationId,
           integrationId,
-          provider: provider as "xero" | "quickbooks" | "salesforce" | "netsuite",
+          provider: normalizedProvider,
           status: result.status,
           recordsProcessed: result.recordsProcessed,
           recordsFailed: result.recordsFailed,

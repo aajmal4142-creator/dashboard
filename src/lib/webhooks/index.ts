@@ -1,8 +1,4 @@
-export {
-  verifySignature,
-  generateSignature,
-  generateSecret,
-} from "./webhookValidator";
+export { verifySignature, generateSignature, generateSecret } from "./webhookValidator";
 
 export {
   registerWebhook,
@@ -25,13 +21,26 @@ export {
 export {
   ingestDatapoint,
   batchIngestDatapoints,
+  processIngest,
   type IngestDatapointInput,
   type IngestResult,
   type BatchIngestResult,
+  type IngestBatchResponse,
+  type IngestError,
+  type ProcessIngestOptions,
 } from "./ingestDatapoint";
 
 export {
-  ApiError,
-  ErrorCodes,
-  createErrorResponse,
-} from "./errors";
+  deduplicateIngestRecords,
+  ingestKeyString,
+  type IngestDedupRecord,
+  type DeduplicationReport,
+} from "./ingestDedupe";
+
+export {
+  normalizeIngestPayload,
+  type NormalizedIngestRecord,
+  type NormalizeResult,
+} from "./ingestNormalize";
+
+export { ApiError, ErrorCodes, createErrorResponse } from "./errors";

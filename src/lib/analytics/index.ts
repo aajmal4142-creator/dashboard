@@ -13,9 +13,11 @@ export type { PeerBenchmark, BenchmarkComparison } from "./benchmarking";
 export {
   calculateLeverImpact,
   calculateScenarioImpact,
+  calculateScopeReductionImpact,
   runMonteCarloSimulation,
   performSensitivityAnalysis,
   calculatePaybackSchedule,
+  compareScenarioTrajectories,
 } from "./scenarioCalculator";
 
 export type {
@@ -24,7 +26,16 @@ export type {
   ScenarioResults,
   MonteCarloSimulation,
   SensitivityResult,
+  ScopeBaseline,
+  ScopeEmissions,
+  ScenarioScope,
+  ScenarioCategory,
+  TrajectoryPoint,
+  ReductionScenarioInput,
+  ScenarioCompareRow,
 } from "./scenarioCalculator";
+
+export { resolveOrgBaselineByScope } from "./resolveOrgBaseline";
 
 export {
   checkSBTiAlignment,

@@ -32,87 +32,91 @@ export default function IntegrationsPage() {
   }, []);
 
   if (loading) {
-    return <div className="p-8">Loading integrations...</div>;
+    return <div className="p-8 text-ink-muted">Loading integrations...</div>;
   }
 
   return (
     <div className="space-y-8 p-8">
       <div>
-        <h1 className="text-3xl font-bold">Data Integrations</h1>
-        <p className="mt-2 text-gray-600">
+        <h1 className="font-display text-3xl font-semibold text-ink">
+          Data Integrations
+        </h1>
+        <p className="mt-2 text-ink-muted">
           Upload data via CSV, webhooks, or the manual data portal
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {/* CSV Import Card */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
+        <div className="panel p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold">CSV Import</h2>
-              <p className="mt-1 text-sm text-gray-600">
+              <h2 className="text-xl font-semibold text-ink">CSV Import</h2>
+              <p className="mt-1 text-sm text-ink-muted">
                 Upload emissions data via CSV files
               </p>
             </div>
-            <div className="text-3xl">📁</div>
           </div>
 
           <div className="mt-4 space-y-2">
-            <p className="text-sm text-gray-600">Supports scope 1, 2, and 3 emissions</p>
+            <p className="text-sm text-ink-muted">Supports scope 1, 2, and 3 emissions</p>
           </div>
 
-          <button className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+          <Link
+            href="/data"
+            className="mt-4 inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover"
+          >
             Upload CSV
-          </button>
+          </Link>
         </div>
 
-        {/* Webhooks Card */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
+        <div className="panel p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Webhooks</h2>
-              <p className="mt-1 text-sm text-gray-600">
+              <h2 className="text-xl font-semibold text-ink">Webhooks</h2>
+              <p className="mt-1 text-sm text-ink-muted">
                 Real-time data updates via webhooks
               </p>
             </div>
-            <div className="text-3xl">🔄</div>
           </div>
 
           <div className="mt-4 space-y-2">
-            <p className="text-sm text-gray-600">Set up custom webhook endpoints</p>
+            <p className="text-sm text-ink-muted">Set up custom webhook endpoints</p>
           </div>
 
-          <button className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+          <Link
+            href="/integrations/webhooks"
+            className="mt-4 inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover"
+          >
             Configure
-          </button>
+          </Link>
         </div>
 
-        {/* Manual Portal Card */}
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
+        <div className="panel p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Manual Portal</h2>
-              <p className="mt-1 text-sm text-gray-600">
+              <h2 className="text-xl font-semibold text-ink">Manual Portal</h2>
+              <p className="mt-1 text-sm text-ink-muted">
                 Enter data directly in the dashboard
               </p>
             </div>
-            <div className="text-3xl">✋</div>
           </div>
 
           <div className="mt-4 space-y-2">
-            <p className="text-sm text-gray-600">Forms for manual data entry</p>
+            <p className="text-sm text-ink-muted">Forms for manual data entry</p>
           </div>
 
-          <button className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+          <Link
+            href="/data"
+            className="mt-4 inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover"
+          >
             Enter Data
-          </button>
+          </Link>
         </div>
       </div>
 
-      {/* Accounting Integrations Section */}
-      <div className="rounded-lg border bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold">Accounting Software</h2>
-        <p className="mt-2 text-sm text-gray-600 mb-4">
+      <div className="panel p-6">
+        <h2 className="text-lg font-semibold text-ink">Accounting Software</h2>
+        <p className="mt-2 mb-4 text-sm text-ink-muted">
           Connect Xero or QuickBooks for automated spend-based emissions calculations
         </p>
 
@@ -121,43 +125,72 @@ export default function IntegrationsPage() {
             {status.accounting.map((acc) => (
               <div
                 key={acc.id}
-                className="flex items-center justify-between border-t pt-4"
+                className="flex items-center justify-between border-t border-rule pt-4"
               >
                 <div>
-                  <p className="font-semibold capitalize">{acc.provider}</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="font-semibold capitalize text-ink">{acc.provider}</p>
+                  <p className="text-sm text-ink-muted">
                     Status:{" "}
                     <span
                       className={
-                        acc.status === "connected" ? "text-green-600" : "text-yellow-600"
+                        acc.status === "connected" ? "text-signal" : "text-amber"
                       }
                     >
                       {acc.status}
                     </span>
                   </p>
                 </div>
-                <button className="rounded bg-gray-200 px-4 py-2 text-sm font-medium hover:bg-gray-300">
+                <Link
+                  href="/integrations/accounting"
+                  className="rounded-md bg-surface-2 px-4 py-2 text-sm font-medium text-ink hover:bg-accent-quiet"
+                >
                   Manage
-                </button>
+                </Link>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-500">No accounting integrations configured</p>
+          <p className="text-sm text-ink-muted">No accounting integrations configured</p>
         )}
 
         <Link
           href="/integrations/accounting"
-          className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="mt-4 inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover"
         >
           Add Connection
         </Link>
       </div>
 
-      {/* Sync Logs Section */}
-      <div className="rounded-lg border bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold">Recent Sync Activity</h2>
-        <p className="mt-2 text-sm text-gray-600">
+      <div className="panel p-6">
+        <h2 className="text-lg font-semibold text-ink">IoT / meters</h2>
+        <p className="mt-2 mb-4 text-sm text-ink-muted">
+          Real-time meter ingest with device API keys, online status, and 24-hour charts
+        </p>
+        <Link
+          href="/iot"
+          className="mt-2 inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover"
+        >
+          Open IoT dashboard
+        </Link>
+      </div>
+
+      <div className="panel p-6">
+        <h2 className="text-lg font-semibold text-ink">Database connectors</h2>
+        <p className="mt-2 mb-4 text-sm text-ink-muted">
+          PostgreSQL, MySQL, and BigQuery with encrypted credentials, field mapping, and
+          scheduled sync into datapoints
+        </p>
+        <Link
+          href="/database"
+          className="mt-2 inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover"
+        >
+          Open database connectors
+        </Link>
+      </div>
+
+      <div className="panel p-6">
+        <h2 className="text-lg font-semibold text-ink">Recent Sync Activity</h2>
+        <p className="mt-2 text-sm text-ink-muted">
           Integration sync logs are available in the admin panel under Integration Sync
           Logs
         </p>

@@ -10,7 +10,7 @@ export const EmissionFactors: CollectionConfig = {
   slug: "emission-factors",
   admin: {
     useAsTitle: "label",
-    defaultColumns: ["key", "region", "publicationYear", "source", "licence"],
+    defaultColumns: ["key", "region", "publicationYear", "standard", "source", "licence"],
   },
   access: {
     read: authenticated,
@@ -49,9 +49,30 @@ export const EmissionFactors: CollectionConfig = {
         { label: "IEA", value: "IEA" },
         { label: "CEA India", value: "CEA_India" },
         { label: "GHG Protocol", value: "GHGProtocol" },
+        { label: "IPCC", value: "IPCC" },
         { label: "EEA", value: "EEA" },
         { label: "National inventory", value: "NationalInventory" },
       ],
+      admin: {
+        description:
+          "Publisher / citation for this factor row (not the org methodology selector).",
+      },
+    },
+    {
+      name: "standard",
+      type: "select",
+      required: true,
+      index: true,
+      defaultValue: "GHGProtocol2004",
+      options: [
+        { label: "DEFRA", value: "DEFRA" },
+        { label: "IPCC", value: "IPCC" },
+        { label: "GHG Protocol 2004", value: "GHGProtocol2004" },
+      ],
+      admin: {
+        description:
+          "Methodology family used when an organisation selects its emissions standard. Distinct from source.",
+      },
     },
     { name: "sourceUrl", type: "text", required: true },
     { name: "publicationYear", type: "number", required: true },
@@ -61,6 +82,15 @@ export const EmissionFactors: CollectionConfig = {
       required: true,
       index: true,
       admin: { description: "ISO 3166-1 alpha-2 or GLOBAL" },
+    },
+    {
+      name: "uncertaintyPct",
+      type: "number",
+      min: 0,
+      max: 100,
+      admin: {
+        description: "Relative uncertainty band (±%), when the source publishes one.",
+      },
     },
     { name: "validFrom", type: "date", required: true },
     { name: "validUntil", type: "date" },

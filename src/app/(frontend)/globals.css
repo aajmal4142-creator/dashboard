@@ -225,6 +225,19 @@
     height: 100%;
   }
 
+  /* Brief smooth swap on ThemeToggle / OrgDefaultTheme — reduced-motion zeroes this */
+  html.theme-animating,
+  html.theme-animating body,
+  html.theme-animating
+    body
+    *:not(svg):not(path):not(circle):not(line):not(polyline):not(rect) {
+    transition:
+      background-color 200ms ease,
+      color 200ms ease,
+      border-color 200ms ease,
+      box-shadow 200ms ease;
+  }
+
   body {
     min-height: 100%;
     background-color: var(--canvas);

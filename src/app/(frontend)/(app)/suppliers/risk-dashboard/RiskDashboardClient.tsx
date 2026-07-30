@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowUpDown,
-  AlertTriangle,
-  CheckCircle2,
-  AlertCircle,
-  Download,
-} from "lucide-react";
+import { AlertTriangle, ArrowUpDown, Download } from "lucide-react";
+
+import { PageCard, PageFrame } from "@/components/shell/PageFrame";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Metric } from "@/components/ui/metric";
+
+type RiskBadge = "low" | "medium" | "high";
+type RiskTier = "low" | "medium" | "high" | "critical" | "unknown";
 
 interface Supplier {
   id: string;
@@ -16,10 +18,15 @@ interface Supplier {
   category: string;
   annualSpend: number | null;
   riskScore: number | null;
-  riskTier: "low" | "medium" | "high" | "critical" | "unknown";
+  riskTier: RiskTier;
+  badge: RiskBadge | null;
   dataCompleteness: number;
   unGcSignatory: boolean;
   lastCalculatedAt: string | null;
+  highRiskAlert?: boolean;
+  environmentalScore?: number | null;
+  socialScore?: number | null;
+  governanceScore?: number | null;
 }
 
 interface Stats {
@@ -31,6 +38,7 @@ interface Stats {
     high: number;
     critical: number;
   };
+  highAlertCount?: number;
   dataQuality: {
     complete: number;
     partial: number;
@@ -41,33 +49,26 @@ interface Stats {
 type SortBy = "risk_score" | "spend" | "completeness" | "name";
 type SortOrder = "asc" | "desc";
 
-function getRiskColor(tier: "low" | "medium" | "high" | "critical" | "unknown"): string {
-  switch (tier) {
-    case "low":
-      return "bg-green-100 text-green-800";
-    case "medium":
-      return "bg-yellow-100 text-yellow-800";
-    case "high":
-      return "bg-orange-100 text-orange-800";
-    case "critical":
-      return "bg-red-100 text-red-800";
-    default:
-      return "bg-gray-100 text-gray-800";
-  }
+function badgeVariant(badge: RiskBadge | null): "signal" | "amber" | "rust" | "default" {
+  if (badge === "low") return "signal";
+  if (badge === "medium") return "amber";
+  if (badge === "high") return "rust";
+  return "default";
 }
 
-function getRiskIcon(tier: "low" | "medium" | "high" | "critical" | "unknown") {
-  switch (tier) {
-    case "low":
-      return <CheckCircle2 className="w-4 h-4" />;
-    case "medium":
-      return <AlertCircle className="w-4 h-4" />;
-    case "high":
-    case "critical":
-      return <AlertTriangle className="w-4 h-4" />;
-    default:
-      return null;
-  }
+function displayBadge(supplier: Supplier): RiskBadge | null {
+  if (supplier.badge) return supplier.badge;
+  if (supplier.riskTier === "low") return "low";
+  if (supplier.riskTier === "medium") return "medium";
+  if (supplier.riskTier === "high" || supplier.riskTier === "critical") return "high";
+  return null;
+}
+
+function badgeLabel(badge: RiskBadge | null): string {
+  if (!badge) return "Not scored";
+  if (badge === "low") return "Low";
+  if (badge === "medium") return "Med";
+  return "High";
 }
 
 export function RiskDashboardClient({
@@ -79,23 +80,32 @@ export function RiskDashboardClient({
 }) {
   const [sortBy, setSortBy] = useState<SortBy>("risk_score");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
-  const [filterTier, setFilterTier] = useState<string>("");
-  const [filterCategory, setFilterCategory] = useState<string>("");
+  const [filterTier, setFilterTier] = useState("");
+  const [filterCategory, setFilterCategory] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+
+  const highAlertCount =
+    stats.highAlertCount ??
+    initialSuppliers.filter(
+      (s) => s.highRiskAlert || s.riskTier === "high" || s.riskTier === "critical",
+    ).length;
 
   const filtered = useMemo(() => {
     let result = [...initialSuppliers];
 
     if (searchTerm) {
+      const q = searchTerm.toLowerCase();
       result = result.filter(
-        (s) =>
-          s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          s.id.includes(searchTerm),
+        (s) => s.name.toLowerCase().includes(q) || s.id.includes(searchTerm),
       );
     }
 
-    if (filterTier) {
-      result = result.filter((s) => s.riskTier === filterTier);
+    if (filterTier === "high") {
+      result = result.filter(
+        (s) => s.riskTier === "high" || s.riskTier === "critical" || s.badge === "high",
+      );
+    } else if (filterTier) {
+      result = result.filter((s) => s.riskTier === filterTier || s.badge === filterTier);
     }
 
     if (filterCategory) {
@@ -103,7 +113,8 @@ export function RiskDashboardClient({
     }
 
     result.sort((a, b) => {
-      let aVal, bVal;
+      let aVal: string | number;
+      let bVal: string | number;
       switch (sortBy) {
         case "risk_score":
           aVal = a.riskScore ?? -1;
@@ -133,22 +144,25 @@ export function RiskDashboardClient({
     return result;
   }, [initialSuppliers, sortBy, sortOrder, filterTier, filterCategory, searchTerm]);
 
-  const handleSort = (column: SortBy) => {
+  function handleSort(column: SortBy) {
     if (sortBy === column) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
       setSortBy(column);
       setSortOrder("desc");
     }
-  };
+  }
 
-  const handleExportCSV = () => {
+  function handleExportCSV() {
     const headers = [
       "Supplier Name",
       "Category",
       "Annual Spend",
       "Risk Score",
-      "Risk Tier",
+      "Badge",
+      "Environmental",
+      "Social",
+      "Governance",
       "Data Completeness %",
       "UN GC Signatory",
       "Last Calculated",
@@ -158,7 +172,10 @@ export function RiskDashboardClient({
       s.category,
       s.annualSpend ?? "",
       s.riskScore ?? "",
-      s.riskTier,
+      displayBadge(s) ?? "",
+      s.environmentalScore ?? "",
+      s.socialScore ?? "",
+      s.governanceScore ?? "",
       s.dataCompleteness,
       s.unGcSignatory ? "Yes" : "No",
       s.lastCalculatedAt ?? "",
@@ -176,244 +193,230 @@ export function RiskDashboardClient({
     a.download = `risk-scores-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
-  };
+  }
 
   const categories = Array.from(new Set(initialSuppliers.map((s) => s.category)));
 
   return (
-    <div className="space-y-8">
-      {/* Header with KPIs */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Risk Dashboard</h1>
-        <p className="text-gray-500 mt-2">
-          Monitor supplier ESG risk scores and data completeness
-        </p>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-blue-500">
-          <p className="text-gray-500 text-sm">Total Suppliers</p>
-          <p className="text-2xl font-bold text-gray-900">{stats.totalSuppliers}</p>
+    <PageFrame
+      eyebrow="Supply chain"
+      title="Supplier risk"
+      help="ESG risk score = Environmental 40% + Social 30% + Governance 30%. Higher is worse."
+      actions={
+        <Button type="button" variant="outline" onClick={handleExportCSV}>
+          <Download className="size-4" />
+          Export CSV
+        </Button>
+      }
+    >
+      {highAlertCount > 0 ? (
+        <div
+          role="status"
+          className="mb-4 flex flex-wrap items-center gap-2 rounded-[6px] border border-rust/40 bg-rust/10 px-3 py-2 text-[13px] text-rust"
+        >
+          <AlertTriangle className="size-4 shrink-0" />
+          <span>
+            High-risk alert:{" "}
+            <span className="font-data font-semibold">{highAlertCount}</span> supplier
+            {highAlertCount === 1 ? "" : "s"} need mitigation.
+          </span>
+          <button
+            type="button"
+            className="ml-auto text-[12px] font-semibold underline"
+            onClick={() => setFilterTier("high")}
+          >
+            Show High
+          </button>
         </div>
+      ) : null}
 
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-purple-500">
-          <p className="text-gray-500 text-sm">Avg Risk Score</p>
-          <p className="text-2xl font-bold text-gray-900">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <PageCard>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+            Total
+          </p>
+          <Metric value={stats.totalSuppliers} className="mt-1" />
+        </PageCard>
+        <PageCard>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+            Avg score
+          </p>
+          <p className="mt-1 font-data text-[28px] font-bold text-ink">
             {stats.avgRiskScore !== null ? stats.avgRiskScore : "—"}
           </p>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
-          <p className="text-gray-500 text-sm">Low Risk</p>
-          <p className="text-2xl font-bold text-green-600">{stats.riskTierCounts.low}</p>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500">
-          <p className="text-gray-500 text-sm">Medium Risk</p>
-          <p className="text-2xl font-bold text-yellow-600">
+        </PageCard>
+        <PageCard>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+            Low
+          </p>
+          <p className="mt-1 font-data text-[28px] font-bold text-signal">
+            {stats.riskTierCounts.low}
+          </p>
+        </PageCard>
+        <PageCard>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+            Med
+          </p>
+          <p className="mt-1 font-data text-[28px] font-bold text-amber">
             {stats.riskTierCounts.medium}
           </p>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow border-l-4 border-red-500">
-          <p className="text-gray-500 text-sm">High/Critical Risk</p>
-          <p className="text-2xl font-bold text-red-600">
+        </PageCard>
+        <PageCard>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+            High
+          </p>
+          <p className="mt-1 font-data text-[28px] font-bold text-rust">
             {stats.riskTierCounts.high + stats.riskTierCounts.critical}
           </p>
-        </div>
+        </PageCard>
       </div>
 
-      {/* Filters & Controls */}
-      <div className="bg-white p-4 rounded-lg shadow space-y-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Search by Name or ID
-            </label>
+      <PageCard className="mb-4 space-y-3">
+        <div className="grid gap-3 md:grid-cols-3">
+          <label className="block text-[12px] text-ink-muted">
+            Search
             <input
               type="text"
-              placeholder="Search suppliers..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Name or id"
+              className="mt-1 w-full rounded-[4px] border border-rule bg-surface-1 px-3 py-2 text-ink"
             />
-          </div>
-
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Risk Tier
-            </label>
+          </label>
+          <label className="block text-[12px] text-ink-muted">
+            Badge
             <select
               value={filterTier}
               onChange={(e) => setFilterTier(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1 w-full rounded-[4px] border border-rule bg-surface-1 px-3 py-2 text-ink"
             >
-              <option value="">All Tiers</option>
+              <option value="">All</option>
               <option value="low">Low</option>
-              <option value="medium">Medium</option>
+              <option value="medium">Med</option>
               <option value="high">High</option>
-              <option value="critical">Critical</option>
             </select>
-          </div>
-
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Category
-            </label>
+          </label>
+          <label className="block text-[12px] text-ink-muted">
+            Category
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="mt-1 w-full rounded-[4px] border border-rule bg-surface-1 px-3 py-2 text-ink"
             >
-              <option value="">All Categories</option>
+              <option value="">All</option>
               {categories.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
                 </option>
               ))}
             </select>
-          </div>
-
-          <div className="flex items-end">
-            <button
-              onClick={handleExportCSV}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Export CSV
-            </button>
-          </div>
+          </label>
         </div>
-      </div>
+      </PageCard>
 
-      {/* Results */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <p className="text-sm text-gray-600">
-            Showing {filtered.length} of {initialSuppliers.length} suppliers
-          </p>
-        </div>
-
+      <PageCard>
+        <p className="mb-3 text-[12px] text-ink-muted">
+          Showing <span className="font-data text-ink">{filtered.length}</span> of{" "}
+          <span className="font-data text-ink">{initialSuppliers.length}</span>
+        </p>
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
+          <table className="w-full text-left text-[13px]">
+            <thead>
+              <tr className="border-b border-rule text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="cursor-pointer py-2 pr-3"
                   onClick={() => handleSort("name")}
                 >
-                  <div className="flex items-center gap-2">
-                    Supplier Name
-                    {sortBy === "name" && <ArrowUpDown className="w-4 h-4" />}
-                  </div>
+                  <span className="inline-flex items-center gap-1">
+                    Supplier
+                    {sortBy === "name" ? <ArrowUpDown className="size-3" /> : null}
+                  </span>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
+                <th className="py-2 pr-3">Category</th>
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="cursor-pointer py-2 pr-3"
                   onClick={() => handleSort("spend")}
                 >
-                  <div className="flex items-center gap-2">
-                    Annual Spend
-                    {sortBy === "spend" && <ArrowUpDown className="w-4 h-4" />}
-                  </div>
+                  <span className="inline-flex items-center gap-1">
+                    Spend
+                    {sortBy === "spend" ? <ArrowUpDown className="size-3" /> : null}
+                  </span>
                 </th>
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="cursor-pointer py-2 pr-3"
                   onClick={() => handleSort("risk_score")}
                 >
-                  <div className="flex items-center gap-2">
-                    Risk Score
-                    {sortBy === "risk_score" && <ArrowUpDown className="w-4 h-4" />}
-                  </div>
+                  <span className="inline-flex items-center gap-1">
+                    Score
+                    {sortBy === "risk_score" ? <ArrowUpDown className="size-3" /> : null}
+                  </span>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Risk Tier
-                </th>
+                <th className="py-2 pr-3">Badge</th>
                 <th
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  className="cursor-pointer py-2 pr-3"
                   onClick={() => handleSort("completeness")}
                 >
-                  <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1">
                     Completeness
-                    {sortBy === "completeness" && <ArrowUpDown className="w-4 h-4" />}
-                  </div>
+                    {sortBy === "completeness" ? (
+                      <ArrowUpDown className="size-3" />
+                    ) : null}
+                  </span>
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="py-2">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                    No suppliers found matching your filters
+                  <td colSpan={7} className="py-8 text-center text-ink-muted">
+                    No suppliers match these filters.
                   </td>
                 </tr>
               ) : (
-                filtered.map((supplier) => (
-                  <tr key={supplier.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {supplier.name}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {supplier.category}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {supplier.annualSpend
-                        ? `$${(supplier.annualSpend / 1000000).toFixed(1)}M`
-                        : "—"}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">
-                      {supplier.riskScore !== null ? supplier.riskScore : "—"}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${getRiskColor(supplier.riskTier)}`}
-                      >
-                        {getRiskIcon(supplier.riskTier)}
-                        {supplier.riskTier === "unknown"
-                          ? "Not Calculated"
-                          : supplier.riskTier}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-24 bg-gray-200 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full ${
-                              supplier.dataCompleteness >= 70
-                                ? "bg-green-500"
-                                : supplier.dataCompleteness >= 40
-                                  ? "bg-yellow-500"
-                                  : "bg-red-500"
-                            }`}
-                            style={{ width: `${supplier.dataCompleteness}%` }}
-                          />
-                        </div>
-                        <span className="text-sm text-gray-600">
+                filtered.map((supplier) => {
+                  const badge = displayBadge(supplier);
+                  return (
+                    <tr
+                      key={supplier.id}
+                      className="border-b border-rule last:border-b-0"
+                    >
+                      <td className="py-2.5 pr-3 font-medium text-ink">
+                        {supplier.name}
+                      </td>
+                      <td className="py-2.5 pr-3 text-ink-muted">{supplier.category}</td>
+                      <td className="py-2.5 pr-3 font-data text-ink">
+                        {supplier.annualSpend != null
+                          ? `${(supplier.annualSpend / 1_000_000).toFixed(1)}M`
+                          : "—"}
+                      </td>
+                      <td className="py-2.5 pr-3 font-data font-semibold text-ink">
+                        {supplier.riskScore !== null ? supplier.riskScore : "—"}
+                      </td>
+                      <td className="py-2.5 pr-3">
+                        <Badge variant={badgeVariant(badge)}>{badgeLabel(badge)}</Badge>
+                      </td>
+                      <td className="py-2.5 pr-3">
+                        <span className="font-data text-ink">
                           {supplier.dataCompleteness}%
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <Link
-                        href={`/suppliers/${supplier.id}/risk-breakdown`}
-                        className="text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        View Details
-                      </Link>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="py-2.5">
+                        <Link
+                          href={`/suppliers/${supplier.id}/risk-breakdown`}
+                          className="text-accent hover:text-accent-hover"
+                        >
+                          Breakdown
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
-      </div>
-    </div>
+      </PageCard>
+    </PageFrame>
   );
 }

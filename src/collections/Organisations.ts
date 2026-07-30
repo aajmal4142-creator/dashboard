@@ -151,6 +151,21 @@ export const Organisations: CollectionConfig = {
           type: "text",
           admin: { description: "Custom white-label host (consultant entitlement)" },
         },
+        {
+          name: "emissionsStandard",
+          type: "select",
+          defaultValue: "GHGProtocol2004",
+          index: true,
+          options: [
+            { label: "DEFRA", value: "DEFRA" },
+            { label: "IPCC", value: "IPCC" },
+            { label: "GHG Protocol 2004", value: "GHGProtocol2004" },
+          ],
+          admin: {
+            description:
+              "Default emission-factor methodology for calculations and reports. Changing it applies on the next calc / draft report rebuild.",
+          },
+        },
       ],
     },
     { name: "stripeCustomerId", type: "text", admin: { readOnly: true } },

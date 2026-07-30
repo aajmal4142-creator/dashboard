@@ -32,8 +32,13 @@ export interface YearComparison {
 export class Scope3Calculator {
   private factorService: EmissionsFactorService;
 
-  constructor() {
-    this.factorService = new EmissionsFactorService();
+  constructor(factorService?: EmissionsFactorService) {
+    this.factorService =
+      factorService ??
+      new EmissionsFactorService({
+        factors: [],
+        standard: "GHGProtocol2004",
+      });
   }
 
   // Calculate emissions for single activity

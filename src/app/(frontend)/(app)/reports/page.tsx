@@ -41,17 +41,27 @@ export default async function ReportsPage() {
   const canPublish = ctx.role === "owner" || ctx.role === "admin";
 
   const initial = await Promise.all(
-    reports.docs.map(async (r) => ({
-      id: String(r.id),
-      version: r.version,
-      status: r.status,
-      framework: r.framework,
-      shareToken: r.shareToken ?? null,
-      assuranceToken: await ensureAssuranceToken(payload, r),
-      publishedAt: r.publishedAt ? String(r.publishedAt) : null,
-      scores: r.scores,
-      viewCount: r.viewCount ?? 0,
-    })),
+    reports.docs.map(async (r) => {
+      const snap = r.snapshot as {
+        dataGaps?: unknown[];
+        emissionsStandard?: string;
+      } | null;
+      return {
+        id: String(r.id),
+        version: r.version,
+        status: r.status,
+        framework: r.framework,
+        shareToken: r.shareToken ?? null,
+        assuranceToken: await ensureAssuranceToken(payload, r),
+        publishedAt: r.publishedAt ? String(r.publishedAt) : null,
+        scores: r.scores,
+        viewCount: r.viewCount ?? 0,
+        approvedAt: r.approvedAt ? String(r.approvedAt) : null,
+        lockedAt: r.lockedAt ? String(r.lockedAt) : null,
+        dataGapCount: Array.isArray(snap?.dataGaps) ? snap.dataGaps.length : 0,
+        emissionsStandard: snap?.emissionsStandard ?? null,
+      };
+    }),
   );
 
   return <ReportsClient canPublish={canPublish} initial={initial} />;

@@ -2,6 +2,7 @@ import {
   Circle,
   Document,
   G,
+  Image,
   Line,
   Page,
   Path,
@@ -38,6 +39,7 @@ const C = {
   signal: "#0E7C4A",
   amber: "#B87309",
   rust: "#B03A2E",
+  cobalt: "#2F5D8C",
 } as const;
 
 const styles = StyleSheet.create({
@@ -298,13 +300,42 @@ const styles = StyleSheet.create({
     borderColor: C.rule,
     marginTop: 8,
   },
+  gapHigh: {
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: C.rust,
+    backgroundColor: C.surface2,
+    padding: 8,
+  },
+  gapMed: {
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: C.amber,
+    backgroundColor: C.surface2,
+    padding: 8,
+  },
+  logo: {
+    width: 72,
+    height: 72,
+    objectFit: "contain",
+    marginBottom: 16,
+  },
 });
 
-function PageFooter({ org, version }: { org: string; version: number }) {
+function PageFooter({
+  org,
+  version,
+  preparer,
+}: {
+  org: string;
+  version: number;
+  preparer?: string | null;
+}) {
   return (
     <View style={styles.footer} fixed>
       <Text style={styles.footerText}>
         ClearESG · {org} · v{version}
+        {preparer ? ` · ${preparer}` : ""}
       </Text>
       <Text
         style={styles.footerMono}
@@ -419,7 +450,7 @@ function EmissionsStack({
           <View style={{ width: `${p2}%`, backgroundColor: C.amber, height: "100%" }} />
         ) : null}
         {p3 > 0 ? (
-          <View style={{ width: `${p3}%`, backgroundColor: "#2F5D8C", height: "100%" }} />
+          <View style={{ width: `${p3}%`, backgroundColor: C.cobalt, height: "100%" }} />
         ) : null}
       </View>
       <View
@@ -431,6 +462,15 @@ function EmissionsStack({
       </View>
     </View>
   );
+}
+
+function yoyLabel(yoy: ReportSnapshot["yoy"]): string {
+  if (!yoy) return "No prior published period for YoY comparison.";
+  if (yoy.changePct === null) {
+    return `Prior (${yoy.previousPeriodLabel}): ${formatTco2e(yoy.previousTotal)} tCO2e. Change not defined (zero baseline).`;
+  }
+  const sign = yoy.changePct > 0 ? "+" : "";
+  return `vs ${yoy.previousPeriodLabel}: ${sign}${yoy.changePct.toFixed(1)}% (${formatTco2e(yoy.previousTotal)} → current total).`;
 }
 
 export function ReportPdfDocument({
@@ -445,6 +485,16 @@ export function ReportPdfDocument({
   const below = snapshot.materiality.points.filter((p) => !p.material);
   const published = formatPublishedAt(snapshot.publishedAt);
   const topBreakdown = snapshot.breakdown.slice(0, 5);
+  const preparer = snapshot.preparedBy?.name ?? null;
+  const gaps = snapshot.dataGaps ?? [];
+  const highGaps = gaps.filter((g) => g.severity === "high");
+  const otherGaps = gaps.filter((g) => g.severity !== "high");
+  const esrs = snapshot.esrsDisclosures;
+  const materialTopics = esrs?.topics.filter((t) => t.material) ?? [];
+  const scope = snapshot.scopeBreakdown;
+  const accent = snapshot.brandingAccent?.match(/^#[0-9A-Fa-f]{6}$/)
+    ? snapshot.brandingAccent
+    : C.accent;
 
   return (
     <Document
@@ -456,14 +506,25 @@ export function ReportPdfDocument({
       {/* —— Cover —— */}
       <Page size="A4" style={styles.coverPage}>
         {watermarked ? <Text style={styles.watermark}>ClearESG</Text> : null}
-        <View style={styles.accentRule} />
-        <Text style={styles.masthead}>CLEARESG REPORT</Text>
+        <View style={[styles.accentRule, { backgroundColor: accent }]} />
+        {snapshot.logoUrl ? (
+          // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image
+          <Image style={styles.logo} src={snapshot.logoUrl} />
+        ) : null}
+        <Text style={[styles.masthead, { color: accent }]}>CLEARESG · CSRD / ESRS</Text>
         <Text style={styles.coverTitle}>Sustainability{"\n"}performance</Text>
         <Text style={styles.coverOrg}>{snapshot.organisationName}</Text>
         <Text style={styles.coverMeta}>
           {snapshot.periodLabel} · {framework} · Version {snapshot.version}
         </Text>
-        <Text style={styles.coverMeta}>Published {published}</Text>
+        <Text style={styles.coverMeta}>Prepared {published}</Text>
+        {preparer ? <Text style={styles.coverMeta}>Preparer {preparer}</Text> : null}
+        {snapshot.approvedBy?.name ? (
+          <Text style={styles.coverMeta}>
+            Approved {snapshot.approvedBy.name}
+            {snapshot.approvedAt ? ` · ${formatPublishedAt(snapshot.approvedAt)}` : ""}
+          </Text>
+        ) : null}
 
         <PdfGauge score={snapshot.scores.overall} />
         <View style={styles.bandChip}>
@@ -472,89 +533,130 @@ export function ReportPdfDocument({
 
         <View style={{ marginTop: 36 }}>
           <Text style={styles.muted}>
-            Prepared for banks, buyers, and auditors. Figures are reproducible from pinned
-            emission factors and management-reported activity data.
+            Audit-ready ESRS-structured statement for banks, buyers, and auditors. Figures
+            are reproducible from pinned emission factors and management-reported activity
+            data. Light print theme only.
           </Text>
         </View>
-        <PageFooter org={snapshot.organisationName} version={snapshot.version} />
+        <PageFooter
+          org={snapshot.organisationName}
+          version={snapshot.version}
+          preparer={preparer}
+        />
       </Page>
 
-      {/* —— Performance —— */}
+      {/* —— 01 Executive summary —— */}
       <Page size="A4" style={styles.page}>
         {watermarked ? <Text style={styles.watermark}>ClearESG</Text> : null}
-        <Text style={styles.sectionEyebrow}>01 — Performance</Text>
-        <Text style={styles.h2}>Scores and emissions</Text>
+        <Text style={styles.sectionEyebrow}>01 — Executive summary</Text>
+        <Text style={styles.h2}>Organisation emissions and key metrics</Text>
         <Text style={styles.body}>
-          Overall score {formatScore(snapshot.scores.overall)} of 100 (
-          {bandLabel(snapshot.band)}). Environment, Social, and Governance pillars are
-          scored separately from the same period datapoints.
+          {snapshot.organisationName} reports total GHG emissions of{" "}
+          <Text style={styles.mono}>{formatTco2e(snapshot.emissions.total)}</Text> tCO2e
+          for {snapshot.periodLabel}. Overall score {formatScore(snapshot.scores.overall)}{" "}
+          of 100 ({bandLabel(snapshot.band)}). {yoyLabel(snapshot.yoy ?? null)}
         </Text>
 
         <View style={styles.cardRow}>
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>Environment</Text>
-            <Text style={styles.cardValue}>{formatScore(snapshot.scores.e)}</Text>
-            <Text style={styles.cardHint}>E pillar</Text>
+            <Text style={styles.cardLabel}>Total tCO2e</Text>
+            <Text style={styles.cardValue}>{formatTco2e(snapshot.emissions.total)}</Text>
+            <Text style={styles.cardHint}>Scopes 1+2+3</Text>
           </View>
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>Social</Text>
-            <Text style={styles.cardValue}>{formatScore(snapshot.scores.s)}</Text>
-            <Text style={styles.cardHint}>S pillar</Text>
+            <Text style={styles.cardLabel}>YoY change</Text>
+            <Text style={styles.cardValue}>
+              {snapshot.yoy?.changePct === null || snapshot.yoy?.changePct === undefined
+                ? "—"
+                : `${snapshot.yoy.changePct > 0 ? "+" : ""}${snapshot.yoy.changePct.toFixed(1)}%`}
+            </Text>
+            <Text style={styles.cardHint}>
+              {snapshot.yoy?.previousPeriodLabel ?? "No prior period"}
+            </Text>
           </View>
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>Governance</Text>
-            <Text style={styles.cardValue}>{formatScore(snapshot.scores.g)}</Text>
-            <Text style={styles.cardHint}>G pillar</Text>
-          </View>
-          <View style={styles.cardLast}>
             <Text style={styles.cardLabel}>Data quality</Text>
             <Text style={styles.cardValue}>
               {formatPct(snapshot.emissions.dataQualityPct)}
             </Text>
             <Text style={styles.cardHint}>Measured / calculated share</Text>
           </View>
+          <View style={styles.cardLast}>
+            <Text style={styles.cardLabel}>Data gaps</Text>
+            <Text style={styles.cardValue}>{String(gaps.length)}</Text>
+            <Text style={styles.cardHint}>{highGaps.length} high severity</Text>
+          </View>
         </View>
 
-        <View style={styles.rule} />
-        <Text style={styles.sectionEyebrow}>Greenhouse gas inventory</Text>
-        <Text style={styles.h2}>Emissions (tCO2e)</Text>
+        <View style={styles.cardRow}>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Environment</Text>
+            <Text style={styles.cardValue}>{formatScore(snapshot.scores.e)}</Text>
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>Social</Text>
+            <Text style={styles.cardValue}>{formatScore(snapshot.scores.s)}</Text>
+          </View>
+          <View style={styles.cardLast}>
+            <Text style={styles.cardLabel}>Governance</Text>
+            <Text style={styles.cardValue}>{formatScore(snapshot.scores.g)}</Text>
+          </View>
+        </View>
+
+        {highGaps.length > 0 ? (
+          <View style={{ marginTop: 16 }}>
+            <Text style={styles.cardLabel}>High-severity data gaps</Text>
+            {highGaps.slice(0, 6).map((g) => (
+              <View key={g.code} style={styles.gapHigh}>
+                <Text style={[styles.monoSm, { color: C.rust }]}>
+                  {g.label} · {g.severity}
+                </Text>
+                <Text style={styles.muted}>{g.message}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        <PageFooter
+          org={snapshot.organisationName}
+          version={snapshot.version}
+          preparer={preparer}
+        />
+      </Page>
+
+      {/* —— 02 Scope breakdown —— */}
+      <Page size="A4" style={styles.page}>
+        {watermarked ? <Text style={styles.watermark}>ClearESG</Text> : null}
+        <Text style={styles.sectionEyebrow}>02 — Scope 1, 2, 3 breakdown</Text>
+        <Text style={styles.h2}>Sources, methodology, uncertainties</Text>
 
         <View style={styles.table}>
           <View style={styles.tableHeader}>
             <Text style={[styles.colHeader, { flex: 1.4 }]}>Scope</Text>
             <Text style={styles.colHeaderValue}>tCO2e</Text>
+            <Text style={styles.colHeaderValue}>Quality</Text>
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.colLabel}>Scope 1 — direct</Text>
             <Text style={styles.colValue}>{formatTco2e(snapshot.emissions.scope1)}</Text>
+            <Text style={styles.colValue}>{scope?.scope1.quality ?? "—"}</Text>
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.colLabel}>Scope 2 — purchased energy</Text>
             <Text style={styles.colValue}>{formatTco2e(snapshot.emissions.scope2)}</Text>
+            <Text style={styles.colValue}>{scope?.scope2.quality ?? "—"}</Text>
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.colLabel}>Scope 3 — value chain</Text>
             <Text style={styles.colValue}>{formatTco2e(snapshot.emissions.scope3)}</Text>
+            <Text style={styles.colValue}>{scope?.scope3.quality ?? "—"}</Text>
           </View>
-          {typeof snapshot.emissions.scope3PrimarySharePct === "number" &&
-          (snapshot.emissions.scope3PrimaryTco2e ?? 0) +
-            (snapshot.emissions.scope3EstimateTco2e ?? 0) >
-            0 ? (
-            <View style={styles.tableRow}>
-              <Text style={[styles.colLabel, styles.muted]}>
-                of which supplier-verified / spend estimate
-              </Text>
-              <Text style={[styles.colValue, styles.muted]}>
-                {snapshot.emissions.scope3PrimarySharePct}% /{" "}
-                {(100 - snapshot.emissions.scope3PrimarySharePct).toFixed(1)}%
-              </Text>
-            </View>
-          ) : null}
           <View style={styles.tableRowLast}>
             <Text style={[styles.colLabel, { fontWeight: 500 }]}>Total</Text>
             <Text style={[styles.colValue, { fontWeight: 500 }]}>
               {formatTco2e(snapshot.emissions.total)}
             </Text>
+            <Text style={styles.colValue}> </Text>
           </View>
         </View>
 
@@ -565,6 +667,26 @@ export function ReportPdfDocument({
             scope3={snapshot.emissions.scope3}
           />
         </View>
+
+        {scope
+          ? (["scope1", "scope2", "scope3"] as const).map((key, i) => {
+              const row = scope[key];
+              const title =
+                key === "scope1" ? "Scope 1" : key === "scope2" ? "Scope 2" : "Scope 3";
+              return (
+                <View key={key} style={{ marginTop: i === 0 ? 16 : 12 }}>
+                  <Text style={styles.cardLabel}>{title}</Text>
+                  <Text style={styles.body}>{row.methodology}</Text>
+                  <Text style={[styles.muted, { marginTop: 4 }]}>
+                    Sources: {row.sources.join("; ") || "—"}
+                  </Text>
+                  <Text style={[styles.muted, { marginTop: 2 }]}>
+                    Uncertainties: {row.uncertainties}
+                  </Text>
+                </View>
+              );
+            })
+          : null}
 
         {topBreakdown.length > 0 ? (
           <View style={{ marginTop: 18 }}>
@@ -590,20 +712,33 @@ export function ReportPdfDocument({
           </View>
         ) : null}
 
-        <PageFooter org={snapshot.organisationName} version={snapshot.version} />
+        <PageFooter
+          org={snapshot.organisationName}
+          version={snapshot.version}
+          preparer={preparer}
+        />
       </Page>
 
-      {/* —— Materiality & factors —— */}
+      {/* —— 03 ESRS disclosures —— */}
       <Page size="A4" style={styles.page}>
         {watermarked ? <Text style={styles.watermark}>ClearESG</Text> : null}
-        <Text style={styles.sectionEyebrow}>02 — Materiality</Text>
-        <Text style={styles.h2}>Double materiality</Text>
+        <Text style={styles.sectionEyebrow}>03 — ESRS disclosures</Text>
+        <Text style={styles.h2}>Governance, materiality, strategy</Text>
+
+        <Text style={styles.cardLabel}>Governance</Text>
         <Text style={styles.body}>
-          {snapshot.materiality.narrative ??
+          {esrs?.governance ?? "Governance narrative unavailable for this snapshot."}
+        </Text>
+
+        <View style={styles.rule} />
+        <Text style={styles.cardLabel}>Double materiality</Text>
+        <Text style={styles.body}>
+          {esrs?.materiality ??
+            snapshot.materiality.narrative ??
             "No materiality assessment finalised for this period."}
         </Text>
 
-        <View style={{ marginTop: 14 }}>
+        <View style={{ marginTop: 12 }}>
           <Text style={styles.cardLabel}>Material topics ({material.length})</Text>
           {material.length === 0 ? (
             <Text style={styles.muted}>None above threshold.</Text>
@@ -645,52 +780,72 @@ export function ReportPdfDocument({
         ) : null}
 
         <View style={styles.rule} />
-        <Text style={styles.sectionEyebrow}>03 — Factor registry</Text>
-        <Text style={styles.h2}>Emission factors used</Text>
-        <Text style={styles.muted}>
-          Pinned versions so this published report stays reproducible.
+        <Text style={styles.cardLabel}>Sustainability strategy</Text>
+        <Text style={styles.body}>
+          {esrs?.sustainabilityStrategy ??
+            "Strategy narrative unavailable for this snapshot."}
         </Text>
 
-        {snapshot.factorsUsed.length === 0 ? (
-          <Text style={[styles.muted, { marginTop: 8 }]}>
-            No factors pinned (missing activity data for emissions).
-          </Text>
-        ) : (
-          <View style={[styles.table, { marginTop: 10 }]}>
-            <View style={styles.tableHeader}>
-              <Text style={[styles.colHeader, { flex: 1.4 }]}>Factor</Text>
-              <Text style={[styles.colHeader, { flex: 1 }]}>Source</Text>
-              <Text style={styles.colHeaderValue}>Year</Text>
-              <Text style={styles.colHeaderValue}>Value</Text>
-            </View>
-            {snapshot.factorsUsed.map((f, i) => (
-              <View
-                key={f.factorId}
-                style={
-                  i === snapshot.factorsUsed.length - 1
-                    ? styles.tableRowLast
-                    : styles.tableRow
-                }
-              >
-                <Text style={[styles.mono, { flex: 1.4, fontSize: 8 }]}>{f.key}</Text>
-                <Text style={[styles.colLabel, { flex: 1, fontSize: 8 }]}>
-                  {f.source}
+        {materialTopics.length > 0 ? (
+          <View style={{ marginTop: 12 }}>
+            <Text style={styles.cardLabel}>Material ESRS topic status</Text>
+            {materialTopics.slice(0, 8).map((t) => (
+              <View key={t.code} style={{ marginTop: 6 }}>
+                <Text style={styles.monoSm}>
+                  {t.code} · {t.label} · {t.status.replace("_", " ")}
                 </Text>
-                <Text style={[styles.colValue, { fontSize: 8 }]}>{f.year}</Text>
-                <Text style={[styles.colValue, { fontSize: 8 }]}>{f.value}</Text>
+                <Text style={styles.muted}>{t.narrative}</Text>
               </View>
             ))}
           </View>
-        )}
+        ) : null}
 
-        <PageFooter org={snapshot.organisationName} version={snapshot.version} />
+        <PageFooter
+          org={snapshot.organisationName}
+          version={snapshot.version}
+          preparer={preparer}
+        />
       </Page>
 
-      {/* —— Evidence & assurance —— */}
+      {/* —— 04 Data integrity —— */}
       <Page size="A4" style={styles.page}>
         {watermarked ? <Text style={styles.watermark}>ClearESG</Text> : null}
-        <Text style={styles.sectionEyebrow}>04 — Evidence</Text>
-        <Text style={styles.h2}>Evidence index</Text>
+        <Text style={styles.sectionEyebrow}>04 — Data integrity</Text>
+        <Text style={styles.h2}>Audit trail and preparer notes</Text>
+
+        <View style={styles.table}>
+          <View style={styles.tableHeader}>
+            <Text style={[styles.colHeader, { flex: 1 }]}>Item</Text>
+            <Text style={[styles.colHeader, { flex: 2 }]}>Detail</Text>
+          </View>
+          {(snapshot.dataIntegrity?.auditTrail ?? []).map((row, i, arr) => (
+            <View
+              key={row.label}
+              style={i === arr.length - 1 ? styles.tableRowLast : styles.tableRow}
+            >
+              <Text style={[styles.colLabel, { flex: 1 }]}>{row.label}</Text>
+              <Text style={[styles.mono, { flex: 2, fontSize: 8 }]}>{row.detail}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={{ marginTop: 14 }}>
+          <Text style={styles.cardLabel}>Preparer notes</Text>
+          <Text style={styles.body}>
+            {snapshot.preparerNotes?.trim() ||
+              snapshot.dataIntegrity?.preparerNotes?.trim() ||
+              "No preparer notes recorded for this version."}
+          </Text>
+          <Text style={[styles.monoSm, { marginTop: 8 }]}>
+            Date prepared:{" "}
+            {formatPublishedAt(
+              snapshot.dataIntegrity?.datePrepared ?? snapshot.publishedAt,
+            )}
+          </Text>
+        </View>
+
+        <View style={styles.rule} />
+        <Text style={styles.sectionEyebrow}>Evidence index</Text>
         <Text style={styles.body}>
           Every figure should trace to a source document. Hashes below are SHA-256
           prefixes for integrity checks.
@@ -710,7 +865,7 @@ export function ReportPdfDocument({
               <Text style={[styles.colHeader, { flex: 1 }]}>Metric</Text>
               <Text style={styles.colHeaderValue}>Hash</Text>
             </View>
-            {snapshot.evidenceIndex.slice(0, 40).map((e, i, arr) => (
+            {snapshot.evidenceIndex.slice(0, 30).map((e, i, arr) => (
               <View
                 key={e.sha256}
                 style={i === arr.length - 1 ? styles.tableRowLast : styles.tableRow}
@@ -729,12 +884,98 @@ export function ReportPdfDocument({
           </View>
         )}
 
+        {otherGaps.length > 0 ? (
+          <View style={{ marginTop: 14 }}>
+            <Text style={styles.cardLabel}>Additional data-gap flags</Text>
+            {otherGaps.slice(0, 8).map((g) => (
+              <View key={g.code} style={styles.gapMed}>
+                <Text style={styles.monoSm}>
+                  {g.label} · {g.severity}
+                </Text>
+                <Text style={styles.muted}>{g.message}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        <View style={styles.rule} />
+        <Text style={styles.sectionEyebrow}>Factor registry</Text>
+        <Text style={styles.muted}>
+          Standard: {snapshot.emissionsStandard ?? "not recorded"}. Pinned versions so
+          this report stays reproducible.
+        </Text>
+        {snapshot.factorsUsed.length === 0 ? (
+          <Text style={[styles.muted, { marginTop: 8 }]}>
+            No factors pinned (missing activity data for emissions).
+          </Text>
+        ) : (
+          <View style={[styles.table, { marginTop: 10 }]}>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.colHeader, { flex: 1.4 }]}>Factor</Text>
+              <Text style={[styles.colHeader, { flex: 1 }]}>Source</Text>
+              <Text style={styles.colHeaderValue}>Year</Text>
+              <Text style={styles.colHeaderValue}>Value</Text>
+            </View>
+            {snapshot.factorsUsed.slice(0, 20).map((f, i, arr) => (
+              <View
+                key={f.factorId}
+                style={i === arr.length - 1 ? styles.tableRowLast : styles.tableRow}
+              >
+                <Text style={[styles.mono, { flex: 1.4, fontSize: 8 }]}>{f.key}</Text>
+                <Text style={[styles.colLabel, { flex: 1, fontSize: 8 }]}>
+                  {f.source}
+                </Text>
+                <Text style={[styles.colValue, { fontSize: 8 }]}>{f.year}</Text>
+                <Text style={[styles.colValue, { fontSize: 8 }]}>{f.value}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        <PageFooter
+          org={snapshot.organisationName}
+          version={snapshot.version}
+          preparer={preparer}
+        />
+      </Page>
+
+      {/* —— 05 Compliance declaration —— */}
+      <Page size="A4" style={styles.page}>
+        {watermarked ? <Text style={styles.watermark}>ClearESG</Text> : null}
+        <Text style={styles.sectionEyebrow}>05 — Compliance declaration</Text>
+        <Text style={styles.h2}>Audit-ready statement</Text>
+        <Text style={styles.body}>
+          {snapshot.complianceDeclaration ?? snapshot.disclaimer}
+        </Text>
+
         <View style={styles.disclaimerBox}>
           <Text style={styles.cardLabel}>Assurance notice</Text>
           <Text style={styles.muted}>{snapshot.disclaimer}</Text>
         </View>
 
-        <PageFooter org={snapshot.organisationName} version={snapshot.version} />
+        <View style={{ marginTop: 28 }}>
+          <Text style={styles.cardLabel}>Signature / approval</Text>
+          <View style={styles.rule} />
+          <Text style={styles.muted}>
+            Preparer: {preparer ?? "________________"} · Date:{" "}
+            {formatPublishedAt(
+              snapshot.dataIntegrity?.datePrepared ?? snapshot.publishedAt,
+            )}
+          </Text>
+          <View style={[styles.rule, { marginTop: 24 }]} />
+          <Text style={styles.muted}>
+            Approver: {snapshot.approvedBy?.name ?? "________________"} · Date:{" "}
+            {snapshot.approvedAt
+              ? formatPublishedAt(snapshot.approvedAt)
+              : "________________"}
+          </Text>
+        </View>
+
+        <PageFooter
+          org={snapshot.organisationName}
+          version={snapshot.version}
+          preparer={preparer}
+        />
       </Page>
     </Document>
   );

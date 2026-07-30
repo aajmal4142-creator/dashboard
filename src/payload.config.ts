@@ -63,6 +63,7 @@ import { SavedFilters } from "./collections/SavedFilters";
 import { BulkOperations } from "./collections/BulkOperations";
 import { FreeTierAccounts } from "./collections/FreeTierAccounts";
 import { IoTDevices } from "./collections/IoTDevices";
+import { IoTDataStreams } from "./collections/IoTDataStreams";
 import { DataQualityRules } from "./collections/DataQualityRules";
 import { ISO14064Compliance } from "./collections/ISO14064Compliance";
 import { AssurancePartners } from "./collections/AssurancePartners";
@@ -70,9 +71,23 @@ import { ReportTemplates } from "./collections/ReportTemplates";
 import { CustomEmissionFactors } from "./collections/CustomEmissionFactors";
 import { DunningManagement } from "./collections/DunningManagement";
 import { EmailDataCollectionForms } from "./collections/EmailDataCollectionForms";
+import { EmailImportLogs } from "./collections/EmailImportLogs";
 import { ProductLevelFootprinting } from "./collections/ProductLevelFootprinting";
 import { SpendBasedEmissions } from "./collections/SpendBasedEmissions";
 import { RegulatoryDeadlines } from "./collections/RegulatoryDeadlines";
+import { TcfdDisclosures } from "./collections/TcfdDisclosures";
+import { IssbDisclosures } from "./collections/IssbDisclosures";
+import { DatabaseConnections } from "./collections/DatabaseConnections";
+import { DatabaseSyncLogs } from "./collections/DatabaseSyncLogs";
+import { BiApiKeys } from "./collections/BiApiKeys";
+import { SupplierPortalConfig } from "./collections/SupplierPortalConfig";
+import { ComplianceAssessments } from "./collections/ComplianceAssessments";
+import { DatapointVersions } from "./collections/DatapointVersions";
+
+/**
+ * Collection registration — APPEND-ONLY for feature chats.
+ * See docs/PAYLOAD_COLLECTIONS.md. Do not reorder unrelated entries.
+ */
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -155,6 +170,7 @@ export default buildConfig({
     BulkOperations,
     FreeTierAccounts,
     IoTDevices,
+    IoTDataStreams,
     DataQualityRules,
     ISO14064Compliance,
     AssurancePartners,
@@ -165,6 +181,15 @@ export default buildConfig({
     ProductLevelFootprinting,
     SpendBasedEmissions,
     RegulatoryDeadlines,
+    TcfdDisclosures,
+    IssbDisclosures,
+    DatabaseConnections,
+    DatabaseSyncLogs,
+    BiApiKeys,
+    SupplierPortalConfig,
+    ComplianceAssessments,
+    EmailImportLogs,
+    DatapointVersions,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,

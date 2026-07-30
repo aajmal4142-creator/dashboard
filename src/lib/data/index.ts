@@ -15,6 +15,24 @@ export {
   type ImportRowInput,
 } from "./importValidate";
 export { writeDatapoint } from "./writeDatapoint";
+export {
+  DATAPOINT_VERSION_FIELDS,
+  auditActionForChange,
+  diffDatapointSnapshots,
+  restoreDataFromSnapshot,
+  snapshotDatapoint,
+  snapshotsEqual,
+  type DatapointFieldDiff,
+  type DatapointSnapshot,
+  type DatapointVersionChangeType,
+} from "./versioning";
+export {
+  listDatapointVersions,
+  recordDatapointVersion,
+  rollbackDatapoint,
+  type DatapointVersionContext,
+  type DatapointVersionRow,
+} from "./recordVersion";
 export { previewTco2e } from "./previewTco2e";
 export {
   buildImportWorkbook,

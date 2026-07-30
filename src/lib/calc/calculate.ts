@@ -84,6 +84,7 @@ function collectFactorsUsed(scopes: ScopeComputation[]): FactorUsage[] {
           value: factor.value,
           source: factor.source,
           year: factor.publicationYear,
+          standard: factor.standard,
         });
       }
     }

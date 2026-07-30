@@ -3,11 +3,19 @@ import { getPayload } from "payload";
 
 import { RiskDashboardClient } from "./RiskDashboardClient";
 import { getCurrentContext } from "@/lib/auth";
+import { badgeTierOf, type RiskTier } from "@/lib/suppliers/riskFormula";
 import config from "@/payload.config";
 
 export const metadata = {
-  title: "Risk Dashboard | ClearESG",
+  title: "Supplier risk | ClearESG",
 };
+
+function asTier(value: unknown): RiskTier | "unknown" {
+  if (value === "low" || value === "medium" || value === "high" || value === "critical") {
+    return value;
+  }
+  return "unknown";
+}
 
 export default async function RiskDashboardPage() {
   const ctx = await getCurrentContext();
@@ -24,29 +32,34 @@ export default async function RiskDashboardPage() {
   });
 
   const suppliers = result.docs.map((s) => {
-    const tier =
-      ((s.riskMetrics as Record<string, unknown>)?.tier as string | undefined) ??
-      "unknown";
-    const validTiers = ["low", "medium", "high", "critical", "unknown"];
+    const metrics = (s.riskMetrics ?? {}) as Record<string, unknown>;
+    const esg = (s.esgData ?? {}) as Record<string, unknown>;
+    const tier = asTier(metrics.tier);
+    const flags = Array.isArray(metrics.flags) ? (metrics.flags as string[]) : [];
+    const badge = tier === "unknown" ? null : badgeTierOf(tier);
+
     return {
       id: String(s.id),
       name: s.name,
       category: s.category,
       annualSpend: s.annualSpend ?? null,
-      riskScore:
-        ((s.riskMetrics as Record<string, unknown>)?.score as
-          number | null | undefined) ?? null,
-      riskTier: (validTiers.includes(tier) ? tier : "unknown") as
-        "low" | "medium" | "high" | "critical" | "unknown",
+      riskScore: typeof metrics.score === "number" ? metrics.score : null,
+      riskTier: tier,
+      badge,
       dataCompleteness:
-        ((s.esgData as Record<string, unknown>)?.dataCompletionPercent as
-          number | undefined) ?? 0,
-      unGcSignatory:
-        ((s.esgData as Record<string, unknown>)?.unGcSignatory as boolean | undefined) ??
-        false,
+        typeof esg.dataCompletionPercent === "number" ? esg.dataCompletionPercent : 0,
+      unGcSignatory: Boolean(esg.unGcSignatory),
       lastCalculatedAt:
-        ((s.riskMetrics as Record<string, unknown>)?.calculatedAt as
-          string | null | undefined) ?? null,
+        typeof metrics.calculatedAt === "string" ? metrics.calculatedAt : null,
+      highRiskAlert:
+        flags.includes("high_risk_alert") || tier === "high" || tier === "critical",
+      environmentalScore:
+        typeof metrics.environmentalScore === "number"
+          ? metrics.environmentalScore
+          : null,
+      socialScore: typeof metrics.socialScore === "number" ? metrics.socialScore : null,
+      governanceScore:
+        typeof metrics.governanceScore === "number" ? metrics.governanceScore : null,
     };
   });
 
@@ -54,10 +67,8 @@ export default async function RiskDashboardPage() {
   const avgRiskScore =
     validScores.length > 0
       ? Math.round(
-          validScores.reduce(
-            (sum: number, s) => sum + ((s.riskScore as number) ?? 0),
-            0,
-          ) / validScores.length,
+          validScores.reduce((sum, s) => sum + (s.riskScore as number), 0) /
+            validScores.length,
         )
       : null;
 
@@ -70,16 +81,13 @@ export default async function RiskDashboardPage() {
       high: suppliers.filter((s) => s.riskTier === "high").length,
       critical: suppliers.filter((s) => s.riskTier === "critical").length,
     },
+    highAlertCount: suppliers.filter((s) => s.highRiskAlert).length,
     dataQuality: {
-      complete: suppliers.filter((s) => ((s.dataCompleteness as number) ?? 0) >= 80)
-        .length,
+      complete: suppliers.filter((s) => s.dataCompleteness >= 80).length,
       partial: suppliers.filter(
-        (s) =>
-          ((s.dataCompleteness as number) ?? 0) >= 50 &&
-          ((s.dataCompleteness as number) ?? 0) < 80,
+        (s) => s.dataCompleteness >= 50 && s.dataCompleteness < 80,
       ).length,
-      incomplete: suppliers.filter((s) => ((s.dataCompleteness as number) ?? 0) < 50)
-        .length,
+      incomplete: suppliers.filter((s) => s.dataCompleteness < 50).length,
     },
   };
 

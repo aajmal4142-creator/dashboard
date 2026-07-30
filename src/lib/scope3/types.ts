@@ -4,9 +4,12 @@ export type Scope3Category =
 export interface EmissionsFactor {
   value: number; // tonnes CO2e per unit
   unit: string; // kg, miles, kWh, etc
-  source: string; // DEFRA, CDP, IPCC
+  source: string; // DEFRA, CDP, IPCC, GHGProtocol
   year: number;
   confidence?: "high" | "medium" | "low";
+  standard?: string;
+  factorId?: string;
+  key?: string;
 }
 
 export interface ActivityDataField {

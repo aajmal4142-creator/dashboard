@@ -379,6 +379,26 @@ export async function submitQuestionnaire(
       console.warn(`No questionnaire found for supplier ${supplierId}, creating new`);
     }
 
+    // Keep ESG completeness in sync and trigger risk recalc via supplier afterChange.
+    const supplier = await payload.findByID({
+      collection: "suppliers",
+      id: supplierId,
+      overrideAccess: true,
+    });
+    const existingEsg = (supplier.esgData ?? {}) as Record<string, unknown>;
+    await payload.update({
+      collection: "suppliers",
+      id: supplierId,
+      data: {
+        esgData: {
+          ...existingEsg,
+          dataCompletionPercent: completionPercent,
+          lastDataUpdateAt: new Date().toISOString(),
+        },
+      },
+      overrideAccess: true,
+    });
+
     return { success: true, completionPercent };
   } catch (error) {
     return {

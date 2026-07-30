@@ -90,7 +90,7 @@ export const FRAMEWORK_MAPPINGS: FrameworkMappingRow[] = [
     required: false,
     contributionOnly: true,
     metricKeys: ["electricity_kwh", "derived.energy_total_mwh"],
-    note: "Placeholder pending counsel — contributes to, does not satisfy.",
+    note: "Placeholder pending counsel — contributes to, does not satisfy. Full S2 narrative lives in ISSB disclosures (/issb); TCFD pillars in /tcfd.",
   },
   {
     framework: "ISSB_S1",
@@ -99,7 +99,7 @@ export const FRAMEWORK_MAPPINGS: FrameworkMappingRow[] = [
     required: false,
     contributionOnly: true,
     metricKeys: ["employees_total"],
-    note: "Placeholder hook only.",
+    note: "Placeholder hook only. S1 questionnaire lives in ISSB disclosures (/issb).",
   },
   // GRI — contribution placeholders.
   {

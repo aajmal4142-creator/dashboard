@@ -2,13 +2,26 @@ import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
-import { computeCohortStats, MIN_COHORT_SIZE } from "@/lib/benchmarks";
+import {
+  computeCohortStats,
+  currentPeriodLabel,
+  MIN_COHORT_SIZE,
+  resolveGeography,
+  resolveSector,
+  resolveSizeBand,
+} from "@/lib/benchmarks";
 import {
   isProductionRuntime,
   mayPublishBenchmarkCohorts,
   maySeedBenchmarkDemo,
 } from "@/lib/launch/gates";
 import config from "@/payload.config";
+
+type BucketKey = string;
+
+function bucketKey(sector: string, sizeBand: string, geography: string): BucketKey {
+  return `${sector}|${sizeBand}|${geography}`;
+}
 
 async function recompute() {
   if (!mayPublishBenchmarkCohorts() && !maySeedBenchmarkDemo()) {
@@ -33,10 +46,28 @@ async function recompute() {
   });
 
   const metricKey = "electricity_kwh";
-  const bySector = new Map<string, number[]>();
+  /** Exact buckets + rolled-up (size=all / geo=all) so auto-match can widen. */
+  const buckets = new Map<BucketKey, number[]>();
+
+  const push = (sector: string, sizeBand: string, geography: string, value: number) => {
+    const keys = [
+      bucketKey(sector, sizeBand, geography),
+      bucketKey(sector, sizeBand, "all"),
+      bucketKey(sector, "all", geography),
+      bucketKey(sector, "all", "all"),
+    ];
+    const unique = [...new Set(keys)];
+    for (const k of unique) {
+      const list = buckets.get(k) ?? [];
+      list.push(value);
+      buckets.set(k, list);
+    }
+  };
 
   for (const org of orgs.docs) {
-    const prefix = (org.sector ?? "C").trim().charAt(0).toUpperCase() || "C";
+    const sector = resolveSector(org.sector);
+    const sizeBand = resolveSizeBand(org.revenueBand);
+    const geography = resolveGeography(org.country);
     const periods = await payload.find({
       collection: "reporting-periods",
       where: { organisation: { equals: org.id } },
@@ -60,34 +91,33 @@ async function recompute() {
     });
     const v = dp.docs[0]?.value;
     if (typeof v !== "number") continue;
-    const list = bySector.get(prefix) ?? [];
-    list.push(v);
-    bySector.set(prefix, list);
+    push(sector, sizeBand, geography, v);
   }
 
   let written = 0;
   let skipped = 0;
   let deletedStale = 0;
-  const year = new Date().getFullYear();
-  const periodLabel = `FY${year}`;
+  const periodLabel = currentPeriodLabel();
   const computedAt = new Date().toISOString();
-  const liveSectors = new Set<string>();
+  const liveKeys = new Set<string>();
 
-  // Live cohorts only when consent gate is on
   if (mayPublishBenchmarkCohorts()) {
-    for (const [sector, values] of bySector) {
+    for (const [key, values] of buckets) {
       const stats = computeCohortStats(values);
       if (!stats) {
         skipped += 1;
         continue;
       }
-      liveSectors.add(sector);
+      const [sector, sizeBand, geography] = key.split("|") as [string, string, string];
+      liveKeys.add(`${sector}|${sizeBand}|${geography}|${metricKey}|${periodLabel}`);
 
       const existing = await payload.find({
         collection: "benchmark-stats",
         where: {
           and: [
             { sector: { equals: sector } },
+            { sizeBand: { equals: sizeBand } },
+            { geography: { equals: geography } },
             { metricKey: { equals: metricKey } },
             { period: { equals: periodLabel } },
           ],
@@ -98,12 +128,17 @@ async function recompute() {
 
       const data = {
         sector,
-        sizeBand: "all",
+        sizeBand,
+        geography,
         metricKey,
         period: periodLabel,
+        p10: stats.p10,
         p25: stats.p25,
         p50: stats.p50,
         p75: stats.p75,
+        p90: stats.p90,
+        mean: stats.mean,
+        best: stats.best,
         cohortSize: stats.cohortSize,
         computedAt,
       };
@@ -125,17 +160,18 @@ async function recompute() {
       written += 1;
     }
 
-    // Tombstone stale rows for this period/metric when live n < 8 or sector dropped
     const existingRows = await payload.find({
       collection: "benchmark-stats",
       where: {
         and: [{ metricKey: { equals: metricKey } }, { period: { equals: periodLabel } }],
       },
-      limit: 100,
+      limit: 500,
       overrideAccess: true,
     });
     for (const row of existingRows.docs) {
-      if (!liveSectors.has(row.sector) || row.cohortSize < MIN_COHORT_SIZE) {
+      const geo = row.geography ?? "all";
+      const k = `${row.sector}|${row.sizeBand}|${geo}|${row.metricKey}|${row.period}`;
+      if (!liveKeys.has(k) || row.cohortSize < MIN_COHORT_SIZE) {
         await payload.delete({
           collection: "benchmark-stats",
           id: row.id,
@@ -146,7 +182,6 @@ async function recompute() {
     }
   }
 
-  // Demo seed — explicit opt-in only; never invent peers otherwise
   if (written === 0 && maySeedBenchmarkDemo()) {
     const demoValues = [
       80_000, 95_000, 110_000, 120_000, 130_000, 150_000, 180_000, 220_000,
@@ -157,11 +192,16 @@ async function recompute() {
       data: {
         sector: "C",
         sizeBand: "all",
+        geography: "all",
         metricKey,
         period: periodLabel,
+        p10: stats.p10,
         p25: stats.p25,
         p50: stats.p50,
         p75: stats.p75,
+        p90: stats.p90,
+        mean: stats.mean,
+        best: stats.best,
         cohortSize: Math.max(stats.cohortSize, MIN_COHORT_SIZE),
         computedAt,
       },
@@ -184,6 +224,7 @@ async function recompute() {
 /**
  * Recompute benchmark-stats. Never writes n < 8. Deletes stale rows.
  * Live publication gated by CLEARESG_BENCHMARKS_LIVE.
+ * Opted-out orgs excluded from contribution.
  */
 export async function POST(req: Request) {
   const isCron = req.headers.get("x-clearesg-cron") === "1";

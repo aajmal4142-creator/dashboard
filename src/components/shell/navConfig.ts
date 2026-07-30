@@ -1,10 +1,13 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Activity,
   BarChart3,
   BookOpen,
+  Building2,
   ClipboardCheck,
   ClipboardList,
   CreditCard,
+  Database,
   FileText,
   Gauge,
   Inbox,
@@ -14,6 +17,7 @@ import {
   Target,
   Truck,
   Users,
+  Wallet,
 } from "lucide-react";
 
 import { METRICS_HREF, METRICS_LABEL } from "@/lib/metrics";
@@ -40,8 +44,15 @@ export function buildNavGroups(opts: {
     { href: "/", label: "Runway", icon: Gauge, exact: true },
     { href: METRICS_HREF, label: METRICS_LABEL, icon: ClipboardList },
     { href: "/suppliers", label: "Suppliers", icon: Truck },
+    { href: "/suppliers/risk-dashboard", label: "Supplier risk", icon: ShieldCheck },
+    { href: "/spend", label: "Spend", icon: Wallet },
     { href: "/materiality", label: "Materiality", icon: Target },
     { href: "/reports", label: "Reports", icon: FileText },
+    { href: "/tcfd", label: "TCFD", icon: ClipboardCheck },
+    { href: "/issb", label: "ISSB", icon: BookOpen },
+    { href: "/compliance-templates", label: "Templates", icon: ListChecks },
+    { href: "/iot", label: "IoT", icon: Activity },
+    { href: "/database", label: "Database", icon: Database },
   ];
 
   const collaborate: NavItem[] = [
@@ -65,6 +76,11 @@ export function buildNavGroups(opts: {
   const assure: NavItem[] = [
     { href: "/guide", label: "Guide", icon: BookOpen },
     { href: "/assurance", label: "Assurance", icon: ClipboardCheck },
+    {
+      href: "/assurance-partners",
+      label: "Partners",
+      icon: Building2,
+    },
     { href: "/audit", label: "Audit", icon: ShieldCheck },
     { href: "/benchmarks", label: "Benchmarks", icon: BarChart3 },
   ];

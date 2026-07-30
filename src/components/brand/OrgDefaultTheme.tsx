@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import type { BrandModeKey } from "@/lib/branding";
 import { THEME_COOKIE, isTheme } from "@/lib/theme";
+import { applyTheme } from "@/lib/theme/client";
 
 function readThemeCookie(): string | null {
   if (typeof document === "undefined") return null;
@@ -12,7 +13,8 @@ function readThemeCookie(): string | null {
 }
 
 /**
- * When the user has no personal theme cookie, apply the org defaultMode once.
+ * When the user has no personal theme cookie, apply the org defaultMode once
+ * (writes clearesg-theme so SSR matches on the next request).
  * Does not override an existing clearesg-theme preference.
  */
 export function OrgDefaultTheme({ defaultMode }: { defaultMode: BrandModeKey | null }) {
@@ -20,9 +22,7 @@ export function OrgDefaultTheme({ defaultMode }: { defaultMode: BrandModeKey | n
     if (!defaultMode) return;
     const existing = readThemeCookie();
     if (isTheme(existing)) return;
-    document.documentElement.setAttribute("data-theme", defaultMode);
-    document.documentElement.style.colorScheme =
-      defaultMode === "dark" ? "dark" : "light";
+    applyTheme(defaultMode);
   }, [defaultMode]);
 
   return null;

@@ -1,5 +1,7 @@
 import type { Payload } from "payload";
-import { MIN_COHORT_SIZE, percentileRank } from "@/lib/benchmarks";
+import { MIN_COHORT_SIZE, percentileRank, syntheticCohortSample } from "@/lib/benchmarks";
+import { findMatchingPeerGroup, loadOrgMetricValue } from "@/lib/benchmarks/lookup";
+import { mayPublishBenchmarkCohorts } from "@/lib/launch/gates";
 
 export interface PeerBenchmark {
   metricKey: string;
@@ -8,6 +10,8 @@ export interface PeerBenchmark {
   p50: number;
   p75: number;
   p90: number;
+  mean?: number;
+  best?: number;
   cohortSize: number;
   yourValue?: number;
   percentileRank?: number;
@@ -30,13 +34,16 @@ export interface BenchmarkComparison {
 }
 
 /**
- * Calculate anonymized peer benchmarks for an organization
+ * Calculate anonymized peer benchmarks for an organization.
+ * Honours launch consent gate and cohort minimum.
  */
 export async function calculatePeerBenchmarks(
   payload: Payload,
   orgId: string,
   metricKey: string,
 ): Promise<PeerBenchmark | null> {
+  if (!mayPublishBenchmarkCohorts()) return null;
+
   const org = await payload.findByID({
     collection: "organisations",
     id: orgId,
@@ -45,62 +52,33 @@ export async function calculatePeerBenchmarks(
 
   if (!org) return null;
 
-  const sectorPrefix = org.sector?.trim().charAt(0).toUpperCase() || "C";
-
-  // Get benchmark stats from database
-  const stats = await payload.find({
-    collection: "benchmark-stats",
-    where: {
-      and: [
-        { metricKey: { equals: metricKey } },
-        { sector: { equals: sectorPrefix } },
-        { cohortSize: { greater_than_equal: MIN_COHORT_SIZE } },
-      ],
+  const match = await findMatchingPeerGroup(
+    payload,
+    {
+      sector: org.sector,
+      revenueBand: org.revenueBand,
+      country: org.country,
     },
-    limit: 1,
-    overrideAccess: true,
+    { metricKey },
+  );
+
+  if (!match || match.row.cohortSize < MIN_COHORT_SIZE) return null;
+
+  const row = match.row;
+  const p10 = row.p10 ?? Math.round(row.p25 * 0.7 * 100) / 100;
+  const p90 = row.p90 ?? Math.round(row.p75 * 1.3 * 100) / 100;
+  const mean = row.mean ?? row.p50;
+  const best = row.best ?? p10;
+
+  const userValue = await loadOrgMetricValue(payload, orgId, metricKey);
+  const sample = syntheticCohortSample({
+    p10,
+    p25: row.p25,
+    p50: row.p50,
+    p75: row.p75,
+    p90,
   });
-
-  if (!stats.docs[0] || stats.docs[0].cohortSize < MIN_COHORT_SIZE) {
-    return null;
-  }
-
-  const row = stats.docs[0];
-
-  // Get org's current value
-  const periods = await payload.find({
-    collection: "reporting-periods",
-    where: {
-      and: [{ organisation: { equals: orgId } }, { status: { equals: "open" } }],
-    },
-    limit: 1,
-    overrideAccess: true,
-  });
-
-  let userValue: number | undefined;
-  if (periods.docs[0]) {
-    const dp = await payload.find({
-      collection: "datapoints",
-      where: {
-        and: [
-          { organisation: { equals: orgId } },
-          { period: { equals: periods.docs[0].id } },
-          { metricKey: { equals: metricKey } },
-        ],
-      },
-      limit: 1,
-      overrideAccess: true,
-    });
-    const v = dp.docs[0]?.value;
-    userValue = typeof v === "number" ? v : undefined;
-  }
-
-  // Compute p90 and p10 from distribution
-  const p10 = row.p25 * 0.7; // Approximate
-  const p90 = row.p75 * 1.3; // Approximate
-
-  const synthetic = [p10, row.p25, row.p50, row.p75, p90].sort((a, b) => a - b);
-  const rank = userValue !== undefined ? percentileRank(synthetic, userValue) : undefined;
+  const rank = userValue !== null ? percentileRank(sample, userValue) : undefined;
 
   return {
     metricKey,
@@ -109,67 +87,24 @@ export async function calculatePeerBenchmarks(
     p50: row.p50,
     p75: row.p75,
     p90,
+    mean,
+    best,
     cohortSize: row.cohortSize,
-    yourValue: userValue,
+    yourValue: userValue ?? undefined,
     percentileRank: rank,
   };
 }
 
 /**
- * Get anonymized peer list for an org
+ * @deprecated Peer org lists are never returned — privacy. Use peer-group / comparison APIs.
+ * Always returns []. Kept so callers do not accidentally show synthetic company labels.
  */
 export async function getAnonymizedPeers(
-  payload: Payload,
-  orgId: string,
-  limit = 10,
-): Promise<
-  Array<{
-    id: string;
-    name: string;
-    industry: string;
-    size: string;
-  }>
-> {
-  const org = await payload.findByID({
-    collection: "organisations",
-    id: orgId,
-    overrideAccess: true,
-  });
-
-  if (!org) return [];
-
-  // Get similar orgs by industry and size
-  const peers = await payload.find({
-    collection: "organisations",
-    where: {
-      and: [
-        { sector: { equals: org.sector } },
-        { id: { not_equals: orgId } },
-        { benchmarkOptOut: { not_equals: true } },
-      ],
-    },
-    limit: limit + 5, // Get extra in case some are opted out
-    overrideAccess: true,
-  });
-
-  // Anonymize: return Company A, Company B, etc.
-  const companies = [
-    "Alpha",
-    "Beta",
-    "Gamma",
-    "Delta",
-    "Epsilon",
-    "Zeta",
-    "Eta",
-    "Theta",
-  ];
-
-  return peers.docs.slice(0, limit).map((peer, idx) => ({
-    id: peer.id as string,
-    name: `Company ${companies[idx] || String.fromCharCode(65 + idx)}`,
-    industry: peer.sector as string,
-    size: peer.revenueBand || "Unknown",
-  }));
+  _payload: Payload,
+  _orgId: string,
+  _limit = 10,
+): Promise<[]> {
+  return [];
 }
 
 /**

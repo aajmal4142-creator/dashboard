@@ -1,6 +1,12 @@
 import type { CollectionConfig, PayloadRequest } from "payload";
 
 import { tenantAccess } from "@/lib/access";
+import {
+  actorFromDoc,
+  orgIdFromDoc,
+  recordDatapointVersion,
+  type DatapointVersionContext,
+} from "@/lib/data/recordVersion";
 import { NO_SUPPLIER_KEY, supplierKeyFrom } from "@/lib/suppliers/supplierKey";
 
 async function periodIsWritable(req: PayloadRequest, periodId: string): Promise<boolean> {
@@ -110,6 +116,82 @@ export const Datapoints: CollectionConfig = {
           data.enteredAt = new Date().toISOString();
         }
         return data;
+      },
+    ],
+    afterChange: [
+      async ({ doc, previousDoc, operation, req, context }) => {
+        const versionCtx = context as DatapointVersionContext | undefined;
+        if (versionCtx?.skipDatapointVersion) return doc;
+
+        const organisationId = orgIdFromDoc(doc as unknown as Record<string, unknown>);
+        if (!organisationId) return doc;
+
+        const changedBy =
+          versionCtx?.changedBy ??
+          (req.user?.id ? String(req.user.id) : null) ??
+          actorFromDoc(doc as unknown as Record<string, unknown>);
+
+        const changeType =
+          versionCtx?.changeType ?? (operation === "create" ? "create" : "update");
+
+        try {
+          await recordDatapointVersion(req.payload, {
+            organisationId,
+            datapointId: String(doc.id),
+            changeType,
+            previousDoc:
+              operation === "create"
+                ? null
+                : ((previousDoc as Record<string, unknown> | undefined) ?? null),
+            nextDoc: doc as unknown as Record<string, unknown>,
+            changedBy,
+            reason: versionCtx?.reason ?? null,
+          });
+        } catch (err) {
+          console.error("[datapoint-versions] afterChange failed", err);
+        }
+        return doc;
+      },
+    ],
+    beforeDelete: [
+      async ({ id, req, context }) => {
+        const versionCtx = context as DatapointVersionContext | undefined;
+        if (versionCtx?.skipDatapointVersion) return;
+
+        let doc: Record<string, unknown>;
+        try {
+          const existing = await req.payload.findByID({
+            collection: "datapoints",
+            id: String(id),
+            depth: 0,
+            overrideAccess: true,
+          });
+          doc = existing as unknown as Record<string, unknown>;
+        } catch {
+          return;
+        }
+
+        const organisationId = orgIdFromDoc(doc);
+        if (!organisationId) return;
+
+        const changedBy =
+          versionCtx?.changedBy ??
+          (req.user?.id ? String(req.user.id) : null) ??
+          actorFromDoc(doc);
+
+        try {
+          await recordDatapointVersion(req.payload, {
+            organisationId,
+            datapointId: String(id),
+            changeType: "delete",
+            previousDoc: doc,
+            nextDoc: null,
+            changedBy,
+            reason: versionCtx?.reason ?? null,
+          });
+        } catch (err) {
+          console.error("[datapoint-versions] beforeDelete failed", err);
+        }
       },
     ],
   },

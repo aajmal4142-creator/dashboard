@@ -2,17 +2,14 @@ import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
+import { buildComparison } from "@/lib/benchmarks";
+import { getBenchmarkStatus, getBenchmarkInsights } from "@/lib/analytics/benchmarking";
 import config from "@/payload.config";
-import {
-  calculatePeerBenchmarks,
-  getAnonymizedPeers,
-  getBenchmarkStatus,
-  getBenchmarkInsights,
-} from "@/lib/analytics/benchmarking";
 
 /**
  * GET /api/app/analytics/benchmarks
- * Get peer benchmarks for organization
+ * Peer benchmarks for organisation — aligns with /api/app/benchmarks*.
+ * Never returns peer organisation names or ids.
  */
 export async function GET(req: Request) {
   const ctx = await getCurrentContext();
@@ -21,50 +18,60 @@ export async function GET(req: Request) {
   }
 
   try {
-    const url = new URL(req.url);
-    const metricKey = url.searchParams.get("metricKey") || "electricity_kwh";
-
+    const metricKey = new URL(req.url).searchParams.get("metricKey") || "electricity_kwh";
     const payload = await getPayload({ config });
 
-    const benchmark = await calculatePeerBenchmarks(
+    const result = await buildComparison(
       payload,
-      ctx.activeOrg.id as string,
+      {
+        id: ctx.activeOrg.id as string,
+        sector: ctx.activeOrg.sector,
+        revenueBand: ctx.activeOrg.revenueBand,
+        country: ctx.activeOrg.country,
+        benchmarkOptOut: ctx.activeOrg.benchmarkOptOut,
+      },
       metricKey,
     );
 
-    if (!benchmark) {
-      return NextResponse.json(
-        {
-          available: false,
-          reason: "not_enough_peers",
-          message: "Not enough peers to generate benchmark",
-        },
-        { status: 200 },
-      );
+    if (!result.available) {
+      return NextResponse.json({
+        available: false,
+        reason: result.reason,
+        message: result.message,
+        minCohortSize: result.minCohortSize,
+        cohortGate: result.cohortGate,
+        benchmarkOptOut: result.benchmarkOptOut,
+      });
     }
 
-    const status = getBenchmarkStatus(benchmark.percentileRank);
+    const status = getBenchmarkStatus(result.percentileRank ?? undefined);
     const insights = getBenchmarkInsights(status);
-
-    // Get peer list
-    const peers = await getAnonymizedPeers(payload, ctx.activeOrg.id as string);
 
     return NextResponse.json({
       available: true,
       benchmark: {
-        metricKey: benchmark.metricKey,
-        p10: benchmark.p10,
-        p25: benchmark.p25,
-        p50: benchmark.p50,
-        p75: benchmark.p75,
-        p90: benchmark.p90,
-        cohortSize: benchmark.cohortSize,
-        yourValue: benchmark.yourValue,
-        percentileRank: benchmark.percentileRank,
+        metricKey: result.peerGroup.metricKey,
+        p10: result.stats.p10,
+        p25: result.stats.p25,
+        p50: result.stats.p50,
+        p75: result.stats.p75,
+        p90: result.stats.p90,
+        mean: result.stats.mean,
+        best: result.stats.best,
+        median: result.stats.median,
+        cohortSize: result.peerGroup.cohortSize,
+        yourValue: result.comparison.you ?? undefined,
+        percentileRank: result.percentileRank ?? undefined,
       },
+      peerGroup: result.peerGroup,
+      comparison: result.comparison,
+      gaps: result.gaps,
+      trend: result.trend,
       status,
       insights,
-      peers,
+      cohortGate: result.cohortGate,
+      minCohortSize: result.minCohortSize,
+      benchmarkOptOut: result.benchmarkOptOut,
     });
   } catch (error) {
     console.error("Benchmark error:", error);

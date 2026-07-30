@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -10,10 +9,14 @@ import {
 } from "lucide-react";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
+import { useDocumentTheme } from "@/lib/theme/client";
+
 const Toaster = ({ ...props }: ToasterProps) => {
+  const theme = useDocumentTheme();
+
   return (
     <Sonner
-      theme="system"
+      theme={theme}
       className="toaster group"
       position="bottom-right"
       icons={{

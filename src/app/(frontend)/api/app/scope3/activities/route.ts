@@ -134,7 +134,10 @@ export async function POST(req: Request) {
 
   // Validate and process activities
   const validator = new Scope3Validator();
-  const factorService = new EmissionsFactorService();
+  const factorService = new EmissionsFactorService({
+    factors: [],
+    standard: "GHGProtocol2004",
+  });
 
   const errors: Array<{ row: number; error: string }> = [];
   const imported: Array<{ id: string; emissions: number }> = [];

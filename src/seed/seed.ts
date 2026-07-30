@@ -3,6 +3,7 @@ import "dotenv/config";
 import { getPayload } from "payload";
 
 import config from "../payload.config";
+import { ensureAssurancePartners } from "../lib/assurancePartners";
 import { DERIVED_METRICS } from "../lib/derive/registry";
 import { emissionFactors } from "./emission-factors.seed";
 import { metricDefinitions } from "./metric-definitions.seed";
@@ -333,6 +334,7 @@ async function upsertEmissionFactors(payload: Awaited<ReturnType<typeof getPaylo
           { key: { equals: factor.key } },
           { region: { equals: factor.region } },
           { publicationYear: { equals: factor.publicationYear } },
+          { standard: { equals: factor.standard } },
         ],
       },
       limit: 1,
@@ -727,6 +729,12 @@ async function main() {
 
   console.log("Seed complete.");
   console.log(`Demo user: ${demoEmail} / ClearESG-demo-change-me`);
+
+  const assuranceSeed = await ensureAssurancePartners(payload);
+  console.log(
+    `Assurance partners: created ${assuranceSeed.created.length}, existing ${assuranceSeed.existing.length}`,
+  );
+
   process.exit(0);
 }
 

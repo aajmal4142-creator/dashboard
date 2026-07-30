@@ -10,7 +10,15 @@ import {
 } from "@/components/shell/PageFrame";
 import { Button } from "@/components/ui/button";
 import type { MembershipRole } from "@/lib/access/membership";
+import type { GapCallout } from "@/lib/benchmarks";
 import { sectorLabel } from "@/lib/ui/displayLabels";
+
+type Trend = {
+  currentRank: number | null;
+  previousRank: number | null;
+  delta: number | null;
+  direction: "improved" | "worsened" | "flat" | "unknown";
+};
 
 type BenchmarkPayload =
   | {
@@ -18,19 +26,38 @@ type BenchmarkPayload =
       reason?: string;
       message?: string;
       minCohortSize: number;
+      cohortGate?: string;
       benchmarkOptOut?: boolean;
     }
   | {
       available: true;
       sector: string;
+      sizeBand?: string;
+      geography?: string;
       metricKey: string;
+      period?: string;
+      matchTier?: string;
+      p10?: number;
       p25: number;
       p50: number;
       p75: number;
+      p90?: number;
+      mean?: number;
+      best?: number;
+      median?: number;
       cohortSize: number;
       computedAt?: string | null;
       userValue: number | null;
       percentileRank: number | null;
+      comparison?: {
+        you: number | null;
+        median: number;
+        best: number;
+        mean: number;
+      };
+      gaps?: GapCallout[];
+      trend?: Trend;
+      cohortGate?: string;
       improve: Array<{ label: string; href: string }>;
       benchmarkOptOut?: boolean;
     };
@@ -51,6 +78,59 @@ function emptyBenchmarkBody(
     data.message ??
     `Not enough peers yet. We need at least ${data.minCohortSize} organisations before percentiles appear.`
   );
+}
+
+function exportComparisonCsv(data: Extract<BenchmarkPayload, { available: true }>) {
+  const you = data.comparison?.you ?? data.userValue;
+  const median = data.comparison?.median ?? data.p50;
+  const best = data.comparison?.best ?? data.best ?? data.p10 ?? "";
+  const mean = data.comparison?.mean ?? data.mean ?? "";
+  const rows = [
+    ["field", "value"],
+    ["metricKey", data.metricKey],
+    ["sector", data.sector],
+    ["sizeBand", data.sizeBand ?? ""],
+    ["geography", data.geography ?? ""],
+    ["period", data.period ?? ""],
+    ["cohortSize", String(data.cohortSize)],
+    ["you", you === null || you === undefined ? "" : String(you)],
+    ["median", String(median)],
+    ["mean", String(mean)],
+    ["best", String(best)],
+    ["p10", String(data.p10 ?? "")],
+    ["p25", String(data.p25)],
+    ["p50", String(data.p50)],
+    ["p75", String(data.p75)],
+    ["p90", String(data.p90 ?? "")],
+    ["percentileRank", data.percentileRank === null ? "" : String(data.percentileRank)],
+    ["trendDirection", data.trend?.direction ?? ""],
+    [
+      "trendDelta",
+      data.trend?.delta === null || data.trend?.delta === undefined
+        ? ""
+        : String(data.trend.delta),
+    ],
+  ];
+  for (const g of data.gaps ?? []) {
+    rows.push([`gap_${g.metricKey}_vs_median`, String(g.gapVsMedian)]);
+    rows.push([`gap_${g.metricKey}_severity`, g.severity]);
+  }
+  const csv = rows
+    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `benchmark-comparison-${data.metricKey}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function severityClass(severity: GapCallout["severity"]): string {
+  if (severity === "ahead") return "text-signal";
+  if (severity === "behind") return "text-rust";
+  return "text-ink-muted";
 }
 
 export function BenchmarksClient({
@@ -124,20 +204,32 @@ export function BenchmarksClient({
     <PageFrame
       eyebrow="Benchmarking"
       title="Sector position"
-      help="Comparisons stay private until at least eight organisations share a sector cohort."
+      help="Comparisons stay private until at least eight organisations share a sector cohort. Peer names are never shown."
       actions={
-        showRecompute ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => void recompute()}
-          >
-            {!data.available ? "Check for new peers" : "Refresh cohorts"}
-          </Button>
-        ) : role !== null ? (
-          <p className="text-[13px] text-ink-muted">Cohort refresh is admin-only</p>
-        ) : null
+        <div className="flex flex-wrap items-center gap-2">
+          {data.available ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => exportComparisonCsv(data)}
+            >
+              Export comparison
+            </Button>
+          ) : null}
+          {showRecompute ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => void recompute()}
+            >
+              {!data.available ? "Check for new peers" : "Refresh cohorts"}
+            </Button>
+          ) : role !== null ? (
+            <p className="text-[13px] text-ink-muted">Cohort refresh is admin-only</p>
+          ) : null}
+        </div>
       }
       rail={
         <div className="space-y-3 text-[13px] text-ink-muted">
@@ -146,8 +238,12 @@ export function BenchmarksClient({
           </p>
           <p>
             Opted-out organisations neither contribute nor appear. Small cohorts never
-            surface percentiles. No min/max peer values are shown.
+            surface percentiles. No peer names or min/max values are shown. Best is a p10
+            proxy, not a named leader.
           </p>
+          {"cohortGate" in data && data.cohortGate ? (
+            <p className="text-[11px] leading-relaxed">{data.cohortGate}</p>
+          ) : null}
           {canRecompute ? (
             <Button
               type="button"
@@ -174,8 +270,35 @@ export function BenchmarksClient({
               {data.computedAt ? (
                 <p className="mb-4 text-[11px] text-ink-muted">
                   As of {new Date(data.computedAt).toISOString().slice(0, 10)}
+                  {data.period ? ` · ${data.period}` : ""}
+                  {data.sizeBand ? ` · size ${data.sizeBand}` : ""}
+                  {data.geography && data.geography !== "all"
+                    ? ` · ${data.geography}`
+                    : ""}
                 </p>
               ) : null}
+
+              <div className="mb-6 grid grid-cols-3 gap-3 border-b border-rule pb-4">
+                {(
+                  [
+                    ["You", data.comparison?.you ?? data.userValue],
+                    ["Median", data.comparison?.median ?? data.p50],
+                    ["Best", data.comparison?.best ?? data.best ?? data.p10 ?? null],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div key={label}>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                      {label}
+                    </p>
+                    <p className="mt-1 font-data text-[18px] text-ink">
+                      {value === null || value === undefined
+                        ? "—"
+                        : value.toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
               <div className="flex items-end gap-2">
                 {(
                   [
@@ -200,19 +323,76 @@ export function BenchmarksClient({
                   </div>
                 ))}
               </div>
+
+              {data.mean !== undefined ? (
+                <p className="mt-4 font-data text-[12px] text-ink-muted">
+                  Mean {data.mean.toLocaleString()}
+                  {data.p10 !== undefined ? ` · p10 ${data.p10.toLocaleString()}` : ""}
+                  {data.p90 !== undefined ? ` · p90 ${data.p90.toLocaleString()}` : ""}
+                </p>
+              ) : null}
+
               {data.userValue !== null ? (
-                <p className="mt-6 font-data text-[13px] text-ink">
+                <p className="mt-4 font-data text-[13px] text-ink">
                   You: {data.userValue.toLocaleString()}
                   {data.percentileRank !== null
                     ? ` · ~${data.percentileRank}th percentile`
                     : ""}
                 </p>
               ) : (
-                <p className="mt-6 text-[13px] text-ink-muted">
+                <p className="mt-4 text-[13px] text-ink-muted">
                   Enter {data.metricKey} to mark your position.
                 </p>
               )}
             </PageCard>
+
+            {data.gaps && data.gaps.length > 0 ? (
+              <PageCard title="Gap callouts">
+                <ul className="space-y-3">
+                  {data.gaps.map((g) => (
+                    <li
+                      key={g.metricKey}
+                      className="border-b border-rule pb-3 last:border-b-0 last:pb-0"
+                    >
+                      <p className={`text-[13px] ${severityClass(g.severity)}`}>
+                        {g.message}
+                      </p>
+                      <p className="mt-1 font-data text-[11px] text-ink-muted">
+                        You {g.yourValue.toLocaleString()} · Median{" "}
+                        {g.median.toLocaleString()} · Best {g.best.toLocaleString()}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </PageCard>
+            ) : null}
+
+            {data.trend ? (
+              <PageCard title="Trend vs peers">
+                {data.trend.direction === "unknown" ? (
+                  <p className="text-[13px] text-ink-muted">
+                    Prior-period cohort not available yet. Rank will trend once two fiscal
+                    years of cohorts exist.
+                  </p>
+                ) : (
+                  <p className="text-[13px] text-ink">
+                    Percentile{" "}
+                    <span className="font-data">
+                      {data.trend.previousRank ?? "—"} → {data.trend.currentRank ?? "—"}
+                    </span>
+                    {data.trend.delta !== null
+                      ? ` (${data.trend.delta > 0 ? "+" : ""}${data.trend.delta})`
+                      : ""}
+                    {" · "}
+                    {data.trend.direction === "improved"
+                      ? "Improved vs prior cohort"
+                      : data.trend.direction === "worsened"
+                        ? "Worsened vs prior cohort"
+                        : "Flat vs prior cohort"}
+                  </p>
+                )}
+              </PageCard>
+            ) : null}
 
             <PageCard title="How to improve">
               <ul>

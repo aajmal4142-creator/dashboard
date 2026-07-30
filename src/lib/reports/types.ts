@@ -1,8 +1,19 @@
-import type { CalcResult } from "@/lib/calc";
+import type { CalcResult, Quality } from "@/lib/calc";
 import type { MatrixPoint } from "@/lib/materiality";
+
+import type { ReportDataGap } from "./dataGaps";
+import type { EsrsDisclosures } from "./esrsNarrative";
 
 export const REPORT_DISCLAIMER =
   "ClearESG is not an assurance provider. This report summarises management-reported data and calculated estimates. It is not an audit opinion.";
+
+export type ScopeBreakdownRow = {
+  value: number;
+  quality: Quality;
+  sources: string[];
+  methodology: string;
+  uncertainties: string;
+};
 
 export type ReportSnapshot = {
   organisationName: string;
@@ -25,12 +36,42 @@ export type ReportSnapshot = {
   band: CalcResult["band"];
   breakdown: CalcResult["breakdown"];
   factorsUsed: CalcResult["factorsUsed"];
+  /** Methodology standard that produced the pinned factors. */
+  emissionsStandard?: string;
   materiality: {
     narrative: string | null;
     points: MatrixPoint[];
   };
   evidenceIndex: Array<{ filename: string; sha256: string; metricKey?: string }>;
   disclaimer: string;
+  /** Org logo absolute or site-relative URL for PDF cover branding. */
+  logoUrl?: string | null;
+  brandingAccent?: string | null;
+  preparedBy?: { id: string; name: string } | null;
+  preparedAt?: string;
+  approvedBy?: { id: string; name: string } | null;
+  approvedAt?: string | null;
+  preparerNotes?: string | null;
+  yoy?: {
+    previousPeriodLabel: string;
+    previousTotal: number;
+    changePct: number | null;
+  } | null;
+  scopeBreakdown?: {
+    scope1: ScopeBreakdownRow;
+    scope2: ScopeBreakdownRow;
+    scope3: ScopeBreakdownRow;
+  };
+  esrsDisclosures?: EsrsDisclosures;
+  dataGaps?: ReportDataGap[];
+  dataIntegrity?: {
+    datePrepared: string;
+    preparerNotes: string | null;
+    evidenceCount: number;
+    factorCount: number;
+    auditTrail: Array<{ label: string; detail: string }>;
+  };
+  complianceDeclaration?: string;
 };
 
 export function diffSnapshots(
@@ -106,6 +147,16 @@ export function diffSnapshots(
     });
   }
 
+  const aGaps = a.dataGaps?.length ?? 0;
+  const bGaps = b.dataGaps?.length ?? 0;
+  if (aGaps !== bGaps) {
+    diffs.push({
+      path: "dataGaps.count",
+      from: String(aGaps),
+      to: String(bGaps),
+    });
+  }
+
   return diffs;
 }
 
@@ -130,6 +181,9 @@ export function snapshotToCsv(snapshot: ReportSnapshot): string {
     lines.push(
       `materiality,${p.esrsTopic},${p.material ? "material" : "below"};impact=${p.impactScore};financial=${p.financialScore}`,
     );
+  }
+  for (const g of snapshot.dataGaps ?? []) {
+    lines.push(`dataGap,${g.code},${csv(g.severity + ": " + g.message)}`);
   }
   return lines.join("\n");
 }

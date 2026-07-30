@@ -37,6 +37,7 @@ export const IoTDevices: CollectionConfig = {
       type: "select",
       required: true,
       options: [
+        { label: "HTTP / REST sensor", value: "http" },
         { label: "MQTT Sensor", value: "mqtt" },
         { label: "Modbus Device", value: "modbus" },
         { label: "OPC-UA Server", value: "opc_ua" },
@@ -59,10 +60,12 @@ export const IoTDevices: CollectionConfig = {
     {
       name: "status",
       type: "select",
-      defaultValue: "disconnected",
+      defaultValue: "offline",
       options: [
-        { label: "Connected", value: "connected" },
-        { label: "Disconnected", value: "disconnected" },
+        { label: "Online", value: "online" },
+        { label: "Offline", value: "offline" },
+        { label: "Connected (legacy)", value: "connected" },
+        { label: "Disconnected (legacy)", value: "disconnected" },
         { label: "Error", value: "error" },
         { label: "Maintenance", value: "maintenance" },
       ],
@@ -74,8 +77,72 @@ export const IoTDevices: CollectionConfig = {
       admin: { description: "Last successful data transmission" },
     },
     {
+      name: "offlineAfterMinutes",
+      type: "number",
+      defaultValue: 60,
+      admin: {
+        description: "Mark offline when no heartbeat for this many minutes",
+      },
+    },
+    {
+      name: "retentionDays",
+      type: "number",
+      defaultValue: 365,
+      admin: { description: "Stream retention policy (~12 months default)" },
+    },
+    {
+      name: "apiKeyHash",
+      type: "text",
+      admin: {
+        readOnly: true,
+        description: "SHA-256 of device API key (never store plaintext)",
+      },
+    },
+    {
+      name: "apiKeyPrefix",
+      type: "text",
+      admin: {
+        readOnly: true,
+        description: "First characters of API key for identification",
+      },
+    },
+    {
+      name: "sensorMappings",
+      type: "array",
+      admin: {
+        description: "Map sensorType → emissions metric / scope (overrides defaults)",
+      },
+      fields: [
+        {
+          name: "sensorType",
+          type: "text",
+          required: true,
+        },
+        {
+          name: "metricKey",
+          type: "text",
+          required: true,
+          admin: { description: "Datapoint metric key (e.g. electricity_kwh)" },
+        },
+        {
+          name: "unit",
+          type: "text",
+        },
+        {
+          name: "scope",
+          type: "select",
+          options: [
+            { label: "Scope 1", value: "1" },
+            { label: "Scope 2", value: "2" },
+            { label: "Scope 3", value: "3" },
+          ],
+        },
+      ],
+    },
+    {
       name: "dataPoints",
       type: "array",
+      admin: { description: "Legacy point definitions (prefer sensorMappings)" },
       fields: [
         {
           name: "pointName",
@@ -109,7 +176,10 @@ export const IoTDevices: CollectionConfig = {
       name: "anomalyThreshold",
       type: "number",
       defaultValue: 20,
-      admin: { description: "Threshold % for anomaly detection" },
+      admin: {
+        description:
+          "Legacy % threshold (detection now uses 3σ / 3× baseline in lib/iot)",
+      },
     },
     {
       name: "location",
@@ -125,7 +195,7 @@ export const IoTDevices: CollectionConfig = {
       name: "credentials",
       type: "text",
       admin: {
-        description: "Encrypted credentials for device access (API key, username)",
+        description: "Deprecated plaintext field — use apiKeyHash / rotate via API",
       },
     },
   ],

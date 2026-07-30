@@ -38,6 +38,7 @@ export type AuthContext = {
     type: "company" | "consultancy";
     country: string;
     sector: string;
+    revenueBand: string | null;
     fiscalYearEnd: string | null;
     onboardedAt: string | null;
     plan: string;
@@ -129,6 +130,7 @@ async function resolveActiveOrg(
       type: org.type,
       country: org.country,
       sector: org.sector,
+      revenueBand: org.revenueBand ?? null,
       fiscalYearEnd: org.fiscalYearEnd ?? null,
       onboardedAt: org.onboardedAt ? String(org.onboardedAt) : null,
       plan: org.plan ?? "free",

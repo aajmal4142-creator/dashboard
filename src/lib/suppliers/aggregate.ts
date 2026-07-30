@@ -6,6 +6,7 @@ import type { Payload } from "payload";
 
 import { writeAuditLog } from "@/lib/audit/write";
 import { FACTOR_KEYS, resolveFactor, type FactorRecord } from "@/lib/calc";
+import { loadOrgEmissionFactors } from "@/lib/factors";
 import {
   SUPPLIER_REPORTED_METRIC,
   SUPPLIER_SPEND_ESTIMATE_METRIC,
@@ -22,25 +23,6 @@ export type SubmittedSupplierData = {
   /** Explicit metered flag — only then quality may be measured. */
   is_metered?: boolean | null;
 };
-
-async function loadFactors(payload: Payload): Promise<FactorRecord[]> {
-  const factorsResult = await payload.find({
-    collection: "emission-factors",
-    limit: 500,
-    overrideAccess: true,
-  });
-  return factorsResult.docs.map((f) => ({
-    id: f.id,
-    key: f.key,
-    value: f.value,
-    unit: f.unit,
-    source: f.source,
-    publicationYear: f.publicationYear,
-    region: f.region,
-    validFrom: f.validFrom ? String(f.validFrom) : undefined,
-    validUntil: f.validUntil ? String(f.validUntil) : undefined,
-  }));
-}
 
 async function upsertContribution(
   payload: Payload,
@@ -142,7 +124,7 @@ export async function reaggregateScope3Contributions(
     new Date(String(period.endDate)).getFullYear() ??
     new Date().getFullYear();
 
-  const factors = await loadFactors(payload);
+  const { factors } = await loadOrgEmissionFactors(payload, org);
   let spendFactor: FactorRecord | null = null;
   try {
     spendFactor = resolveFactor(factors, FACTOR_KEYS.spend, region, year);

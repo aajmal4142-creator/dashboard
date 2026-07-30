@@ -118,20 +118,14 @@ export interface Config {
     scenarios: Scenario;
     'decarbonization-pathways': DecarbonizationPathway;
     'trend-forecasts': TrendForecast;
-    'salesforce-connections': SalesforceConnection;
-    'netsuite-connections': NetsuiteConnection;
     'accounting-connections': AccountingConnection;
     'integration-sync-logs': IntegrationSyncLog;
-    'sap-connections': SapConnection;
-    'datawarehouse-connections': DatawarehouseConnection;
-    'powerbi-connections': PowerbiConnection;
-    'tableau-connections': TableauConnection;
     'custom-roles': CustomRole;
     'saved-filters': SavedFilter;
     'bulk-operations': BulkOperation;
     'free-tier-accounts': FreeTierAccount;
     'iot-devices': IotDevice;
-    'erp-connections': ErpConnection;
+    'iot-data-streams': IotDataStream;
     'data-quality-rules': DataQualityRule;
     'iso-14064-compliance': Iso14064Compliance;
     'assurance-partners': AssurancePartner;
@@ -142,6 +136,15 @@ export interface Config {
     'product-level-footprinting': ProductLevelFootprinting;
     'spend-based-emissions': SpendBasedEmission;
     'regulatory-deadlines': RegulatoryDeadline;
+    'tcfd-disclosures': TcfdDisclosure;
+    'issb-disclosures': IssbDisclosure;
+    'database-connections': DatabaseConnection;
+    'database-sync-logs': DatabaseSyncLog;
+    'bi-api-keys': BiApiKey;
+    'supplier-portal-config': SupplierPortalConfig;
+    'compliance-assessments': ComplianceAssessment;
+    'email-import-logs': EmailImportLog;
+    'datapoint-versions': DatapointVersion;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -200,20 +203,14 @@ export interface Config {
     scenarios: ScenariosSelect<false> | ScenariosSelect<true>;
     'decarbonization-pathways': DecarbonizationPathwaysSelect<false> | DecarbonizationPathwaysSelect<true>;
     'trend-forecasts': TrendForecastsSelect<false> | TrendForecastsSelect<true>;
-    'salesforce-connections': SalesforceConnectionsSelect<false> | SalesforceConnectionsSelect<true>;
-    'netsuite-connections': NetsuiteConnectionsSelect<false> | NetsuiteConnectionsSelect<true>;
     'accounting-connections': AccountingConnectionsSelect<false> | AccountingConnectionsSelect<true>;
     'integration-sync-logs': IntegrationSyncLogsSelect<false> | IntegrationSyncLogsSelect<true>;
-    'sap-connections': SapConnectionsSelect<false> | SapConnectionsSelect<true>;
-    'datawarehouse-connections': DatawarehouseConnectionsSelect<false> | DatawarehouseConnectionsSelect<true>;
-    'powerbi-connections': PowerbiConnectionsSelect<false> | PowerbiConnectionsSelect<true>;
-    'tableau-connections': TableauConnectionsSelect<false> | TableauConnectionsSelect<true>;
     'custom-roles': CustomRolesSelect<false> | CustomRolesSelect<true>;
     'saved-filters': SavedFiltersSelect<false> | SavedFiltersSelect<true>;
     'bulk-operations': BulkOperationsSelect<false> | BulkOperationsSelect<true>;
     'free-tier-accounts': FreeTierAccountsSelect<false> | FreeTierAccountsSelect<true>;
     'iot-devices': IotDevicesSelect<false> | IotDevicesSelect<true>;
-    'erp-connections': ErpConnectionsSelect<false> | ErpConnectionsSelect<true>;
+    'iot-data-streams': IotDataStreamsSelect<false> | IotDataStreamsSelect<true>;
     'data-quality-rules': DataQualityRulesSelect<false> | DataQualityRulesSelect<true>;
     'iso-14064-compliance': Iso14064ComplianceSelect<false> | Iso14064ComplianceSelect<true>;
     'assurance-partners': AssurancePartnersSelect<false> | AssurancePartnersSelect<true>;
@@ -224,6 +221,15 @@ export interface Config {
     'product-level-footprinting': ProductLevelFootprintingSelect<false> | ProductLevelFootprintingSelect<true>;
     'spend-based-emissions': SpendBasedEmissionsSelect<false> | SpendBasedEmissionsSelect<true>;
     'regulatory-deadlines': RegulatoryDeadlinesSelect<false> | RegulatoryDeadlinesSelect<true>;
+    'tcfd-disclosures': TcfdDisclosuresSelect<false> | TcfdDisclosuresSelect<true>;
+    'issb-disclosures': IssbDisclosuresSelect<false> | IssbDisclosuresSelect<true>;
+    'database-connections': DatabaseConnectionsSelect<false> | DatabaseConnectionsSelect<true>;
+    'database-sync-logs': DatabaseSyncLogsSelect<false> | DatabaseSyncLogsSelect<true>;
+    'bi-api-keys': BiApiKeysSelect<false> | BiApiKeysSelect<true>;
+    'supplier-portal-config': SupplierPortalConfigSelect<false> | SupplierPortalConfigSelect<true>;
+    'compliance-assessments': ComplianceAssessmentsSelect<false> | ComplianceAssessmentsSelect<true>;
+    'email-import-logs': EmailImportLogsSelect<false> | EmailImportLogsSelect<true>;
+    'datapoint-versions': DatapointVersionsSelect<false> | DatapointVersionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -372,6 +378,10 @@ export interface Organisation {
      * Custom white-label host (consultant entitlement)
      */
     domain?: string | null;
+    /**
+     * Default emission-factor methodology for calculations and reports. Changing it applies on the next calc / draft report rebuild.
+     */
+    emissionsStandard?: ('DEFRA' | 'IPCC' | 'GHGProtocol2004') | null;
   };
   stripeCustomerId?: string | null;
   plan?: ('free' | 'pro' | 'consultant') | null;
@@ -609,13 +619,24 @@ export interface EmissionFactor {
    */
   unit: string;
   scope: '1' | '2' | '3';
-  source: 'DEFRA' | 'EPA' | 'IEA' | 'CEA_India' | 'GHGProtocol' | 'EEA' | 'NationalInventory';
+  /**
+   * Publisher / citation for this factor row (not the org methodology selector).
+   */
+  source: 'DEFRA' | 'EPA' | 'IEA' | 'CEA_India' | 'GHGProtocol' | 'IPCC' | 'EEA' | 'NationalInventory';
+  /**
+   * Methodology family used when an organisation selects its emissions standard. Distinct from source.
+   */
+  standard: 'DEFRA' | 'IPCC' | 'GHGProtocol2004';
   sourceUrl: string;
   publicationYear: number;
   /**
    * ISO 3166-1 alpha-2 or GLOBAL
    */
   region: string;
+  /**
+   * Relative uncertainty band (±%), when the source publishes one.
+   */
+  uncertaintyPct?: number | null;
   validFrom: string;
   validUntil?: string | null;
   supersededBy?: (string | null) | EmissionFactor;
@@ -750,10 +771,40 @@ export interface Supplier {
      */
     lastDataUpdateAt?: string | null;
   };
+  /**
+   * ESG risk score: Environmental 40% + Social 30% + Governance 30% (higher = worse)
+   */
   riskMetrics?: {
     score?: number | null;
     tier?: ('low' | 'medium' | 'high' | 'critical') | null;
+    /**
+     * Environmental pillar risk (weight 40%)
+     */
+    environmentalScore?: number | null;
+    /**
+     * Social pillar risk (weight 30%)
+     */
+    socialScore?: number | null;
+    /**
+     * Governance pillar risk (weight 30%)
+     */
+    governanceScore?: number | null;
+    /**
+     * Risk flags e.g. missing_emissions, yoy_increase, high_risk_alert
+     */
     flags?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    /**
+     * Mitigation actions: [{id, action, status, createdAt, completedAt}]
+     */
+    mitigations?:
       | {
           [k: string]: unknown;
         }
@@ -1532,6 +1583,9 @@ export interface Report {
   period: string | ReportingPeriod;
   framework: 'CSRD_SET1' | 'CSRD_SIMPLIFIED' | 'BRSR' | 'VSME' | 'GRI' | 'CUSTOM';
   version: number;
+  /**
+   * Draft is regenerable. Published is final and immutable.
+   */
   status: 'draft' | 'published';
   scores?: {
     overall?: number | null;
@@ -1568,6 +1622,48 @@ export interface Report {
   viewCount?: number | null;
   publishedAt?: string | null;
   publishedBy?: (string | null) | User;
+  /**
+   * User who prepared this draft or final report
+   */
+  preparedBy?: (string | null) | User;
+  /**
+   * User who approved the report before final lock
+   */
+  approvedBy?: (string | null) | User;
+  approvedAt?: string | null;
+  /**
+   * Audit / preparer notes included in the Data Integrity PDF section
+   */
+  preparerNotes?: string | null;
+  /**
+   * Set when status becomes published — report is immutable thereafter
+   */
+  lockedAt?: string | null;
+  /**
+   * Append-only history of draft regenerations and final lock events
+   */
+  versionHistory?:
+    | {
+        version: number;
+        status: 'draft' | 'published';
+        at: string;
+        actor?: (string | null) | User;
+        note?: string | null;
+        /**
+         * Diff paths vs previous snapshot when available
+         */
+        changeSummary?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1616,11 +1712,28 @@ export interface BenchmarkStat {
   id: string;
   sector: string;
   sizeBand: string;
+  /**
+   * ISO country or 'all' for geography-agnostic cohort.
+   */
+  geography: string;
   metricKey: string;
   period: string;
+  /**
+   * 10th percentile (also used as privacy-safe best proxy).
+   */
+  p10?: number | null;
   p25: number;
   p50: number;
   p75: number;
+  p90?: number | null;
+  /**
+   * Arithmetic mean of contributing values.
+   */
+  mean?: number | null;
+  /**
+   * Best-in-class proxy (= p10). Never the raw cohort minimum (re-identification risk).
+   */
+  best?: number | null;
   cohortSize: number;
   /**
    * As-of timestamp for this cohort row.
@@ -2547,7 +2660,7 @@ export interface WebhookRegistration {
   createdAt: string;
 }
 /**
- * Audit trail of webhook delivery attempts
+ * Audit trail of webhook delivery attempts and API data ingest batches
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "webhook-logs".
@@ -2555,8 +2668,23 @@ export interface WebhookRegistration {
 export interface WebhookLog {
   id: string;
   organisation: string | Organisation;
+  /**
+   * Webhook registration id, or api-ingest:{batchId} for REST ingest logs
+   */
   webhook_id: string;
   event_type: string;
+  /**
+   * Origin of this log row
+   */
+  source?: ('webhook' | 'api') | null;
+  /**
+   * Ingest batch id when event_type is data.ingest
+   */
+  batch_id?: string | null;
+  /**
+   * Total records considered in an ingest batch
+   */
+  record_count?: number | null;
   /**
    * Event payload (sanitized of sensitive data)
    */
@@ -2961,6 +3089,21 @@ export interface Scenario {
   type: 'baseline' | 'optimistic' | 'pessimistic' | 'custom';
   baselineYear: number;
   targetYear: number;
+  /**
+   * Percent reduction applied to selected scopes.
+   */
+  reductionPercent?: number | null;
+  /**
+   * Scopes the reduction applies to.
+   */
+  scopes?: ('1' | '2' | '3')[] | null;
+  category?: ('renewable' | 'efficiency' | 'behavior' | 'fuel_switching' | 'other') | null;
+  timelineYears?: number | null;
+  capex?: number | null;
+  /**
+   * When set, cost-benefit (savings, ROI, payback) is calculated.
+   */
+  costPerTco2e?: number | null;
   variables?:
     | {
         leverId: string;
@@ -2970,6 +3113,10 @@ export interface Scenario {
         capexRequired?: number | null;
         paybackYears?: number | null;
         implementationTimeline?: number | null;
+        /**
+         * Optional injected effectiveness vs applicable baseline. Omit for 1:1 mapping.
+         */
+        effectiveness?: number | null;
         id?: string | null;
       }[]
     | null;
@@ -3087,141 +3234,13 @@ export interface TrendForecast {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "salesforce-connections".
- */
-export interface SalesforceConnection {
-  id: string;
-  organisationId: string | Organisation;
-  status?: ('pending' | 'connected' | 'failed' | 'expired' | 'revoked') | null;
-  /**
-   * Salesforce instance URL
-   */
-  instanceUrl?: string | null;
-  /**
-   * OAuth access token
-   */
-  accessToken?: string | null;
-  /**
-   * OAuth refresh token
-   */
-  refreshToken?: string | null;
-  /**
-   * Token expiration time
-   */
-  expiresAt?: string | null;
-  /**
-   * Maps Salesforce Account IDs to ClearESG organisation IDs, e.g., { salesforceAccountId: organisationId }
-   */
-  accountMapping?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  syncConfig?: {
-    /**
-     * Sync Salesforce Accounts as supplier orgs
-     */
-    enableAccountSync?: boolean | null;
-    /**
-     * Sync contact data to ClearESG teams
-     */
-    enableContactSync?: boolean | null;
-    /**
-     * Write ESG metrics back to Salesforce records
-     */
-    enableMetricsWrite?: boolean | null;
-    syncFrequency?: ('manual' | 'hourly' | 'daily' | 'weekly') | null;
-  };
-  lastSyncAt?: string | null;
-  lastSyncStatus?: string | null;
-  syncErrorCount?: number | null;
-  connectedAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "netsuite-connections".
- */
-export interface NetsuiteConnection {
-  id: string;
-  organisationId: string | Organisation;
-  status?: ('pending' | 'connected' | 'failed' | 'expired' | 'revoked') | null;
-  /**
-   * NetSuite Account ID
-   */
-  accountId: string;
-  /**
-   * OAuth consumer key
-   */
-  consumerKey?: string | null;
-  /**
-   * OAuth consumer secret
-   */
-  consumerSecret?: string | null;
-  /**
-   * OAuth access token
-   */
-  accessToken?: string | null;
-  /**
-   * OAuth refresh token
-   */
-  refreshToken?: string | null;
-  /**
-   * OAuth token secret (TBA)
-   */
-  accessTokenSecret?: string | null;
-  /**
-   * Token expiration time
-   */
-  expiresAt?: string | null;
-  /**
-   * Maps GL codes to emissions categories, e.g., { "6000": "electricity", "6100": "gas" }
-   */
-  glCodeMapping?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  syncConfig?: {
-    /**
-     * Sync General Ledger balances
-     */
-    enableGlSync?: boolean | null;
-    /**
-     * Sync invoices and POs
-     */
-    enableInvoiceSync?: boolean | null;
-    /**
-     * Calculate spend-based emissions
-     */
-    enableSpendCalculation?: boolean | null;
-    syncFrequency?: ('manual' | 'daily' | 'weekly' | 'monthly') | null;
-  };
-  lastSyncAt?: string | null;
-  lastSyncStatus?: string | null;
-  syncErrorCount?: number | null;
-  connectedAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "accounting-connections".
  */
 export interface AccountingConnection {
   id: string;
   organisationId: string | Organisation;
   provider: 'xero' | 'quickbooks';
-  status?: ('pending' | 'connected' | 'failed' | 'expired' | 'revoked') | null;
+  status?: ('pending' | 'connected' | 'failed' | 'expired') | null;
   /**
    * Xero Tenant ID or QB Realm ID
    */
@@ -3280,10 +3299,10 @@ export interface IntegrationSyncLog {
   id: string;
   organisationId: string | Organisation;
   /**
-   * Foreign key to connection (salesforce-connections, etc.)
+   * Foreign key to connection (accounting-connections, etc.)
    */
   integrationId: string;
-  provider: 'salesforce' | 'netsuite' | 'xero' | 'quickbooks';
+  provider: 'xero' | 'quickbooks' | 'csv' | 'webhook';
   status?: ('success' | 'partial' | 'failed') | null;
   recordsProcessed?: number | null;
   recordsFailed?: number | null;
@@ -3317,349 +3336,6 @@ export interface IntegrationSyncLog {
    * User ID or 'auto'
    */
   triggeredBy?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "sap-connections".
- */
-export interface SapConnection {
-  id: string;
-  organisationId: string | Organisation;
-  status?: ('pending' | 'connected' | 'failed' | 'expired' | 'revoked') | null;
-  /**
-   * SAP environment type
-   */
-  environmentType: 'sandbox' | 'production';
-  /**
-   * SAP System ID (SID)
-   */
-  systemId: string;
-  /**
-   * SAP client number
-   */
-  clientNumber: string;
-  /**
-   * OAuth access token
-   */
-  accessToken?: string | null;
-  /**
-   * OAuth refresh token
-   */
-  refreshToken?: string | null;
-  /**
-   * Token expiration time
-   */
-  expiresAt?: string | null;
-  syncConfig?: {
-    /**
-     * Sync General Ledger balances
-     */
-    enableGlSync?: boolean | null;
-    /**
-     * Sync Bill of Materials
-     */
-    enableBomSync?: boolean | null;
-    /**
-     * Sync production orders and data
-     */
-    enableProductionSync?: boolean | null;
-    /**
-     * Materials to track for emissions
-     */
-    trackingMaterials?:
-      | {
-          materialId: string;
-          materialDescription?: string | null;
-          id?: string | null;
-        }[]
-      | null;
-    syncFrequency?: ('manual' | 'hourly' | 'daily' | 'weekly') | null;
-  };
-  lastSyncAt?: string | null;
-  lastSyncStatus?: string | null;
-  syncErrorCount?: number | null;
-  connectedAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "datawarehouse-connections".
- */
-export interface DatawarehouseConnection {
-  id: string;
-  organisationId: string | Organisation;
-  /**
-   * Data warehouse provider
-   */
-  provider: 'snowflake' | 'bigquery' | 'databricks';
-  /**
-   * Provider-specific configuration (Snowflake: account, warehouse, database, schema, role, username; BigQuery: projectId, datasetId, credentials; Databricks: instanceUrl, token, warehouseId, schemaName)
-   */
-  config:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  exportConfig: {
-    /**
-     * Prefix for exported tables
-     */
-    tablePrefix: string;
-    /**
-     * Automatic export frequency
-     */
-    frequency?: ('manual' | 'hourly' | 'daily' | 'weekly' | 'monthly') | null;
-    /**
-     * Only export changed records
-     */
-    incremental?: boolean | null;
-    /**
-     * Optional data transformations
-     */
-    transformations?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-  };
-  /**
-   * Run test query to verify connection
-   */
-  testConnection?: boolean | null;
-  lastExportAt?: string | null;
-  lastExportStatus?: string | null;
-  lastExportRecords?: number | null;
-  connectedAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "powerbi-connections".
- */
-export interface PowerbiConnection {
-  id: string;
-  organisationId: string | Organisation;
-  /**
-   * Power BI workspace display name
-   */
-  workspaceName: string;
-  /**
-   * Power BI configuration: tenantId, clientId, clientSecret, workspaceId, reportId, refreshSchedule
-   */
-  config:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * OAuth access token
-   */
-  accessToken?: string | null;
-  /**
-   * OAuth refresh token
-   */
-  refreshToken?: string | null;
-  /**
-   * Token expiration time
-   */
-  expiresAt?: string | null;
-  /**
-   * Data source mappings for Power BI datasets
-   */
-  datasetMappings?:
-    | {
-        /**
-         * ClearESG collection name
-         */
-        sourceTable: string;
-        sourceFields?:
-          | {
-              field?: string | null;
-              id?: string | null;
-            }[]
-          | null;
-        /**
-         * Power BI dataset name
-         */
-        targetDataset: string;
-        targetFields?:
-          | {
-              field?: string | null;
-              id?: string | null;
-            }[]
-          | null;
-        refreshSchedule?: ('manual' | 'hourly' | 'daily' | 'weekly') | null;
-        id?: string | null;
-      }[]
-    | null;
-  syncConfig?: {
-    /**
-     * Enable automatic refresh of datasets
-     */
-    enableLiveDataRefresh?: boolean | null;
-    /**
-     * Calculate metrics in Power BI
-     */
-    enableMetricsCalculation?: boolean | null;
-    /**
-     * Enable embedded reports in ClearESG
-     */
-    embedReports?: boolean | null;
-  };
-  /**
-   * Scheduled refresh time and days
-   */
-  refreshSchedule?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  lastSyncAt?: string | null;
-  lastSyncStatus?: string | null;
-  lastSyncRecords?: number | null;
-  connectedAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "tableau-connections".
- */
-export interface TableauConnection {
-  id: string;
-  organisationId: string | Organisation;
-  /**
-   * Tableau Server or Online base URL
-   */
-  serverUrl: string;
-  /**
-   * Tableau site/organization ID
-   */
-  siteId: string;
-  /**
-   * Tableau configuration: serverUrl, siteId, accessToken, userId, contentUrl, rowLevelSecurity
-   */
-  config:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * Personal access token
-   */
-  accessToken?: string | null;
-  /**
-   * Tableau user ID
-   */
-  userId?: string | null;
-  /**
-   * Data source mappings for Tableau
-   */
-  datasetMappings?:
-    | {
-        /**
-         * ClearESG collection name
-         */
-        sourceTable: string;
-        sourceFields?:
-          | {
-              field?: string | null;
-              id?: string | null;
-            }[]
-          | null;
-        /**
-         * Tableau datasource name
-         */
-        targetDataset: string;
-        targetFields?:
-          | {
-              field?: string | null;
-              id?: string | null;
-            }[]
-          | null;
-        refreshSchedule?: ('manual' | 'hourly' | 'daily' | 'weekly') | null;
-        id?: string | null;
-      }[]
-    | null;
-  /**
-   * Row-level security configuration
-   */
-  rowLevelSecurity?: {
-    /**
-     * Enable row-level security
-     */
-    enabled?: boolean | null;
-    /**
-     * RLS column name
-     */
-    column?: string | null;
-    /**
-     * User-to-value mapping, e.g. {"user@org.com": ["value1", "value2"]}
-     */
-    mapping?:
-      | {
-          [k: string]: unknown;
-        }
-      | unknown[]
-      | string
-      | number
-      | boolean
-      | null;
-  };
-  syncConfig?: {
-    /**
-     * Use live connection instead of extract
-     */
-    enableLiveConnection?: boolean | null;
-    /**
-     * Apply RLS to workbooks
-     */
-    enableRowLevelSecurity?: boolean | null;
-    /**
-     * Auto-publish sample dashboards
-     */
-    publishDashboards?: boolean | null;
-  };
-  /**
-   * Scheduled refresh time and days
-   */
-  refreshSchedule?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  lastSyncAt?: string | null;
-  lastSyncStatus?: string | null;
-  lastSyncRecords?: number | null;
-  connectedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3867,7 +3543,8 @@ export interface IotDevice {
    * Unique device identifier (MAC or IMEI)
    */
   deviceId: string;
-  deviceType: 'mqtt' | 'modbus' | 'opc_ua' | 'utility_energy' | 'utility_water' | 'utility_gas' | 'smart_meter';
+  deviceType:
+    'http' | 'mqtt' | 'modbus' | 'opc_ua' | 'utility_energy' | 'utility_water' | 'utility_gas' | 'smart_meter';
   /**
    * Protocol version (e.g., MQTT v3.1.1)
    */
@@ -3876,11 +3553,45 @@ export interface IotDevice {
    * Connection URL or broker address
    */
   connectionString?: string | null;
-  status?: ('connected' | 'disconnected' | 'error' | 'maintenance') | null;
+  status?: ('online' | 'offline' | 'connected' | 'disconnected' | 'error' | 'maintenance') | null;
   /**
    * Last successful data transmission
    */
   lastHeartbeat?: string | null;
+  /**
+   * Mark offline when no heartbeat for this many minutes
+   */
+  offlineAfterMinutes?: number | null;
+  /**
+   * Stream retention policy (~12 months default)
+   */
+  retentionDays?: number | null;
+  /**
+   * SHA-256 of device API key (never store plaintext)
+   */
+  apiKeyHash?: string | null;
+  /**
+   * First characters of API key for identification
+   */
+  apiKeyPrefix?: string | null;
+  /**
+   * Map sensorType → emissions metric / scope (overrides defaults)
+   */
+  sensorMappings?:
+    | {
+        sensorType: string;
+        /**
+         * Datapoint metric key (e.g. electricity_kwh)
+         */
+        metricKey: string;
+        unit?: string | null;
+        scope?: ('1' | '2' | '3') | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Legacy point definitions (prefer sensorMappings)
+   */
   dataPoints?:
     | {
         pointName: string;
@@ -3894,7 +3605,7 @@ export interface IotDevice {
    */
   anomalyDetectionEnabled?: boolean | null;
   /**
-   * Threshold % for anomaly detection
+   * Legacy % threshold (detection now uses 3σ / 3× baseline in lib/iot)
    */
   anomalyThreshold?: number | null;
   /**
@@ -3906,85 +3617,47 @@ export interface IotDevice {
    */
   installationDate?: string | null;
   /**
-   * Encrypted credentials for device access (API key, username)
+   * Deprecated plaintext field — use apiKeyHash / rotate via API
    */
   credentials?: string | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
+ * IoT sensor readings and aggregates (≈12 month retention)
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "erp-connections".
+ * via the `definition` "iot-data-streams".
  */
-export interface ErpConnection {
+export interface IotDataStream {
   id: string;
   organisation: string | Organisation;
+  device: string | IotDevice;
+  sensorType: string;
+  value: number;
+  unit: string;
   /**
-   * Human-readable connection name
+   * Reading time (raw) or bucket start (hourly/daily)
    */
-  connectionName: string;
-  erpType: 'netsuite' | 'sap' | 'xero' | 'quickbooks' | 'workday' | 'oracle' | 'd365';
-  status?: ('connected' | 'disconnected' | 'syncing' | 'error' | 'paused') | null;
+  timestamp: string;
+  quality: 'measured' | 'missing';
+  bucket: 'raw' | 'hourly' | 'daily';
+  sum?: number | null;
+  count?: number | null;
+  avg?: number | null;
+  min?: number | null;
+  max?: number | null;
+  isAnomaly?: boolean | null;
+  anomalyReason?: string | null;
   /**
-   * ERP API endpoint URL
+   * Mapped datapoint metric key
    */
-  apiEndpoint: string;
+  metricKey?: string | null;
+  scope?: ('1' | '2' | '3') | null;
   /**
-   * OAuth/API credentials (encrypted at rest)
+   * Retention expiry (~12 months from reading)
    */
-  credentials:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  syncSchedule?: ('manual' | 'hourly' | 'daily' | 'weekly') | null;
-  /**
-   * Enable Change Data Capture for real-time sync
-   */
-  cdcEnabled?: boolean | null;
-  /**
-   * Last successful data sync
-   */
-  lastSyncedAt?: string | null;
-  /**
-   * Next scheduled sync
-   */
-  nextSyncAt?: string | null;
-  /**
-   * Custom field mapping (GL account -> emissions category)
-   */
-  fieldMapping?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
-  /**
-   * ERP data entities to sync
-   */
-  dataEntities?:
-    | {
-        entityType: 'accounts' | 'cost_centers' | 'vendors' | 'purchase_orders' | 'invoices' | 'employees';
-        enabled?: boolean | null;
-        id?: string | null;
-      }[]
-    | null;
-  syncErrors?:
-    | {
-        timestamp: string;
-        errorMessage?: string | null;
-        failedRecords?: number | null;
-        id?: string | null;
-      }[]
-    | null;
-  reconciliationStatus?: ('pending' | 'in_progress' | 'reconciled' | 'failed') | null;
+  expiresAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -4134,14 +3807,33 @@ export interface Iso14064Compliance {
 export interface AssurancePartner {
   id: string;
   firmName: string;
+  /**
+   * Big 4 / Mid-tier / Specialist
+   */
+  firmType: 'big4' | 'mid_tier' | 'specialist';
   website: string;
+  /**
+   * Directory contact only. Seed uses example.com placeholders — not live inboxes.
+   */
   contactEmail: string;
   phone: string;
   /**
    * Primary office location
    */
   location: string;
+  /**
+   * Primary country code (ISO-ish, e.g. IN, GB, US)
+   */
   country: string;
+  /**
+   * All countries where the firm offers ESG assurance
+   */
+  countries?:
+    | {
+        code: string;
+        id?: string | null;
+      }[]
+    | null;
   certifications: {
     cert: 'iso_14064_2' | 'csrd' | 'brsr' | 'gri' | 'sasb' | 'sbt';
     certifiedYear?: number | null;
@@ -4225,12 +3917,36 @@ export interface ReportTemplate {
   organisation?: (string | null) | Organisation;
   templateName: string;
   description?: string | null;
+  /**
+   * report = CSRD/layout templates; compliance = questionnaire + calculations assessments
+   */
+  purpose: 'report' | 'compliance';
+  /**
+   * Industry starter tag for compliance templates
+   */
+  industry?: ('general' | 'oil_gas' | 'manufacturing' | 'finance' | 'retail') | null;
   framework: 'csrd' | 'brsr' | 'gri' | 'sasb' | 'custom';
   type: 'html' | 'pdf' | 'excel' | 'pptx' | 'json';
   sections?:
     | {
         sectionTitle: string;
-        sectionType: 'text' | 'chart' | 'table' | 'narrative' | 'dynamic';
+        /**
+         * Stable key for compliance questions (e.g. governance)
+         */
+        sectionKey?: string | null;
+        sectionType:
+          | 'text'
+          | 'chart'
+          | 'table'
+          | 'narrative'
+          | 'dynamic'
+          | 'executive_summary'
+          | 'scope_breakdown'
+          | 'esrs_disclosures'
+          | 'data_integrity'
+          | 'compliance_declaration'
+          | 'questions'
+          | 'calculations';
         /**
          * Chart configuration (if type=chart)
          */
@@ -4260,6 +3976,65 @@ export interface ReportTemplate {
          */
         dataSource?: string | null;
         order?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Compliance assessment questions (purpose=compliance)
+   */
+  questions?:
+    | {
+        /**
+         * Stable id (e.g. og-methane)
+         */
+        questionId: string;
+        sectionKey: string;
+        label: string;
+        prompt: string;
+        answerType: 'text' | 'number' | 'boolean' | 'select' | 'calculated';
+        /**
+         * Select options: string[]
+         */
+        options?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        /**
+         * Display unit for number / calculated answers
+         */
+        unit?: string | null;
+        required?: boolean | null;
+        order?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Derived metrics from numeric answers (purpose=compliance)
+   */
+  calculations?:
+    | {
+        calcId: string;
+        label: string;
+        op: 'sum' | 'product' | 'ratio' | 'difference';
+        /**
+         * Ordered questionId list used by the operation
+         */
+        inputs:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        unit?: string | null;
+        sectionKey?: string | null;
         id?: string | null;
       }[]
     | null;
@@ -4326,7 +4101,22 @@ export interface CustomEmissionFactor {
    * Detailed description of the emissions factor
    */
   description?: string | null;
-  category: 'energy' | 'transport' | 'water' | 'waste' | 'procurement' | 'manufacturing' | 'travel' | 'commuting';
+  category:
+    | 'energy'
+    | 'transport'
+    | 'water'
+    | 'waste'
+    | 'procurement'
+    | 'manufacturing'
+    | 'travel'
+    | 'commuting'
+    | 'raw_materials'
+    | 'packaging'
+    | 'fuel_energy'
+    | 'services'
+    | 'transportation'
+    | 'facilities'
+    | 'it';
   /**
    * e.g., Grid Electricity, Natural Gas, Diesel
    */
@@ -4343,6 +4133,9 @@ export interface CustomEmissionFactor {
     | 'kg_co2e_mile'
     | 'kg_co2e_km'
     | 'kg_co2e_usd'
+    | 'kg_co2e_eur'
+    | 'kg_co2e_gbp'
+    | 'kg_co2e_inr'
     | 'kg_co2e_employee';
   source: 'useeio' | 'exiobase' | 'ipcc' | 'epa' | 'defra' | 'ademe' | 'custom' | 'supplier';
   /**
@@ -4678,6 +4471,39 @@ export interface EmailDataCollectionForm {
     | number
     | boolean
     | null;
+  /**
+   * When enabled, whitelisted senders may email CSV attachments for ingest
+   */
+  inboundEnabled?: boolean | null;
+  /**
+   * Match token in To address (import+TOKEN@…) or subject [ClearESG:TOKEN]
+   */
+  inboundToken?: string | null;
+  /**
+   * Only these email addresses may submit inbound CSVs (non-whitelisted rejected)
+   */
+  whitelistedSenders?:
+    | {
+        email: string;
+        /**
+         * Optional display label
+         */
+        label?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Allow repeated CSV imports over time (do not treat as one-shot)
+   */
+  recurringEnabled?: boolean | null;
+  /**
+   * Expected cadence for recurring imports (advisory)
+   */
+  recurringCadence?: ('none' | 'weekly' | 'monthly' | 'quarterly') | null;
+  /**
+   * Timestamp of last successful inbound CSV import
+   */
+  lastImportAt?: string | null;
   createdBy?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -4916,6 +4742,10 @@ export interface SpendBasedEmission {
    */
   industryCode?: string | null;
   /**
+   * Geographic region used for factor lookup / regional adjustment
+   */
+  region?: string | null;
+  /**
    * Calculated emissions: Spend × Factor (kg CO2e)
    */
   calculatedEmissions: number;
@@ -5080,6 +4910,567 @@ export interface RegulatoryDeadline {
    */
   createdBy?: (string | null) | User;
   confirmedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tcfd-disclosures".
+ */
+export interface TcfdDisclosure {
+  id: string;
+  organisation: string | Organisation;
+  period?: (string | null) | ReportingPeriod;
+  /**
+   * Calendar / fiscal disclosure year
+   */
+  reportingYear: number;
+  status: 'draft' | 'final';
+  /**
+   * Map of questionId → { text, source, autoFilled, updatedAt }
+   */
+  answers?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Auto-populated Scope 1/2/3 from ClearESG calc at last autofill / finalise
+   */
+  emissionsSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Scenarios hooked into Strategy pillar
+   */
+  scenarioLinks?:
+    | {
+        scenario: string | Scenario;
+        role?: string | null;
+        note?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Immutable publish payload for PDF — set on finalise
+   */
+  snapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  finalisedAt?: string | null;
+  finalisedBy?: (string | null) | User;
+  /**
+   * Append-only audit of answer / status changes
+   */
+  changeHistory?:
+    | {
+        at: string;
+        actor?: (string | null) | User;
+        action: string;
+        summary?: string | null;
+        /**
+         * Changed question ids or field paths
+         */
+        diff?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "issb-disclosures".
+ */
+export interface IssbDisclosure {
+  id: string;
+  organisation: string | Organisation;
+  period?: (string | null) | ReportingPeriod;
+  reportingYear: number;
+  status: 'draft' | 'final';
+  /**
+   * Optional TCFD disclosure — S2 climate answers inherit / compare against it
+   */
+  linkedTcfd?: (string | null) | TcfdDisclosure;
+  /**
+   * ISSB S1 general sustainability answers
+   */
+  s1Answers?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * ISSB S2 climate answers (extends TCFD pillars). May mirror linked TCFD answers.
+   */
+  s2Answers?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Auto-populated Scope 1/2/3 from ClearESG calc
+   */
+  emissionsSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Optional materiality assessment summary for S1
+   */
+  materialitySummary?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Immutable publish payload for PDF — set on finalise
+   */
+  snapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  finalisedAt?: string | null;
+  finalisedBy?: (string | null) | User;
+  /**
+   * Append-only audit of answer / status changes
+   */
+  changeHistory?:
+    | {
+        at: string;
+        actor?: (string | null) | User;
+        action: string;
+        summary?: string | null;
+        diff?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "database-connections".
+ */
+export interface DatabaseConnection {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Human-readable connection label
+   */
+  name: string;
+  engine: 'postgresql' | 'mysql' | 'bigquery';
+  status: 'pending' | 'connected' | 'failed' | 'disabled';
+  /**
+   * AES-256-GCM ciphertext. Never log or return to clients.
+   */
+  encryptedCredentials: string;
+  /**
+   * Require SSL/TLS for PostgreSQL and MySQL
+   */
+  sslEnabled?: boolean | null;
+  /**
+   * Host or GCP project id (non-secret, for UI)
+   */
+  displayHost?: string | null;
+  /**
+   * Database name or BigQuery dataset (non-secret)
+   */
+  displayDatabase?: string | null;
+  /**
+   * Schema / dataset namespace for table discovery
+   */
+  sourceSchema?: string | null;
+  /**
+   * Mapped source table for sync
+   */
+  sourceTable?: string | null;
+  /**
+   * Column → datapoint field map plus optional defaults (metricKey, quality, unit)
+   */
+  fieldMappings?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Column for incremental sync (timestamp or monotonic id). Empty = full reload.
+   */
+  incrementalColumn?: string | null;
+  /**
+   * High-water mark from last successful sync
+   */
+  lastIncrementalValue?: string | null;
+  /**
+   * Reporting period for synced datapoints
+   */
+  defaultPeriod?: (string | null) | ReportingPeriod;
+  syncFrequency: 'manual' | 'hourly' | 'daily' | 'weekly';
+  nextSyncAt?: string | null;
+  lastSyncAt?: string | null;
+  lastSyncStatus?: string | null;
+  testedAt?: string | null;
+  /**
+   * Last actionable error (no secrets)
+   */
+  lastError?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "database-sync-logs".
+ */
+export interface DatabaseSyncLog {
+  id: string;
+  organisation: string | Organisation;
+  connection: string | DatabaseConnection;
+  engine: 'postgresql' | 'mysql' | 'bigquery';
+  status: 'running' | 'success' | 'partial' | 'failed';
+  recordsProcessed?: number | null;
+  recordsFailed?: number | null;
+  recordsSkipped?: number | null;
+  /**
+   * Sync summary: table, incremental watermark, warnings
+   */
+  details?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  errors?:
+    | {
+        message?: string | null;
+        recordId?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  syncDurationMs?: number | null;
+  /**
+   * User id or 'cron'
+   */
+  triggeredBy?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Organisation API keys for read-only BI connectors (Power BI, Tableau)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bi-api-keys".
+ */
+export interface BiApiKey {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Label shown in settings (e.g. Power BI production)
+   */
+  name: string;
+  /**
+   * SHA-256 of API key (never store plaintext)
+   */
+  apiKeyHash: string;
+  /**
+   * First characters of API key for identification
+   */
+  apiKeyPrefix: string;
+  status: 'active' | 'revoked';
+  /**
+   * Membership user who created the key
+   */
+  createdBy?: (string | null) | User;
+  /**
+   * Last successful BI API request
+   */
+  lastUsedAt?: string | null;
+  /**
+   * When the key was revoked
+   */
+  revokedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * White-label supplier portal copy and chrome options (logo/accent come from org branding)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-portal-config".
+ */
+export interface SupplierPortalConfig {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * When off, public invite links show a paused message
+   */
+  enabled?: boolean | null;
+  /**
+   * H1 on the public supplier form
+   */
+  headline?: string | null;
+  /**
+   * Shown under the headline. Leave blank for the ClearESG default welcome.
+   */
+  welcomeMessage?: string | null;
+  /**
+   * Show “Powered by ClearESG” footer on the public form
+   */
+  showPoweredBy?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "compliance-assessments".
+ */
+export interface ComplianceAssessment {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Compliance template this assessment fills
+   */
+  template: string | ReportTemplate;
+  title: string;
+  reportingYear: number;
+  status: 'draft' | 'final';
+  /**
+   * Map of questionId → { value, updatedAt }
+   */
+  answers?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Computed outputs from template calculations
+   */
+  calculationResults?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Frozen template structure at assessment create / finalise
+   */
+  templateSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Immutable publish payload for PDF — set on finalise
+   */
+  snapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  finalisedAt?: string | null;
+  finalisedBy?: (string | null) | User;
+  /**
+   * Append-only audit of answer / status changes
+   */
+  changeHistory?:
+    | {
+        at: string;
+        actor?: (string | null) | User;
+        action: string;
+        summary?: string | null;
+        diff?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Audit trail for inbound email CSV data imports
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-import-logs".
+ */
+export interface EmailImportLog {
+  id: string;
+  organisation: string | Organisation;
+  form?: (string | null) | EmailDataCollectionForm;
+  /**
+   * Sender address (never log secrets)
+   */
+  fromEmail: string;
+  subject?: string | null;
+  status: 'success' | 'partial' | 'rejected' | 'failed';
+  /**
+   * Human-readable reject/fail reason
+   */
+  reason?: string | null;
+  attachmentName?: string | null;
+  recordsParsed?: number | null;
+  recordsWritten?: number | null;
+  recordsRejected?: number | null;
+  recordsUnchanged?: number | null;
+  replyDelivery?: ('resend' | 'console' | 'failed' | 'skipped') | null;
+  /**
+   * Sanitized summary (row diffs, errors — no secrets)
+   */
+  details?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Resend/email provider message id when available
+   */
+  providerMessageId?: string | null;
+  durationMs?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Field-level datapoint version history (create / update / delete / rollback)
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "datapoint-versions".
+ */
+export interface DatapointVersion {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Live relationship when the datapoint still exists
+   */
+  datapoint?: (string | null) | Datapoint;
+  /**
+   * Stable id — survives datapoint delete
+   */
+  datapointId: string;
+  /**
+   * Monotonic per datapointId, starting at 1
+   */
+  versionNumber: number;
+  changeType: 'create' | 'update' | 'delete' | 'rollback';
+  /**
+   * Snapshot before the change (null on create)
+   */
+  oldValue?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Snapshot after the change (null on delete)
+   */
+  newValue?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * User id or system actor label (e.g. iot:device-1)
+   */
+  changedBy?: string | null;
+  changedAt: string;
+  /**
+   * Optional change reason
+   */
+  reason?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -5312,36 +5703,12 @@ export interface PayloadLockedDocument {
         value: string | TrendForecast;
       } | null)
     | ({
-        relationTo: 'salesforce-connections';
-        value: string | SalesforceConnection;
-      } | null)
-    | ({
-        relationTo: 'netsuite-connections';
-        value: string | NetsuiteConnection;
-      } | null)
-    | ({
         relationTo: 'accounting-connections';
         value: string | AccountingConnection;
       } | null)
     | ({
         relationTo: 'integration-sync-logs';
         value: string | IntegrationSyncLog;
-      } | null)
-    | ({
-        relationTo: 'sap-connections';
-        value: string | SapConnection;
-      } | null)
-    | ({
-        relationTo: 'datawarehouse-connections';
-        value: string | DatawarehouseConnection;
-      } | null)
-    | ({
-        relationTo: 'powerbi-connections';
-        value: string | PowerbiConnection;
-      } | null)
-    | ({
-        relationTo: 'tableau-connections';
-        value: string | TableauConnection;
       } | null)
     | ({
         relationTo: 'custom-roles';
@@ -5364,8 +5731,8 @@ export interface PayloadLockedDocument {
         value: string | IotDevice;
       } | null)
     | ({
-        relationTo: 'erp-connections';
-        value: string | ErpConnection;
+        relationTo: 'iot-data-streams';
+        value: string | IotDataStream;
       } | null)
     | ({
         relationTo: 'data-quality-rules';
@@ -5406,6 +5773,42 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'regulatory-deadlines';
         value: string | RegulatoryDeadline;
+      } | null)
+    | ({
+        relationTo: 'tcfd-disclosures';
+        value: string | TcfdDisclosure;
+      } | null)
+    | ({
+        relationTo: 'issb-disclosures';
+        value: string | IssbDisclosure;
+      } | null)
+    | ({
+        relationTo: 'database-connections';
+        value: string | DatabaseConnection;
+      } | null)
+    | ({
+        relationTo: 'database-sync-logs';
+        value: string | DatabaseSyncLog;
+      } | null)
+    | ({
+        relationTo: 'bi-api-keys';
+        value: string | BiApiKey;
+      } | null)
+    | ({
+        relationTo: 'supplier-portal-config';
+        value: string | SupplierPortalConfig;
+      } | null)
+    | ({
+        relationTo: 'compliance-assessments';
+        value: string | ComplianceAssessment;
+      } | null)
+    | ({
+        relationTo: 'email-import-logs';
+        value: string | EmailImportLog;
+      } | null)
+    | ({
+        relationTo: 'datapoint-versions';
+        value: string | DatapointVersion;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -5529,6 +5932,7 @@ export interface OrganisationsSelect<T extends boolean = true> {
               radius?: T;
             };
         domain?: T;
+        emissionsStandard?: T;
       };
   stripeCustomerId?: T;
   plan?: T;
@@ -5682,9 +6086,11 @@ export interface EmissionFactorsSelect<T extends boolean = true> {
   unit?: T;
   scope?: T;
   source?: T;
+  standard?: T;
   sourceUrl?: T;
   publicationYear?: T;
   region?: T;
+  uncertaintyPct?: T;
   validFrom?: T;
   validUntil?: T;
   supersededBy?: T;
@@ -5779,7 +6185,11 @@ export interface SuppliersSelect<T extends boolean = true> {
     | {
         score?: T;
         tier?: T;
+        environmentalScore?: T;
+        socialScore?: T;
+        governanceScore?: T;
         flags?: T;
+        mitigations?: T;
         calculatedAt?: T;
       };
   updatedAt?: T;
@@ -5992,6 +6402,22 @@ export interface ReportsSelect<T extends boolean = true> {
   viewCount?: T;
   publishedAt?: T;
   publishedBy?: T;
+  preparedBy?: T;
+  approvedBy?: T;
+  approvedAt?: T;
+  preparerNotes?: T;
+  lockedAt?: T;
+  versionHistory?:
+    | T
+    | {
+        version?: T;
+        status?: T;
+        at?: T;
+        actor?: T;
+        note?: T;
+        changeSummary?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -6019,11 +6445,16 @@ export interface AuditLogsSelect<T extends boolean = true> {
 export interface BenchmarkStatsSelect<T extends boolean = true> {
   sector?: T;
   sizeBand?: T;
+  geography?: T;
   metricKey?: T;
   period?: T;
+  p10?: T;
   p25?: T;
   p50?: T;
   p75?: T;
+  p90?: T;
+  mean?: T;
+  best?: T;
   cohortSize?: T;
   computedAt?: T;
   updatedAt?: T;
@@ -6498,6 +6929,9 @@ export interface WebhookLogsSelect<T extends boolean = true> {
   organisation?: T;
   webhook_id?: T;
   event_type?: T;
+  source?: T;
+  batch_id?: T;
+  record_count?: T;
   payload?: T;
   status?: T;
   response_code?: T;
@@ -6648,6 +7082,12 @@ export interface ScenariosSelect<T extends boolean = true> {
   type?: T;
   baselineYear?: T;
   targetYear?: T;
+  reductionPercent?: T;
+  scopes?: T;
+  category?: T;
+  timelineYears?: T;
+  capex?: T;
+  costPerTco2e?: T;
   variables?:
     | T
     | {
@@ -6658,6 +7098,7 @@ export interface ScenariosSelect<T extends boolean = true> {
         capexRequired?: T;
         paybackYears?: T;
         implementationTimeline?: T;
+        effectiveness?: T;
         id?: T;
       };
   assumptions?:
@@ -6757,63 +7198,6 @@ export interface TrendForecastsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "salesforce-connections_select".
- */
-export interface SalesforceConnectionsSelect<T extends boolean = true> {
-  organisationId?: T;
-  status?: T;
-  instanceUrl?: T;
-  accessToken?: T;
-  refreshToken?: T;
-  expiresAt?: T;
-  accountMapping?: T;
-  syncConfig?:
-    | T
-    | {
-        enableAccountSync?: T;
-        enableContactSync?: T;
-        enableMetricsWrite?: T;
-        syncFrequency?: T;
-      };
-  lastSyncAt?: T;
-  lastSyncStatus?: T;
-  syncErrorCount?: T;
-  connectedAt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "netsuite-connections_select".
- */
-export interface NetsuiteConnectionsSelect<T extends boolean = true> {
-  organisationId?: T;
-  status?: T;
-  accountId?: T;
-  consumerKey?: T;
-  consumerSecret?: T;
-  accessToken?: T;
-  refreshToken?: T;
-  accessTokenSecret?: T;
-  expiresAt?: T;
-  glCodeMapping?: T;
-  syncConfig?:
-    | T
-    | {
-        enableGlSync?: T;
-        enableInvoiceSync?: T;
-        enableSpendCalculation?: T;
-        syncFrequency?: T;
-      };
-  lastSyncAt?: T;
-  lastSyncStatus?: T;
-  syncErrorCount?: T;
-  connectedAt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "accounting-connections_select".
  */
 export interface AccountingConnectionsSelect<T extends boolean = true> {
@@ -6861,164 +7245,6 @@ export interface IntegrationSyncLogsSelect<T extends boolean = true> {
       };
   syncDurationMs?: T;
   triggeredBy?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "sap-connections_select".
- */
-export interface SapConnectionsSelect<T extends boolean = true> {
-  organisationId?: T;
-  status?: T;
-  environmentType?: T;
-  systemId?: T;
-  clientNumber?: T;
-  accessToken?: T;
-  refreshToken?: T;
-  expiresAt?: T;
-  syncConfig?:
-    | T
-    | {
-        enableGlSync?: T;
-        enableBomSync?: T;
-        enableProductionSync?: T;
-        trackingMaterials?:
-          | T
-          | {
-              materialId?: T;
-              materialDescription?: T;
-              id?: T;
-            };
-        syncFrequency?: T;
-      };
-  lastSyncAt?: T;
-  lastSyncStatus?: T;
-  syncErrorCount?: T;
-  connectedAt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "datawarehouse-connections_select".
- */
-export interface DatawarehouseConnectionsSelect<T extends boolean = true> {
-  organisationId?: T;
-  provider?: T;
-  config?: T;
-  exportConfig?:
-    | T
-    | {
-        tablePrefix?: T;
-        frequency?: T;
-        incremental?: T;
-        transformations?: T;
-      };
-  testConnection?: T;
-  lastExportAt?: T;
-  lastExportStatus?: T;
-  lastExportRecords?: T;
-  connectedAt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "powerbi-connections_select".
- */
-export interface PowerbiConnectionsSelect<T extends boolean = true> {
-  organisationId?: T;
-  workspaceName?: T;
-  config?: T;
-  accessToken?: T;
-  refreshToken?: T;
-  expiresAt?: T;
-  datasetMappings?:
-    | T
-    | {
-        sourceTable?: T;
-        sourceFields?:
-          | T
-          | {
-              field?: T;
-              id?: T;
-            };
-        targetDataset?: T;
-        targetFields?:
-          | T
-          | {
-              field?: T;
-              id?: T;
-            };
-        refreshSchedule?: T;
-        id?: T;
-      };
-  syncConfig?:
-    | T
-    | {
-        enableLiveDataRefresh?: T;
-        enableMetricsCalculation?: T;
-        embedReports?: T;
-      };
-  refreshSchedule?: T;
-  lastSyncAt?: T;
-  lastSyncStatus?: T;
-  lastSyncRecords?: T;
-  connectedAt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "tableau-connections_select".
- */
-export interface TableauConnectionsSelect<T extends boolean = true> {
-  organisationId?: T;
-  serverUrl?: T;
-  siteId?: T;
-  config?: T;
-  accessToken?: T;
-  userId?: T;
-  datasetMappings?:
-    | T
-    | {
-        sourceTable?: T;
-        sourceFields?:
-          | T
-          | {
-              field?: T;
-              id?: T;
-            };
-        targetDataset?: T;
-        targetFields?:
-          | T
-          | {
-              field?: T;
-              id?: T;
-            };
-        refreshSchedule?: T;
-        id?: T;
-      };
-  rowLevelSecurity?:
-    | T
-    | {
-        enabled?: T;
-        column?: T;
-        mapping?: T;
-      };
-  syncConfig?:
-    | T
-    | {
-        enableLiveConnection?: T;
-        enableRowLevelSecurity?: T;
-        publishDashboards?: T;
-      };
-  refreshSchedule?: T;
-  lastSyncAt?: T;
-  lastSyncStatus?: T;
-  lastSyncRecords?: T;
-  connectedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -7107,6 +7333,19 @@ export interface IotDevicesSelect<T extends boolean = true> {
   connectionString?: T;
   status?: T;
   lastHeartbeat?: T;
+  offlineAfterMinutes?: T;
+  retentionDays?: T;
+  apiKeyHash?: T;
+  apiKeyPrefix?: T;
+  sensorMappings?:
+    | T
+    | {
+        sensorType?: T;
+        metricKey?: T;
+        unit?: T;
+        scope?: T;
+        id?: T;
+      };
   dataPoints?:
     | T
     | {
@@ -7125,36 +7364,27 @@ export interface IotDevicesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "erp-connections_select".
+ * via the `definition` "iot-data-streams_select".
  */
-export interface ErpConnectionsSelect<T extends boolean = true> {
+export interface IotDataStreamsSelect<T extends boolean = true> {
   organisation?: T;
-  connectionName?: T;
-  erpType?: T;
-  status?: T;
-  apiEndpoint?: T;
-  credentials?: T;
-  syncSchedule?: T;
-  cdcEnabled?: T;
-  lastSyncedAt?: T;
-  nextSyncAt?: T;
-  fieldMapping?: T;
-  dataEntities?:
-    | T
-    | {
-        entityType?: T;
-        enabled?: T;
-        id?: T;
-      };
-  syncErrors?:
-    | T
-    | {
-        timestamp?: T;
-        errorMessage?: T;
-        failedRecords?: T;
-        id?: T;
-      };
-  reconciliationStatus?: T;
+  device?: T;
+  sensorType?: T;
+  value?: T;
+  unit?: T;
+  timestamp?: T;
+  quality?: T;
+  bucket?: T;
+  sum?: T;
+  count?: T;
+  avg?: T;
+  min?: T;
+  max?: T;
+  isAnomaly?: T;
+  anomalyReason?: T;
+  metricKey?: T;
+  scope?: T;
+  expiresAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -7237,11 +7467,18 @@ export interface Iso14064ComplianceSelect<T extends boolean = true> {
  */
 export interface AssurancePartnersSelect<T extends boolean = true> {
   firmName?: T;
+  firmType?: T;
   website?: T;
   contactEmail?: T;
   phone?: T;
   location?: T;
   country?: T;
+  countries?:
+    | T
+    | {
+        code?: T;
+        id?: T;
+      };
   certifications?:
     | T
     | {
@@ -7283,17 +7520,45 @@ export interface ReportTemplatesSelect<T extends boolean = true> {
   organisation?: T;
   templateName?: T;
   description?: T;
+  purpose?: T;
+  industry?: T;
   framework?: T;
   type?: T;
   sections?:
     | T
     | {
         sectionTitle?: T;
+        sectionKey?: T;
         sectionType?: T;
         chartConfig?: T;
         tableColumns?: T;
         dataSource?: T;
         order?: T;
+        id?: T;
+      };
+  questions?:
+    | T
+    | {
+        questionId?: T;
+        sectionKey?: T;
+        label?: T;
+        prompt?: T;
+        answerType?: T;
+        options?: T;
+        unit?: T;
+        required?: T;
+        order?: T;
+        id?: T;
+      };
+  calculations?:
+    | T
+    | {
+        calcId?: T;
+        label?: T;
+        op?: T;
+        inputs?: T;
+        unit?: T;
+        sectionKey?: T;
         id?: T;
       };
   templateConfig?: T;
@@ -7475,6 +7740,18 @@ export interface EmailDataCollectionFormsSelect<T extends boolean = true> {
   responseCount?: T;
   responseRate?: T;
   dataQualityMetrics?: T;
+  inboundEnabled?: T;
+  inboundToken?: T;
+  whitelistedSenders?:
+    | T
+    | {
+        email?: T;
+        label?: T;
+        id?: T;
+      };
+  recurringEnabled?: T;
+  recurringCadence?: T;
+  lastImportAt?: T;
   createdBy?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -7575,6 +7852,7 @@ export interface SpendBasedEmissionsSelect<T extends boolean = true> {
   emissionsFactorSource?: T;
   emissionsFactorVersion?: T;
   industryCode?: T;
+  region?: T;
   calculatedEmissions?: T;
   confidence?: T;
   uncertainty?: T;
@@ -7644,6 +7922,225 @@ export interface RegulatoryDeadlinesSelect<T extends boolean = true> {
       };
   createdBy?: T;
   confirmedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "tcfd-disclosures_select".
+ */
+export interface TcfdDisclosuresSelect<T extends boolean = true> {
+  organisation?: T;
+  period?: T;
+  reportingYear?: T;
+  status?: T;
+  answers?: T;
+  emissionsSnapshot?: T;
+  scenarioLinks?:
+    | T
+    | {
+        scenario?: T;
+        role?: T;
+        note?: T;
+        id?: T;
+      };
+  snapshot?: T;
+  finalisedAt?: T;
+  finalisedBy?: T;
+  changeHistory?:
+    | T
+    | {
+        at?: T;
+        actor?: T;
+        action?: T;
+        summary?: T;
+        diff?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "issb-disclosures_select".
+ */
+export interface IssbDisclosuresSelect<T extends boolean = true> {
+  organisation?: T;
+  period?: T;
+  reportingYear?: T;
+  status?: T;
+  linkedTcfd?: T;
+  s1Answers?: T;
+  s2Answers?: T;
+  emissionsSnapshot?: T;
+  materialitySummary?: T;
+  snapshot?: T;
+  finalisedAt?: T;
+  finalisedBy?: T;
+  changeHistory?:
+    | T
+    | {
+        at?: T;
+        actor?: T;
+        action?: T;
+        summary?: T;
+        diff?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "database-connections_select".
+ */
+export interface DatabaseConnectionsSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  engine?: T;
+  status?: T;
+  encryptedCredentials?: T;
+  sslEnabled?: T;
+  displayHost?: T;
+  displayDatabase?: T;
+  sourceSchema?: T;
+  sourceTable?: T;
+  fieldMappings?: T;
+  incrementalColumn?: T;
+  lastIncrementalValue?: T;
+  defaultPeriod?: T;
+  syncFrequency?: T;
+  nextSyncAt?: T;
+  lastSyncAt?: T;
+  lastSyncStatus?: T;
+  testedAt?: T;
+  lastError?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "database-sync-logs_select".
+ */
+export interface DatabaseSyncLogsSelect<T extends boolean = true> {
+  organisation?: T;
+  connection?: T;
+  engine?: T;
+  status?: T;
+  recordsProcessed?: T;
+  recordsFailed?: T;
+  recordsSkipped?: T;
+  details?: T;
+  errors?:
+    | T
+    | {
+        message?: T;
+        recordId?: T;
+        id?: T;
+      };
+  syncDurationMs?: T;
+  triggeredBy?: T;
+  startedAt?: T;
+  completedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "bi-api-keys_select".
+ */
+export interface BiApiKeysSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  apiKeyHash?: T;
+  apiKeyPrefix?: T;
+  status?: T;
+  createdBy?: T;
+  lastUsedAt?: T;
+  revokedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-portal-config_select".
+ */
+export interface SupplierPortalConfigSelect<T extends boolean = true> {
+  organisation?: T;
+  enabled?: T;
+  headline?: T;
+  welcomeMessage?: T;
+  showPoweredBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "compliance-assessments_select".
+ */
+export interface ComplianceAssessmentsSelect<T extends boolean = true> {
+  organisation?: T;
+  template?: T;
+  title?: T;
+  reportingYear?: T;
+  status?: T;
+  answers?: T;
+  calculationResults?: T;
+  templateSnapshot?: T;
+  snapshot?: T;
+  finalisedAt?: T;
+  finalisedBy?: T;
+  changeHistory?:
+    | T
+    | {
+        at?: T;
+        actor?: T;
+        action?: T;
+        summary?: T;
+        diff?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "email-import-logs_select".
+ */
+export interface EmailImportLogsSelect<T extends boolean = true> {
+  organisation?: T;
+  form?: T;
+  fromEmail?: T;
+  subject?: T;
+  status?: T;
+  reason?: T;
+  attachmentName?: T;
+  recordsParsed?: T;
+  recordsWritten?: T;
+  recordsRejected?: T;
+  recordsUnchanged?: T;
+  replyDelivery?: T;
+  details?: T;
+  providerMessageId?: T;
+  durationMs?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "datapoint-versions_select".
+ */
+export interface DatapointVersionsSelect<T extends boolean = true> {
+  organisation?: T;
+  datapoint?: T;
+  datapointId?: T;
+  versionNumber?: T;
+  changeType?: T;
+  oldValue?: T;
+  newValue?: T;
+  changedBy?: T;
+  changedAt?: T;
+  reason?: T;
   updatedAt?: T;
   createdAt?: T;
 }

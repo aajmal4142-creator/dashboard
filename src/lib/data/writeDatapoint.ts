@@ -4,6 +4,8 @@ import { writeAuditLog } from "@/lib/audit/write";
 import type { Quality } from "@/lib/calc";
 import { NO_SUPPLIER_KEY } from "@/lib/suppliers/supplierKey";
 
+import type { DatapointVersionContext } from "./recordVersion";
+
 export type DatapointWriteInput = {
   organisationId: string;
   periodId: string;
@@ -14,6 +16,8 @@ export type DatapointWriteInput = {
   source: "manual" | "import" | "supplier" | "estimate" | "api" | "internal_survey";
   actorId: string;
   assignedTo?: string | null;
+  /** Optional change reason stored on the datapoint version + audit trail. */
+  reason?: string | null;
 };
 
 export type DatapointWriteResult = {
@@ -25,6 +29,7 @@ export type DatapointWriteResult = {
  * Central Datapoint write path — grid, paste commit, and Excel commit.
  * Editing an approved row resets approvalState → pending + AuditLog.
  * Locked periods are refused by the collection hook; callers should pre-check.
+ * Version history is recorded by Datapoints afterChange (all write paths).
  */
 export async function writeDatapoint(
   payload: Payload,
@@ -70,12 +75,26 @@ export async function writeDatapoint(
     data.approvalReason = "Value changed after approval — re-validation required.";
   }
 
+  const versionContext: DatapointVersionContext = {
+    changedBy: input.actorId,
+    reason: input.reason ?? null,
+  };
+
   if (prev) {
-    const updated = await payload.update({
+    const updated = await (
+      payload.update as (args: {
+        collection: "datapoints";
+        id: string;
+        data: Record<string, unknown>;
+        overrideAccess: true;
+        context: DatapointVersionContext;
+      }) => Promise<{ id: string }>
+    )({
       collection: "datapoints",
       id: prev.id,
       data,
       overrideAccess: true,
+      context: versionContext,
     });
 
     if (wasApproved) {
@@ -107,6 +126,7 @@ export async function writeDatapoint(
       collection: "datapoints";
       data: Record<string, unknown>;
       overrideAccess: true;
+      context: DatapointVersionContext;
     }) => Promise<{ id: string }>
   )({
     collection: "datapoints",
@@ -115,6 +135,7 @@ export async function writeDatapoint(
       approvalState: "pending",
     },
     overrideAccess: true,
+    context: versionContext,
   });
 
   return { id: created.id, approvalReset: false };

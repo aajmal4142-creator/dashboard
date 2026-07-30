@@ -2,6 +2,7 @@ import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
 import { writeAuditLog } from "@/lib/audit/write";
+import { resolvePortalChrome } from "@/lib/portal";
 import {
   assertRateLimit,
   isTokenExpired,
@@ -75,12 +76,24 @@ export async function GET(req: Request, ctx: Ctx) {
       ? supplier.organisation
       : null;
 
+  const chrome = await resolvePortalChrome(
+    payload,
+    org
+      ? {
+          id: String(org.id),
+          name: "name" in org ? String(org.name) : null,
+          brand: "brand" in org ? org.brand : undefined,
+          settings: "settings" in org ? org.settings : undefined,
+        }
+      : null,
+  );
+
   const expired = isTokenExpired(
     supplier.requestExpiresAt ? String(supplier.requestExpiresAt) : null,
   );
 
   return NextResponse.json({
-    orgName: org && "name" in org ? String(org.name) : "ClearESG customer",
+    orgName: chrome.orgName,
     supplierName: supplier.name,
     fields: SUPPLIER_FORM_FIELDS,
     expired,
@@ -88,6 +101,9 @@ export async function GET(req: Request, ctx: Ctx) {
     used: false,
     alreadySubmitted: supplier.requestStatus === "submitted",
     expiresAt: supplier.requestExpiresAt ?? null,
+    portalPaused: !chrome.portal.enabled,
+    branding: chrome.branding,
+    portal: chrome.portal,
   });
 }
 
@@ -119,6 +135,21 @@ export async function POST(req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "This link has expired" }, { status: 410 });
   }
 
+  const orgId = orgIdOf(supplier);
+  const chrome = await resolvePortalChrome(payload, {
+    id: orgId,
+    name: null,
+  });
+  if (!chrome.portal.enabled) {
+    return NextResponse.json(
+      {
+        error:
+          "This portal is paused. Ask the buyer for a new invite when collection reopens.",
+      },
+      { status: 403 },
+    );
+  }
+
   const body = (await req.json()) as SupplierFormValues & { is_metered?: boolean };
   const submitted: Record<string, number | null | boolean> = {};
   for (const field of SUPPLIER_FORM_FIELDS) {
@@ -141,7 +172,6 @@ export async function POST(req: Request, ctx: Ctx) {
   }
   submitted.is_metered = Boolean(body.is_metered);
 
-  const orgId = orgIdOf(supplier);
   const isResubmit = supplier.requestStatus === "submitted";
   const submittedAt = new Date().toISOString();
 

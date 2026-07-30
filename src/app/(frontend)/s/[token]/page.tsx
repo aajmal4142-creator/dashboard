@@ -1,6 +1,7 @@
 import { getPayload } from "payload";
 
 import { SupplierPublicForm, type SupplierFormMeta } from "./SupplierPublicForm";
+import { resolvePortalChrome } from "@/lib/portal";
 import { isTokenExpired } from "@/lib/suppliers";
 import config from "@/payload.config";
 
@@ -29,6 +30,7 @@ export default async function SupplierTokenPage({
       used: false,
       expiresAt: null,
       error: "This link is not valid.",
+      branding: { primaryColor: null, logoUrl: null },
     };
   } else {
     if (supplier.requestStatus === "sent") {
@@ -43,8 +45,21 @@ export default async function SupplierTokenPage({
       typeof supplier.organisation === "object" && supplier.organisation !== null
         ? supplier.organisation
         : null;
+
+    const chrome = await resolvePortalChrome(
+      payload,
+      org
+        ? {
+            id: String(org.id),
+            name: "name" in org ? String(org.name) : null,
+            brand: "brand" in org ? org.brand : undefined,
+            settings: "settings" in org ? org.settings : undefined,
+          }
+        : null,
+    );
+
     initial = {
-      orgName: org && "name" in org ? String(org.name) : "ClearESG customer",
+      orgName: chrome.orgName,
       supplierName: supplier.name,
       expired: isTokenExpired(
         supplier.requestExpiresAt ? String(supplier.requestExpiresAt) : null,
@@ -52,12 +67,11 @@ export default async function SupplierTokenPage({
       used: false,
       alreadySubmitted: supplier.requestStatus === "submitted",
       expiresAt: supplier.requestExpiresAt ? String(supplier.requestExpiresAt) : null,
+      portalPaused: !chrome.portal.enabled,
+      branding: chrome.branding,
+      portal: chrome.portal,
     };
   }
 
-  return (
-    <div className="min-h-full bg-canvas">
-      <SupplierPublicForm token={token} initial={initial} />
-    </div>
-  );
+  return <SupplierPublicForm token={token} initial={initial} />;
 }

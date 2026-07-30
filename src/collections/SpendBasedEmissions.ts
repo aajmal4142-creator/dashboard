@@ -115,6 +115,14 @@ export const SpendBasedEmissions: CollectionConfig = {
       admin: { description: "NAICS or industry classification code" },
     },
     {
+      name: "region",
+      type: "text",
+      index: true,
+      admin: {
+        description: "Geographic region used for factor lookup / regional adjustment",
+      },
+    },
+    {
       name: "calculatedEmissions",
       type: "number",
       required: true,

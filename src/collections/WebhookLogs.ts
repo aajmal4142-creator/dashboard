@@ -12,8 +12,8 @@ const webhookLogsRead: Access = async ({ req }) => {
 export const WebhookLogs: CollectionConfig = {
   slug: "webhook-logs",
   admin: {
-    defaultColumns: ["webhook_id", "event_type", "status", "createdAt"],
-    description: "Audit trail of webhook delivery attempts",
+    defaultColumns: ["webhook_id", "event_type", "status", "source", "createdAt"],
+    description: "Audit trail of webhook delivery attempts and API data ingest batches",
   },
   access: {
     read: webhookLogsRead,
@@ -34,11 +34,37 @@ export const WebhookLogs: CollectionConfig = {
       type: "text",
       required: true,
       index: true,
+      admin: {
+        description:
+          "Webhook registration id, or api-ingest:{batchId} for REST ingest logs",
+      },
     },
     {
       name: "event_type",
       type: "text",
       required: true,
+    },
+    {
+      name: "source",
+      type: "select",
+      defaultValue: "webhook",
+      options: [
+        { label: "Webhook", value: "webhook" },
+        { label: "API ingest", value: "api" },
+      ],
+      index: true,
+      admin: { description: "Origin of this log row" },
+    },
+    {
+      name: "batch_id",
+      type: "text",
+      index: true,
+      admin: { description: "Ingest batch id when event_type is data.ingest" },
+    },
+    {
+      name: "record_count",
+      type: "number",
+      admin: { description: "Total records considered in an ingest batch" },
     },
     {
       name: "payload",

@@ -1,26 +1,62 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, TrendingUp } from "lucide-react";
-import type { PeerBenchmark } from "@/lib/analytics/benchmarking";
+import Link from "next/link";
 
-type AnonymizedPeer = {
-  id: string;
-  name: string;
-  industry: string;
-  size: string;
-};
+import { EmptyState, PageCard, StatusLine } from "@/components/shell/PageFrame";
+import type { GapCallout } from "@/lib/benchmarks";
+import { sectorLabel } from "@/lib/ui/displayLabels";
 
 type BenchmarkResponse = {
   available: boolean;
   message?: string;
-  benchmark?: PeerBenchmark;
+  reason?: string;
+  cohortGate?: string;
+  benchmark?: {
+    metricKey: string;
+    p10: number;
+    p25: number;
+    p50: number;
+    p75: number;
+    p90: number;
+    mean?: number;
+    best?: number;
+    median?: number;
+    cohortSize: number;
+    yourValue?: number;
+    percentileRank?: number;
+  };
+  peerGroup?: {
+    sector: string;
+    sizeBand: string;
+    geography: string;
+    period: string;
+    cohortSize: number;
+    matchTier: string;
+  };
+  comparison?: {
+    you: number | null;
+    median: number;
+    best: number;
+    mean: number;
+  };
+  gaps?: GapCallout[];
+  trend?: {
+    currentRank: number | null;
+    previousRank: number | null;
+    delta: number | null;
+    direction: string;
+  };
+  status?: string;
   insights?: string[];
-  peers?: AnonymizedPeer[];
 };
+
+function statusLabel(status?: string): string {
+  if (status === "best_in_class") return "Best in class";
+  if (status === "above_median") return "Above median";
+  if (status === "below_median") return "Below median";
+  return "At median";
+}
 
 export default function BenchmarkingDashboard() {
   const [benchmark, setBenchmark] = useState<BenchmarkResponse | null>(null);
@@ -43,178 +79,123 @@ export default function BenchmarkingDashboard() {
       }
     };
 
-    fetchBenchmarks();
+    void fetchBenchmarks();
   }, []);
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-48" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-          </CardContent>
-        </Card>
-      </div>
+      <PageCard title="Peer benchmarking">
+        <p className="text-[13px] text-ink-muted">Loading cohort…</p>
+      </PageCard>
     );
   }
 
   if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
+    return <StatusLine tone="error">{error}</StatusLine>;
   }
 
   if (!benchmark?.available || !benchmark.benchmark) {
     return (
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Benchmarking Not Available</AlertTitle>
-        <AlertDescription>
-          {benchmark?.message ||
-            "Not enough peers to generate benchmarks. Check back later."}
-        </AlertDescription>
-      </Alert>
+      <EmptyState
+        title="Benchmarking not available"
+        body={
+          benchmark?.message ||
+          "Not enough peers to generate benchmarks. Check back later."
+        }
+      />
     );
   }
 
-  const percentile = benchmark.benchmark.percentileRank || 0;
-  const statusColor =
-    percentile >= 90
-      ? "text-green-600"
-      : percentile >= 65
-        ? "text-blue-600"
-        : percentile >= 35
-          ? "text-yellow-600"
-          : "text-red-600";
-
-  const statusText =
-    percentile >= 90
-      ? "Best in Class"
-      : percentile >= 65
-        ? "Above Median"
-        : percentile >= 35
-          ? "At Median"
-          : "Below Median";
+  const b = benchmark.benchmark;
+  const comparison = benchmark.comparison ?? {
+    you: b.yourValue ?? null,
+    median: b.median ?? b.p50,
+    best: b.best ?? b.p10,
+    mean: b.mean ?? b.p50,
+  };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Peer Benchmarking</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Your Position</p>
-              <div className={`text-4xl font-bold ${statusColor}`}>
-                {percentile.toFixed(0)}th percentile
-              </div>
-              <p className="text-sm">{statusText}</p>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Your Value</p>
-              <div className="text-4xl font-bold">
-                {benchmark.benchmark.yourValue?.toFixed(2) ?? "N/A"}
-              </div>
-              <p className="text-sm">{benchmark.benchmark.metricKey}</p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <p className="text-sm font-medium">Peer Distribution</p>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>10th percentile</span>
-                <span className="font-mono">{benchmark.benchmark.p10?.toFixed(2)}</span>
-              </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500"
-                  style={{
-                    width: `${Math.min(100, (percentile / 100) * 100)}%`,
-                  }}
-                />
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>90th percentile</span>
-                <span className="font-mono">{benchmark.benchmark.p90?.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4 pt-4 border-t">
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">25th</p>
-              <p className="text-lg font-semibold">
-                {benchmark.benchmark.p25?.toFixed(2)}
+    <div className="space-y-4">
+      <PageCard
+        title={`You vs Median vs Best · ${sectorLabel(benchmark.peerGroup?.sector ?? "")}`}
+      >
+        <p className="mb-4 text-[12px] text-ink-muted">
+          {statusLabel(benchmark.status)}
+          {b.percentileRank !== undefined ? ` · ~${b.percentileRank}th percentile` : ""}
+          {` · ${b.cohortSize} organisations`}
+          {" · peer names never shown"}
+        </p>
+        <div className="grid grid-cols-3 gap-3 border-b border-rule pb-4">
+          {(
+            [
+              ["You", comparison.you],
+              ["Median", comparison.median],
+              ["Best", comparison.best],
+            ] as const
+          ).map(([label, value]) => (
+            <div key={label}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                {label}
+              </p>
+              <p className="mt-1 font-data text-[18px] text-ink">
+                {value === null || value === undefined ? "—" : value.toLocaleString()}
               </p>
             </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">Median</p>
-              <p className="text-lg font-semibold">
-                {benchmark.benchmark.p50?.toFixed(2)}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground">75th</p>
-              <p className="text-lg font-semibold">
-                {benchmark.benchmark.p75?.toFixed(2)}
-              </p>
-            </div>
+          ))}
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.08em] text-ink-muted">p25</p>
+            <p className="font-data text-[13px] text-ink">{b.p25.toLocaleString()}</p>
           </div>
-        </CardContent>
-      </Card>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.08em] text-ink-muted">Mean</p>
+            <p className="font-data text-[13px] text-ink">
+              {(b.mean ?? comparison.mean).toLocaleString()}
+            </p>
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.08em] text-ink-muted">p75</p>
+            <p className="font-data text-[13px] text-ink">{b.p75.toLocaleString()}</p>
+          </div>
+        </div>
+        <p className="mt-4 text-[13px]">
+          <Link href="/benchmarks" className="text-accent hover:text-accent-hover">
+            Open detailed comparison
+          </Link>
+        </p>
+      </PageCard>
 
-      {benchmark.insights && benchmark.insights.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Insights
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2">
-              {benchmark.insights.map((insight, idx) => (
-                <li key={idx} className="flex gap-3 text-sm">
-                  <span className="text-blue-600 font-bold">•</span>
-                  <span>{insight}</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      )}
+      {benchmark.gaps && benchmark.gaps.length > 0 ? (
+        <PageCard title="Gap callouts">
+          <ul className="space-y-2">
+            {benchmark.gaps.map((g) => (
+              <li key={g.metricKey} className="text-[13px] text-ink">
+                {g.message}
+              </li>
+            ))}
+          </ul>
+        </PageCard>
+      ) : null}
 
-      {benchmark.peers && benchmark.peers.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Anonymized Peers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {benchmark.peers.map((peer, idx) => (
-                <div
-                  key={idx}
-                  className="flex justify-between text-sm p-2 rounded hover:bg-muted"
-                >
-                  <span>{peer.name}</span>
-                  <span className="text-muted-foreground text-xs">{peer.industry}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {benchmark.insights && benchmark.insights.length > 0 ? (
+        <PageCard title="Insights">
+          <ul className="space-y-2">
+            {benchmark.insights.map((insight) => (
+              <li
+                key={insight}
+                className="border-b border-rule py-2 text-[13px] text-ink last:border-b-0"
+              >
+                {insight}
+              </li>
+            ))}
+          </ul>
+        </PageCard>
+      ) : null}
+
+      {benchmark.cohortGate ? (
+        <p className="text-[11px] text-ink-muted">{benchmark.cohortGate}</p>
+      ) : null}
     </div>
   );
 }

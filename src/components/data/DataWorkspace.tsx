@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { DatapointVersionHistory } from "@/components/data/DatapointVersionHistory";
 import { FrameworkChips } from "@/components/data/FrameworkChips";
 import { FrameworkCoveragePanel } from "@/components/data/FrameworkCoveragePanel";
 import { ApprovalChip } from "@/components/governance/ApprovalChip";
@@ -71,6 +72,7 @@ export function DataWorkspace({
   year,
   canWrite,
   applicableFrameworks: applicable = [],
+  emissionsStandard,
 }: {
   initialRows: DataRowState[];
   periodLocked: boolean;
@@ -79,6 +81,7 @@ export function DataWorkspace({
   year: number;
   canWrite: boolean;
   applicableFrameworks?: FrameworkId[];
+  emissionsStandard?: string;
 }) {
   const [mode, setMode] = useState<Mode>("enter");
   const [rows, setRows] = useState<DataRowState[]>(() => {
@@ -130,6 +133,12 @@ export function DataWorkspace({
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [uploadName, setUploadName] = useState<string | null>(null);
+  const [changeReason, setChangeReason] = useState("");
+  const [historyTarget, setHistoryTarget] = useState<{
+    id: string;
+    label: string;
+    metricKey: string;
+  } | null>(null);
 
   useEffect(() => {
     void fetch("/api/app/teammates")
@@ -201,6 +210,7 @@ export function DataWorkspace({
           quality: row.quality,
           unit: row.unit,
           assignedTo: row.assignedTo,
+          reason: changeReason.trim() || undefined,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as {
@@ -234,7 +244,7 @@ export function DataWorkspace({
         setStatus(`Saved ${label}`);
       }
     },
-    [canWrite, periodLocked],
+    [canWrite, periodLocked, changeReason],
   );
 
   function updateRow(metricKey: string, patch: Partial<DataRowState>) {
@@ -536,6 +546,14 @@ export function DataWorkspace({
 
         <div className="mt-6 space-y-4">
           <FrameworkCoveragePanel summaries={coverage.byFramework} />
+          {emissionsStandard ? (
+            <p className="text-[12px] text-ink-muted">
+              Applicable emission factors:{" "}
+              <span className="font-data text-ink">{emissionsStandard}</span>
+              {" · "}
+              {factors.length} registry rows for this standard
+            </p>
+          ) : null}
 
           {mode === "enter" ? (
             <section className="w-full rounded-[6px] border border-rule bg-surface-1 p-4 md:p-5">
@@ -548,6 +566,17 @@ export function DataWorkspace({
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search metrics…"
                     className="w-full rounded-md border border-rule bg-surface-1 px-3 py-2 text-[13px] text-ink placeholder:text-ink-muted"
+                  />
+                </label>
+                <label className="min-w-0 sm:w-56">
+                  <span className="sr-only">Change reason</span>
+                  <input
+                    type="text"
+                    value={changeReason}
+                    onChange={(e) => setChangeReason(e.target.value)}
+                    disabled={!canWrite || periodLocked}
+                    placeholder="Change reason (optional)"
+                    className="w-full rounded-md border border-rule bg-surface-1 px-3 py-2 text-[13px] text-ink placeholder:text-ink-muted disabled:opacity-50"
                   />
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -612,6 +641,9 @@ export function DataWorkspace({
                       ))}
                       <th className="py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
                         State
+                      </th>
+                      <th className="py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        History
                       </th>
                     </tr>
                   </thead>
@@ -825,6 +857,25 @@ export function DataWorkspace({
                           <td className="py-2.5 align-top">
                             <ApprovalChip state={row.approvalState} />
                           </td>
+                          <td className="py-2.5 align-top">
+                            {row.id ? (
+                              <button
+                                type="button"
+                                className="text-[11px] text-accent underline-offset-2 hover:underline"
+                                onClick={() =>
+                                  setHistoryTarget({
+                                    id: row.id!,
+                                    label: def.label,
+                                    metricKey: row.metricKey,
+                                  })
+                                }
+                              >
+                                Versions
+                              </button>
+                            ) : (
+                              <span className="text-[11px] text-ink-muted">—</span>
+                            )}
+                          </td>
                         </tr>
                       );
                     })}
@@ -968,6 +1019,37 @@ export function DataWorkspace({
           )}
         </div>
       </div>
+
+      {historyTarget ? (
+        <DatapointVersionHistory
+          datapointId={historyTarget.id}
+          metricLabel={historyTarget.label}
+          open={Boolean(historyTarget)}
+          onOpenChange={(open) => {
+            if (!open) setHistoryTarget(null);
+          }}
+          canWrite={canWrite}
+          periodLocked={periodLocked}
+          onRestored={(restored) => {
+            setRows((prev) =>
+              prev.map((r) =>
+                r.id === restored.id || r.metricKey === historyTarget.metricKey
+                  ? {
+                      ...r,
+                      id: restored.id,
+                      value: restored.value,
+                      quality: restored.quality as Quality,
+                      unit: restored.unit,
+                      approvalState: restored.approvalState,
+                    }
+                  : r,
+              ),
+            );
+            setStatusTone("ok");
+            setStatus(`Restored ${historyTarget.label} from prior version.`);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

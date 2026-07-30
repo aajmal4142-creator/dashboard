@@ -52,10 +52,14 @@ export interface FactorRecord {
   value: number;
   unit: string;
   source: string;
+  /** Methodology family (DEFRA | IPCC | GHGProtocol2004). */
+  standard?: string;
   publicationYear: number;
   region: string;
   validFrom?: string;
   validUntil?: string;
+  /** Relative uncertainty band (±%) when published. */
+  uncertaintyPct?: number;
 }
 
 export interface FactorUsage {
@@ -64,6 +68,7 @@ export interface FactorUsage {
   value: number;
   source: string;
   year: number;
+  standard?: string;
 }
 
 export interface BreakdownItem {

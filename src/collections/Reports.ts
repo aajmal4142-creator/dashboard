@@ -8,6 +8,51 @@ export const Reports: CollectionConfig = {
     defaultColumns: ["organisation", "framework", "version", "status"],
   },
   access: tenantAccess({ writeMin: "admin", adminWriteMin: "admin" }),
+  hooks: {
+    beforeChange: [
+      ({ data, originalDoc, operation }) => {
+        if (operation !== "update" || !originalDoc) return data;
+        if (originalDoc.status !== "published") return data;
+
+        // Final reports stay locked. Allow minting assuranceToken and bumping viewCount/pdfUrl only.
+        if (data?.status !== undefined && data.status !== "published") {
+          throw new Error(
+            "Published reports are immutable. Create a new version instead of unpublishing.",
+          );
+        }
+
+        const lockedKeys = [
+          "snapshot",
+          "scores",
+          "emissions",
+          "dataQualityPct",
+          "factorVersionsUsed",
+          "framework",
+          "period",
+          "organisation",
+          "version",
+          "publishedAt",
+          "publishedBy",
+          "lockedAt",
+          "shareToken",
+          "preparedBy",
+          "approvedBy",
+          "approvedAt",
+          "preparerNotes",
+          "versionHistory",
+        ] as const;
+
+        for (const key of lockedKeys) {
+          if (Object.prototype.hasOwnProperty.call(data ?? {}, key)) {
+            throw new Error(
+              "Published reports are immutable. Create a new version instead of editing a final report.",
+            );
+          }
+        }
+        return data;
+      },
+    ],
+  },
   fields: [
     {
       name: "organisation",
@@ -48,6 +93,9 @@ export const Reports: CollectionConfig = {
         { label: "Published", value: "published" },
       ],
       index: true,
+      admin: {
+        description: "Draft is regenerable. Published is final and immutable.",
+      },
     },
     {
       name: "scores",
@@ -101,6 +149,64 @@ export const Reports: CollectionConfig = {
       name: "publishedBy",
       type: "relationship",
       relationTo: "users",
+    },
+    {
+      name: "preparedBy",
+      type: "relationship",
+      relationTo: "users",
+      admin: { description: "User who prepared this draft or final report" },
+    },
+    {
+      name: "approvedBy",
+      type: "relationship",
+      relationTo: "users",
+      admin: { description: "User who approved the report before final lock" },
+    },
+    { name: "approvedAt", type: "date" },
+    {
+      name: "preparerNotes",
+      type: "textarea",
+      admin: {
+        description: "Audit / preparer notes included in the Data Integrity PDF section",
+      },
+    },
+    {
+      name: "lockedAt",
+      type: "date",
+      admin: {
+        description: "Set when status becomes published — report is immutable thereafter",
+      },
+    },
+    {
+      name: "versionHistory",
+      type: "array",
+      admin: {
+        description: "Append-only history of draft regenerations and final lock events",
+      },
+      fields: [
+        { name: "version", type: "number", required: true },
+        {
+          name: "status",
+          type: "select",
+          required: true,
+          options: [
+            { label: "Draft", value: "draft" },
+            { label: "Published", value: "published" },
+          ],
+        },
+        { name: "at", type: "date", required: true },
+        {
+          name: "actor",
+          type: "relationship",
+          relationTo: "users",
+        },
+        { name: "note", type: "text" },
+        {
+          name: "changeSummary",
+          type: "json",
+          admin: { description: "Diff paths vs previous snapshot when available" },
+        },
+      ],
     },
   ],
 };

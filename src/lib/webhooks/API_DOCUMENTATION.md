@@ -13,6 +13,7 @@ https://api.clearesg.com/api/app
 ## Authentication
 
 All API requests require:
+
 - `Authorization: Bearer <user_token>` (from Clerk authentication)
 - `Content-Type: application/json`
 - TLS 1.2 or higher
@@ -20,6 +21,7 @@ All API requests require:
 ## Rate Limiting
 
 All endpoints respect the following rate limits per organization:
+
 - **Limit**: 1000 requests per hour
 - **Window**: 3600 seconds
 - **Header**: `X-RateLimit-Remaining` (requests remaining in current window)
@@ -31,11 +33,12 @@ All endpoints respect the following rate limits per organization:
 
 #### POST `/data/ingest`
 
-Ingest datapoints into the organization's active reporting period. Supports both single and batch ingestion.
+Ingest datapoints into the organization's active reporting period. Supports single records, batches, and company/emissions/supplier envelopes. Deduplicates against existing org/period/metric/supplier keys. Supports dry-run.
 
-**Authentication Required**: Yes (Contributor role minimum)
+**Authentication Required**: Yes (`create:datapoint:organisation`)
 
 **Request Body** (Single):
+
 ```json
 {
   "metricKey": "emissions.scope1",
@@ -46,6 +49,7 @@ Ingest datapoints into the organization's active reporting period. Supports both
 ```
 
 **Request Body** (Batch - Array of 1-1000 items):
+
 ```json
 [
   {
@@ -63,46 +67,75 @@ Ingest datapoints into the organization's active reporting period. Supports both
 ]
 ```
 
-**Parameters**:
-- `metricKey` (string, required): Unique identifier for the metric (e.g., "emissions.scope1")
-- `value` (number, optional): The numeric value of the datapoint
-- `quality` (string, required): Data quality indicator - one of:
-  - `measured`: Primary data from direct measurement
-  - `calculated`: Data derived from modeling/calculation
-  - `estimated`: Data from industry estimates
-  - `missing`: Placeholder for missing data
-- `unit` (string, optional): Unit of measurement (e.g., "tCO2e", "kWh")
+**Request Body** (Envelope with dry-run):
 
-**Success Response** (Single):
 ```json
 {
-  "ok": true,
-  "id": "datapoint-123",
-  "status": "created",
-  "timestamp": "2025-07-29T10:30:00Z"
-}
-```
-
-**Success Response** (Batch):
-```json
-{
-  "ok": true,
-  "inserted": 950,
-  "failed": 50,
-  "errors": [
+  "dryRun": true,
+  "company": {
+    "externalId": "acme-1",
+    "dataPoints": [
+      { "type": "scope1", "category": "emissions", "value": 12, "quality": "measured" }
+    ]
+  },
+  "suppliers": [
     {
-      "index": 5,
-      "error": "Invalid quality value"
+      "supplierId": "sup-9",
+      "emissionsData": [
+        {
+          "type": "purchased_goods",
+          "category": "scope3",
+          "value": 3,
+          "quality": "estimated"
+        }
+      ]
     }
   ]
 }
 ```
 
+**Query**: `?dryRun=true` also enables dry-run when the body omits `dryRun`.
+
+**Parameters**:
+
+- `metricKey` (string) or `type` (+ optional `category`): metric identifier
+- `value` (number, optional): numeric value
+- `quality` (string, optional, default `estimated`): `measured` | `calculated` | `estimated` | `missing`
+- `unit` (string, optional): unit of measurement
+- `supplierId` / `externalId` (optional): supplier linkage and client-side idempotency key
+- `dryRun` (boolean, optional): preview without writing
+
+**Success Response**:
+
+```json
+{
+  "ok": true,
+  "dryRun": false,
+  "batchId": "550e8400-e29b-41d4-a716-446655440000",
+  "recordsProcessed": 2,
+  "recordsSkipped": 1,
+  "recordsFailed": 0,
+  "errors": [],
+  "deduplicationReport": {
+    "matched": [
+      {
+        "index": 1,
+        "metricKey": "emissions.scope1",
+        "supplierKey": "",
+        "reason": "existing"
+      }
+    ],
+    "newRecords": [{ "index": 0, "metricKey": "emissions.scope2", "supplierKey": "" }]
+  }
+}
+```
+
 **Error Responses**:
-- `400 API-004`: Invalid datapoint schema
+
+- `400 API-004`: Invalid datapoint schema / all rows failed
 - `401 API-006`: Insufficient permissions
 - `402`: Billing issue (quota exceeded)
-- `403`: User not authenticated
+- `403`: User not authenticated / no active organisation
 - `429 API-003`: Rate limit exceeded
 - `409`: Reporting period is locked
 
@@ -117,6 +150,7 @@ Register a webhook endpoint to receive real-time events.
 **Authentication Required**: Yes (Admin role minimum)
 
 **Request Body**:
+
 ```json
 {
   "endpoint_url": "https://your-domain.com/webhooks/clearesg",
@@ -125,12 +159,14 @@ Register a webhook endpoint to receive real-time events.
 ```
 
 **Parameters**:
+
 - `endpoint_url` (string, required): HTTPS URL to receive webhook events
 - `events` (array, required): Event types to subscribe to
   - `datapoint.created`: Fired when a datapoint is created
   - `datapoint.updated`: Fired when a datapoint is updated
 
 **Success Response** (201 Created):
+
 ```json
 {
   "ok": true,
@@ -144,6 +180,7 @@ Register a webhook endpoint to receive real-time events.
 ```
 
 **Error Responses**:
+
 - `400 API-009`: Invalid request format
 - `401 API-006`: Insufficient permissions (Admin required)
 - `403`: User not authenticated
@@ -159,6 +196,7 @@ List all registered webhooks for the organization.
 **Authentication Required**: Yes (Admin role minimum)
 
 **Success Response**:
+
 ```json
 {
   "ok": true,
@@ -177,6 +215,7 @@ List all registered webhooks for the organization.
 ```
 
 **Error Responses**:
+
 - `401 API-006`: Insufficient permissions
 - `403`: User not authenticated
 
@@ -191,9 +230,11 @@ Deactivate and remove a webhook registration.
 **Authentication Required**: Yes (Admin role minimum)
 
 **Path Parameters**:
+
 - `webhook_id` (string, required): The webhook ID (UUID format)
 
 **Success Response**:
+
 ```json
 {
   "ok": true,
@@ -202,6 +243,7 @@ Deactivate and remove a webhook registration.
 ```
 
 **Error Responses**:
+
 - `401 API-006`: Insufficient permissions
 - `403`: User not authenticated
 - `404 API-002`: Webhook not found
@@ -215,17 +257,20 @@ Deactivate and remove a webhook registration.
 **This endpoint receives events FROM your webhooks (i.e., ClearESG sends events to your registered endpoint).**
 
 When webhook events occur in ClearESG, we POST events to your registered endpoint URL. Your endpoint must:
+
 1. Verify the request signature
 2. Process the event
 3. Return a 2xx status code within 30 seconds
 
 **Headers**:
+
 - `X-Webhook-Signature`: HMAC-SHA256 signature for verification
 - `X-Webhook-ID`: The webhook ID that triggered the event
 - `X-Webhook-Event`: Event type (e.g., "datapoint.created")
 - `Content-Type: application/json`
 
 **Request Body** (Example):
+
 ```json
 {
   "datapoint_id": "dp_123abc",
@@ -242,25 +287,26 @@ Each request includes `X-Webhook-Signature` header in format: `timestamp,hash`
 
 ```javascript
 // Node.js example
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 function verifySignature(payload, signature, secret) {
-  const [timestamp, hash] = signature.split(',');
+  const [timestamp, hash] = signature.split(",");
   const ts = parseInt(timestamp, 10);
-  
+
   // Reject if >5 minutes old
   if (Math.floor(Date.now() / 1000) - ts > 300) return false;
-  
+
   const signed = crypto
-    .createHmac('sha256', secret)
+    .createHmac("sha256", secret)
     .update(`${timestamp}.${payload}`)
-    .digest('hex');
-  
+    .digest("hex");
+
   return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(signed));
 }
 ```
 
 **Expected Response**:
+
 ```
 HTTP 200 OK
 Content-Type: application/json
@@ -273,6 +319,7 @@ Content-Type: application/json
 **Retry Policy**
 
 If your endpoint returns non-2xx or times out, ClearESG retries with exponential backoff:
+
 - Attempt 1: Immediate
 - Attempt 2: 1 second delay
 - Attempt 3: 2 second delay
@@ -287,19 +334,19 @@ After 5 total attempts, the webhook is moved to a dead letter queue for manual r
 
 ## Error Codes Reference
 
-| Code | HTTP Status | Description |
-|------|---|---|
-| API-001 | 400 | Invalid request signature |
-| API-002 | 404 | Webhook not found |
-| API-003 | 429 | Rate limit exceeded |
-| API-004 | 400 | Invalid datapoint schema |
-| API-005 | 402 | Organization quota exceeded |
-| API-006 | 401/403 | Unauthorized or insufficient permissions |
-| API-007 | 409 | Reporting period is closed |
-| API-008 | 404 | Organization not found |
-| API-009 | 400 | Invalid request format |
-| API-010 | 500 | Webhook delivery failed (will retry) |
-| API-011 | 500 | Internal server error |
+| Code    | HTTP Status | Description                              |
+| ------- | ----------- | ---------------------------------------- |
+| API-001 | 400         | Invalid request signature                |
+| API-002 | 404         | Webhook not found                        |
+| API-003 | 429         | Rate limit exceeded                      |
+| API-004 | 400         | Invalid datapoint schema                 |
+| API-005 | 402         | Organization quota exceeded              |
+| API-006 | 401/403     | Unauthorized or insufficient permissions |
+| API-007 | 409         | Reporting period is closed               |
+| API-008 | 404         | Organization not found                   |
+| API-009 | 400         | Invalid request format                   |
+| API-010 | 500         | Webhook delivery failed (will retry)     |
+| API-011 | 500         | Internal server error                    |
 
 ---
 
@@ -357,43 +404,43 @@ curl -X POST https://api.clearesg.com/api/app/webhooks/register \
 
 ```javascript
 // Express.js example
-const crypto = require('crypto');
-const express = require('express');
+const crypto = require("crypto");
+const express = require("express");
 const app = express();
 
-app.use(express.raw({ type: 'application/json' }));
+app.use(express.raw({ type: "application/json" }));
 
-app.post('/webhooks/clearesg', (req, res) => {
-  const signature = req.get('X-Webhook-Signature');
-  const webhookId = req.get('X-Webhook-ID');
-  const eventType = req.get('X-Webhook-Event');
-  
+app.post("/webhooks/clearesg", (req, res) => {
+  const signature = req.get("X-Webhook-Signature");
+  const webhookId = req.get("X-Webhook-ID");
+  const eventType = req.get("X-Webhook-Event");
+
   const secret = process.env.CLEARESG_WEBHOOK_SECRET; // From registration response
   const payload = req.body.toString();
-  
+
   // Verify signature
-  const [timestamp, hash] = signature.split(',');
+  const [timestamp, hash] = signature.split(",");
   const ts = parseInt(timestamp, 10);
-  
+
   if (Math.floor(Date.now() / 1000) - ts > 300) {
-    return res.status(401).json({ error: 'Signature expired' });
+    return res.status(401).json({ error: "Signature expired" });
   }
-  
+
   const signed = crypto
-    .createHmac('sha256', secret)
+    .createHmac("sha256", secret)
     .update(`${timestamp}.${payload}`)
-    .digest('hex');
-  
+    .digest("hex");
+
   if (!crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(signed))) {
-    return res.status(401).json({ error: 'Invalid signature' });
+    return res.status(401).json({ error: "Invalid signature" });
   }
-  
+
   // Process event
   const event = JSON.parse(payload);
   console.log(`Received ${eventType}:`, event);
-  
+
   // Do your processing here
-  
+
   res.json({ ok: true });
 });
 

@@ -279,6 +279,71 @@ export const EmailDataCollectionForms: CollectionConfig = {
       admin: { description: "Aggregated quality metrics for responses" },
     },
     {
+      name: "inboundEnabled",
+      type: "checkbox",
+      defaultValue: false,
+      index: true,
+      admin: {
+        description:
+          "When enabled, whitelisted senders may email CSV attachments for ingest",
+      },
+    },
+    {
+      name: "inboundToken",
+      type: "text",
+      unique: true,
+      index: true,
+      admin: {
+        description:
+          "Match token in To address (import+TOKEN@…) or subject [ClearESG:TOKEN]",
+      },
+    },
+    {
+      name: "whitelistedSenders",
+      type: "array",
+      admin: {
+        description:
+          "Only these email addresses may submit inbound CSVs (non-whitelisted rejected)",
+      },
+      fields: [
+        {
+          name: "email",
+          type: "email",
+          required: true,
+        },
+        {
+          name: "label",
+          type: "text",
+          admin: { description: "Optional display label" },
+        },
+      ],
+    },
+    {
+      name: "recurringEnabled",
+      type: "checkbox",
+      defaultValue: false,
+      admin: {
+        description: "Allow repeated CSV imports over time (do not treat as one-shot)",
+      },
+    },
+    {
+      name: "recurringCadence",
+      type: "select",
+      defaultValue: "none",
+      options: [
+        { label: "None", value: "none" },
+        { label: "Weekly", value: "weekly" },
+        { label: "Monthly", value: "monthly" },
+        { label: "Quarterly", value: "quarterly" },
+      ],
+      admin: { description: "Expected cadence for recurring imports (advisory)" },
+    },
+    {
+      name: "lastImportAt",
+      type: "date",
+      admin: { description: "Timestamp of last successful inbound CSV import" },
+    },
+    {
       name: "createdBy",
       type: "relationship",
       relationTo: "users",

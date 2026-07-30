@@ -193,6 +193,9 @@ export async function logWebhookAttempt(log: {
   attemptNumber: number;
   nextRetryAt?: string;
   durationMs?: number;
+  source?: "webhook" | "api";
+  batchId?: string;
+  recordCount?: number;
 }): Promise<WebhookLog> {
   const payload = await getPayload({ config });
 
@@ -215,6 +218,9 @@ export async function logWebhookAttempt(log: {
       attempt_number: log.attemptNumber,
       next_retry_at: log.nextRetryAt,
       duration_ms: log.durationMs,
+      source: log.source ?? (log.eventType === "data.ingest" ? "api" : "webhook"),
+      batch_id: log.batchId,
+      record_count: log.recordCount,
     },
     overrideAccess: true,
   });

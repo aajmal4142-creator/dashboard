@@ -4,11 +4,19 @@ import { denyAll } from "@/lib/access";
 
 export const ASSURANCE_PARTNERS_SLUG = "assurance-partners" as const;
 
+export const FIRM_TYPE_OPTIONS = [
+  { label: "Big 4", value: "big4" },
+  { label: "Mid-tier", value: "mid_tier" },
+  { label: "Specialist", value: "specialist" },
+] as const;
+
 export const AssurancePartners: CollectionConfig = {
   slug: ASSURANCE_PARTNERS_SLUG,
   admin: {
     useAsTitle: "firmName",
-    defaultColumns: ["firmName", "certifications", "rating", "location"],
+    defaultColumns: ["firmName", "firmType", "country", "rating", "availability"],
+    description:
+      "Curated ESG assurance firm directory. Seeded statically — not a live marketplace.",
   },
   access: {
     read: () => true,
@@ -25,6 +33,17 @@ export const AssurancePartners: CollectionConfig = {
       index: true,
     },
     {
+      name: "firmType",
+      type: "select",
+      required: true,
+      defaultValue: "specialist",
+      index: true,
+      options: [...FIRM_TYPE_OPTIONS],
+      admin: {
+        description: "Big 4 / Mid-tier / Specialist",
+      },
+    },
+    {
       name: "website",
       type: "text",
       required: true,
@@ -33,6 +52,10 @@ export const AssurancePartners: CollectionConfig = {
       name: "contactEmail",
       type: "email",
       required: true,
+      admin: {
+        description:
+          "Directory contact only. Seed uses example.com placeholders — not live inboxes.",
+      },
     },
     {
       name: "phone",
@@ -49,6 +72,25 @@ export const AssurancePartners: CollectionConfig = {
       name: "country",
       type: "text",
       required: true,
+      index: true,
+      admin: {
+        description: "Primary country code (ISO-ish, e.g. IN, GB, US)",
+      },
+    },
+    {
+      name: "countries",
+      type: "array",
+      admin: {
+        description: "All countries where the firm offers ESG assurance",
+      },
+      fields: [
+        {
+          name: "code",
+          type: "text",
+          required: true,
+          index: true,
+        },
+      ],
     },
     {
       name: "certifications",
@@ -59,6 +101,7 @@ export const AssurancePartners: CollectionConfig = {
           name: "cert",
           type: "select",
           required: true,
+          index: true,
           options: [
             { label: "ISO 14064-2", value: "iso_14064_2" },
             { label: "CSRD", value: "csrd" },
@@ -82,6 +125,7 @@ export const AssurancePartners: CollectionConfig = {
           name: "spec",
           type: "text",
           required: true,
+          index: true,
           admin: { description: "e.g., Energy, Transport, Manufacturing" },
         },
       ],

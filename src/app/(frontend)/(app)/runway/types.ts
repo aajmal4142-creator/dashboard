@@ -62,4 +62,13 @@ export type RunwayViewProps = {
   missingCountry: boolean;
   missingHeadcount: boolean;
   missingRevenue: boolean;
+  peerBenchmark: {
+    available: boolean;
+    message?: string;
+    you: number | null;
+    median: number | null;
+    best: number | null;
+    cohortSize: number | null;
+    percentileRank: number | null;
+  };
 };

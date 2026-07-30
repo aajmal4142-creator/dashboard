@@ -140,6 +140,10 @@ export const Suppliers: CollectionConfig = {
     {
       name: "riskMetrics",
       type: "group",
+      admin: {
+        description:
+          "ESG risk score: Environmental 40% + Social 30% + Governance 30% (higher = worse)",
+      },
       fields: [
         { name: "score", type: "number", min: 0, max: 100 },
         {
@@ -152,9 +156,66 @@ export const Suppliers: CollectionConfig = {
             { label: "Critical", value: "critical" },
           ],
         },
-        { name: "flags", type: "json" },
+        {
+          name: "environmentalScore",
+          type: "number",
+          min: 0,
+          max: 100,
+          admin: { description: "Environmental pillar risk (weight 40%)" },
+        },
+        {
+          name: "socialScore",
+          type: "number",
+          min: 0,
+          max: 100,
+          admin: { description: "Social pillar risk (weight 30%)" },
+        },
+        {
+          name: "governanceScore",
+          type: "number",
+          min: 0,
+          max: 100,
+          admin: { description: "Governance pillar risk (weight 30%)" },
+        },
+        {
+          name: "flags",
+          type: "json",
+          admin: {
+            description:
+              "Risk flags e.g. missing_emissions, yoy_increase, high_risk_alert",
+          },
+        },
+        {
+          name: "mitigations",
+          type: "json",
+          admin: {
+            description:
+              "Mitigation actions: [{id, action, status, createdAt, completedAt}]",
+          },
+        },
         { name: "calculatedAt", type: "date" },
       ],
     },
   ],
+  hooks: {
+    afterChange: [
+      async ({ doc, previousDoc, context, operation }) => {
+        if (context?.skipRiskRecalc) return doc;
+        if (operation !== "create" && operation !== "update") return doc;
+
+        const { supplierNeedsRiskRecalc, calculateRiskScore } =
+          await import("@/lib/suppliers/riskScoringEngine");
+
+        const prev = previousDoc as Record<string, unknown> | undefined;
+        const next = doc as Record<string, unknown>;
+        if (operation === "update" && !supplierNeedsRiskRecalc(prev, next)) {
+          return doc;
+        }
+
+        // Fire-and-forget recalc so the write path stays responsive.
+        void calculateRiskScore(String(doc.id));
+        return doc;
+      },
+    ],
+  },
 };

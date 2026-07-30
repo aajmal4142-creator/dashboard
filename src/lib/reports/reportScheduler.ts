@@ -20,6 +20,7 @@ export async function createReportSchedule(
     data: {
       templateName: `Schedule_${reportId}_${frequency}_${nextExecutionAt.toISOString()}`,
       organisation: orgId,
+      purpose: "report",
       framework: "custom",
       type: "html",
       description: `Scheduled ${frequency} delivery to ${recipients.join(", ")}`,

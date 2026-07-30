@@ -36,7 +36,15 @@ export default async function AssuranceDashboardPage() {
       >
         <EmptyState
           title="No published report yet"
-          body="Publish from Reports, then return here for figure lineage."
+          body="Publish from Reports, then return here for figure lineage. Meanwhile, browse the curated assurance partner directory."
+          action={
+            <a
+              href="/assurance-partners"
+              className="editorial-link text-accent text-[13px]"
+            >
+              Browse assurance partners
+            </a>
+          }
         />
       </PageFrame>
     );

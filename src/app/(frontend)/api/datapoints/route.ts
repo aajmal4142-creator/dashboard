@@ -28,6 +28,7 @@ export async function POST(req: Request) {
     quality?: "measured" | "calculated" | "estimated" | "missing";
     unit?: string;
     assignedTo?: string | null;
+    reason?: string | null;
   };
   if (!body.metricKey || !body.quality) {
     return NextResponse.json(
@@ -75,6 +76,7 @@ export async function POST(req: Request) {
       source: "manual",
       actorId: ctx.user.id,
       assignedTo: body.assignedTo,
+      reason: body.reason ?? null,
     });
     return NextResponse.json({ ok: true, ...result });
   } catch (err) {

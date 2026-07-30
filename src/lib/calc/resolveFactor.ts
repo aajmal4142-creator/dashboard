@@ -6,6 +6,8 @@
  *   2. region + latest available year (any year)
  *   3. GLOBAL + year
  *
+ * When `standard` is provided, only rows tagged with that methodology are considered.
+ *
  * If nothing matches, throw. Never silently default — a wrong factor is a filing error.
  */
 import type { FactorRecord } from "./types";
@@ -40,8 +42,12 @@ export function resolveFactor(
   key: string,
   region: string,
   year: number,
+  standard?: string,
 ): FactorRecord {
-  const byKey = factors.filter((f) => f.key === key);
+  let byKey = factors.filter((f) => f.key === key);
+  if (standard !== undefined) {
+    byKey = byKey.filter((f) => f.standard === standard);
+  }
 
   const exactRegionYear = byKey.filter((f) => f.region === region && coversYear(f, year));
   if (exactRegionYear.length > 0) return latestOf(exactRegionYear);
@@ -54,8 +60,9 @@ export function resolveFactor(
   );
   if (globalYear.length > 0) return latestOf(globalYear);
 
+  const standardClause = standard !== undefined ? ` standard="${standard}"` : "";
   throw new Error(
-    `resolveFactor: no factor for key="${key}" region="${region}" year=${year}. ` +
+    `resolveFactor: no factor for key="${key}" region="${region}" year=${year}${standardClause}. ` +
       `Checked exact region+year, region+latest, and GLOBAL+year — refusing to silently default.`,
   );
 }
