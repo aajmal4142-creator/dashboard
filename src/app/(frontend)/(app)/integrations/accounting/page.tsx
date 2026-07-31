@@ -1,301 +1,88 @@
-"use client";
+import { redirect } from "next/navigation";
+import { getPayload } from "payload";
 
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { getCurrentContext } from "@/lib/auth";
+import { parseCategoryMapping } from "@/lib/integrations/accounting";
+import config from "@/payload.config";
 
-interface AccountingConnection {
-  id: string;
-  provider: "xero" | "quickbooks";
-  status: "pending" | "connected" | "failed" | "expired";
-  connectedAt?: string;
-  lastSyncAt?: string;
-  lastSyncStatus?: string;
-  syncErrorCount?: number;
-  syncConfig?: {
-    enableExpenseSync: boolean;
-    enableBankFeedSync: boolean;
-    enableAutoCateg: boolean;
-    syncFrequency: string;
-  };
-}
+import { AccountingClient } from "./AccountingClient";
 
-type StatusMessage = { type: "success" | "error"; text: string };
+export default async function AccountingIntegrationPage() {
+  const ctx = await getCurrentContext();
+  if (!ctx.activeOrg) redirect("/onboarding");
 
-export default function AccountingIntegrationPage() {
-  const searchParams = useSearchParams();
-  const [connections, setConnections] = useState<AccountingConnection[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState<string | null>(null);
-  const [periodId, setPeriodId] = useState("");
-  const [actionMessage, setActionMessage] = useState<StatusMessage | null>(null);
+  const canManage = ctx.role === "owner" || ctx.role === "admin";
+  const payload = await getPayload({ config });
 
-  const connected = searchParams.get("connected");
-  const error = searchParams.get("error");
-  const provider = searchParams.get("provider");
-
-  const paramMessage: StatusMessage | null =
-    connected === "true"
-      ? {
-          type: "success",
-          text: `${provider ?? "Accounting"} connected successfully.`,
-        }
-      : error
-        ? { type: "error", text: `Connection failed: ${error}` }
-        : null;
-
-  const message = actionMessage ?? paramMessage;
-
-  const xeroConnection = connections.find((c) => c.provider === "xero");
-  const qbConnection = connections.find((c) => c.provider === "quickbooks");
-
-  useEffect(() => {
-    const fetchConnections = async () => {
-      try {
-        const res = await fetch("/api/app/integrations/status");
-        const data = await res.json();
-        setConnections(data.accounting || []);
-      } catch (err) {
-        console.error("Failed to fetch connections:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchConnections();
-  }, []);
-
-  const handleConnect = async (prov: "xero" | "quickbooks") => {
-    try {
-      const res = await fetch("/api/app/integrations/accounting/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider: prov }),
-      });
-      const data = await res.json();
-      if (data.authUrl) {
-        window.location.href = data.authUrl;
-      }
-    } catch {
-      setActionMessage({ type: "error", text: "Failed to initiate connection" });
-    }
-  };
-
-  const handleSync = async (connectionId: string) => {
-    if (!periodId) {
-      setActionMessage({ type: "error", text: "Please select a reporting period" });
-      return;
-    }
-    setSyncing(connectionId);
-    try {
-      const res = await fetch("/api/app/integrations/accounting/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ connectionId, periodId }),
-      });
-      const data = await res.json();
-      if (data.status === "success" || data.status === "partial") {
-        setActionMessage({
-          type: "success",
-          text: `Sync completed: ${data.recordsProcessed} expenses processed`,
-        });
-        setConnections((conns) =>
-          conns.map((c) =>
-            c.id === connectionId ? { ...c, lastSyncAt: new Date().toISOString() } : c,
-          ),
-        );
-      } else {
-        setActionMessage({ type: "error", text: `Sync failed: ${data.error}` });
-      }
-    } catch {
-      setActionMessage({ type: "error", text: "Failed to start sync" });
-    } finally {
-      setSyncing(null);
-    }
-  };
-
-  if (loading) {
-    return <div className="p-8">Loading...</div>;
-  }
+  const [connections, periods] = await Promise.all([
+    payload.find({
+      collection: "accounting-connections",
+      where: { organisationId: { equals: ctx.activeOrg.id } },
+      limit: 20,
+      depth: 0,
+      overrideAccess: true,
+    }),
+    payload.find({
+      collection: "reporting-periods",
+      where: {
+        and: [
+          { organisation: { equals: ctx.activeOrg.id } },
+          { status: { equals: "open" } },
+        ],
+      },
+      sort: "-startDate",
+      limit: 20,
+      depth: 0,
+      overrideAccess: true,
+    }),
+  ]);
 
   return (
-    <div className="space-y-8 p-8">
-      <div>
-        <Link href="/integrations" className="text-blue-600 hover:underline">
-          ← Back to Integrations
-        </Link>
-        <h1 className="mt-4 text-3xl font-bold">Accounting Integration</h1>
-        <p className="mt-2 text-gray-600">
-          Connect Xero or QuickBooks to sync expenses and calculate emissions
+    <div className="mx-auto max-w-5xl px-6 py-10">
+      <header>
+        <p className="text-xs uppercase tracking-wide text-ink-muted">Integrations</p>
+        <h1 className="mt-1 font-display text-3xl text-ink">Accounting connectors</h1>
+        <div className="title-rule mt-3" />
+        <p className="mt-3 max-w-2xl text-sm text-ink-muted">
+          Connect QuickBooks Online, Xero, or Wave to pull spend by account, map chart of
+          accounts to emissions categories, and calculate spend-based emissions. Without
+          OAuth client secrets, ClearESG uses an encrypted sandbox sync — no paid API
+          required.
         </p>
-      </div>
+      </header>
 
-      {message && (
-        <div
-          className={`rounded-lg p-4 ${
-            message.type === "success"
-              ? "bg-green-50 text-green-800"
-              : "bg-red-50 text-red-800"
-          }`}
-        >
-          {message.text}
-        </div>
-      )}
-
-      {/* Xero Connection */}
-      <div className="rounded-lg border bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold">Xero</h2>
-
-        {xeroConnection?.status === "connected" ? (
-          <div className="mt-4 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-green-500"></div>
-              <span className="font-medium text-green-700">Connected</span>
-            </div>
-
-            {xeroConnection.connectedAt && (
-              <p className="text-sm text-gray-600">
-                Connected at: {new Date(xeroConnection.connectedAt).toLocaleString()}
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="mt-4">
-            <p className="text-gray-600">
-              {xeroConnection?.status === "failed"
-                ? `Connection failed: ${xeroConnection.lastSyncStatus}`
-                : "Not connected. Click below to authorize Xero access."}
-            </p>
-            <button
-              onClick={() => handleConnect("xero")}
-              className="mt-4 rounded bg-blue-600 px-6 py-2 text-white hover:bg-blue-700"
-            >
-              Connect to Xero
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* QuickBooks Connection */}
-      <div className="rounded-lg border bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold">QuickBooks Online</h2>
-
-        {qbConnection?.status === "connected" ? (
-          <div className="mt-4 space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-green-500"></div>
-              <span className="font-medium text-green-700">Connected</span>
-            </div>
-
-            {qbConnection.connectedAt && (
-              <p className="text-sm text-gray-600">
-                Connected at: {new Date(qbConnection.connectedAt).toLocaleString()}
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="mt-4">
-            <p className="text-gray-600">
-              {qbConnection?.status === "failed"
-                ? `Connection failed: ${qbConnection.lastSyncStatus}`
-                : "Not connected. Click below to authorize QuickBooks access."}
-            </p>
-            <button
-              onClick={() => handleConnect("quickbooks")}
-              className="mt-4 rounded bg-blue-600 px-6 py-2 text-white hover:bg-blue-700"
-            >
-              Connect to QuickBooks
-            </button>
-          </div>
-        )}
-      </div>
-
-      {connections.length > 0 && (
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold">Sync Expenses</h2>
-          <div className="mt-4 space-y-4">
-            <div>
-              <label htmlFor="period" className="block text-sm font-medium">
-                Reporting Period
-              </label>
-              <input
-                type="text"
-                id="period"
-                placeholder="Period ID (e.g., 2024-Q1)"
-                value={periodId}
-                onChange={(e) => setPeriodId(e.target.value)}
-                className="mt-1 w-full rounded border px-3 py-2"
-              />
-            </div>
-
-            <div className="space-y-2">
-              {connections.map((conn) => (
-                <button
-                  key={conn.id}
-                  onClick={() => handleSync(conn.id)}
-                  disabled={syncing === conn.id || !periodId}
-                  className="w-full rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:bg-gray-400"
-                >
-                  {syncing === conn.id
-                    ? `Syncing ${conn.provider}...`
-                    : `Sync Expenses from ${conn.provider}`}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {connections.length > 0 && (
-        <div className="rounded-lg border bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold">Sync Configuration</h2>
-          <div className="mt-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <input type="checkbox" id="expenses" defaultChecked disabled />
-              <label htmlFor="expenses" className="text-sm">
-                Sync expense data
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="bankfeed"
-                defaultChecked={connections[0]?.syncConfig?.enableBankFeedSync || false}
-                disabled
-              />
-              <label htmlFor="bankfeed" className="text-sm">
-                Sync bank feeds for utility bills (Xero only)
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="autocat"
-                defaultChecked={connections[0]?.syncConfig?.enableAutoCateg}
-                disabled
-              />
-              <label htmlFor="autocat" className="text-sm">
-                Auto-categorize expenses by GL code
-              </label>
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium">Sync Frequency</label>
-              <p className="mt-1 text-sm text-gray-600">
-                {connections[0]?.syncConfig?.syncFrequency || "manual"}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-6">
-        <h3 className="font-semibold text-yellow-900">Requirements</h3>
-        <ul className="mt-2 space-y-1 text-sm text-yellow-800">
-          <li>• Xero or QuickBooks Online account with API access</li>
-          <li>• OAuth 2.0 configured for the accounting platform</li>
-          <li>• Admin access to manage integrations in ClearESG</li>
-          <li>• Expense categories mapped to GL codes</li>
-        </ul>
+      <div className="mt-10">
+        <AccountingClient
+          canManage={canManage}
+          periods={periods.docs.map((p) => ({
+            id: p.id,
+            label: p.label || p.id,
+            status: p.status,
+          }))}
+          initialConnections={connections.docs.map((c) => ({
+            id: c.id,
+            provider: c.provider as "xero" | "quickbooks" | "wave",
+            status: (c.status || "pending") as
+              "pending" | "connected" | "failed" | "expired",
+            connectionMode: (c.connectionMode || "sandbox") as "sandbox" | "live",
+            companyName: c.companyName ?? null,
+            connectedAt: c.connectedAt ? String(c.connectedAt) : null,
+            lastSyncAt: c.lastSyncAt ? String(c.lastSyncAt) : null,
+            nextSyncAt: c.nextSyncAt ? String(c.nextSyncAt) : null,
+            lastSyncStatus: c.lastSyncStatus ?? null,
+            syncErrorCount: c.syncErrorCount ?? 0,
+            syncConfig: {
+              enableExpenseSync: c.syncConfig?.enableExpenseSync ?? true,
+              enableBankFeedSync: c.syncConfig?.enableBankFeedSync ?? false,
+              enableAutoCateg: c.syncConfig?.enableAutoCateg ?? true,
+              syncFrequency: c.syncConfig?.syncFrequency || "manual",
+            },
+            expenseCategoryMapping: parseCategoryMapping(c.expenseCategoryMapping),
+            discoveredAccounts: Array.isArray(c.discoveredAccounts)
+              ? (c.discoveredAccounts as Array<{ code: string; name: string }>)
+              : [],
+          }))}
+        />
       </div>
     </div>
   );

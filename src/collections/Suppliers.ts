@@ -20,6 +20,16 @@ export const Suppliers: CollectionConfig = {
     { name: "name", type: "text", required: true },
     { name: "contactEmail", type: "email", required: true },
     {
+      name: "emailConsent",
+      type: "checkbox",
+      defaultValue: false,
+      index: true,
+      admin: {
+        description:
+          "Supplier consented to receive engagement / questionnaire emails. Required before send.",
+      },
+    },
+    {
       name: "category",
       type: "select",
       required: true,
@@ -33,6 +43,94 @@ export const Suppliers: CollectionConfig = {
       ],
     },
     { name: "annualSpend", type: "number", min: 0 },
+    {
+      name: "tier",
+      type: "number",
+      min: 1,
+      max: 3,
+      defaultValue: 1,
+      index: true,
+      admin: {
+        description:
+          "Supply-chain tier relative to the reporting org: 1 = direct, 2/3 = upstream",
+      },
+    },
+    {
+      name: "directSpend",
+      type: "number",
+      min: 0,
+      admin: {
+        description:
+          "Amount spent by you (or the parent supplier) on this supplier — used for Tier 2/3 allocation",
+      },
+    },
+    {
+      name: "naceCode",
+      type: "text",
+      admin: {
+        description:
+          "NACE Rev. 2 industry code (section or class). Required for industry-average estimates — never assumed.",
+      },
+    },
+    {
+      name: "industryIntensityOverride",
+      type: "number",
+      min: 0,
+      admin: {
+        description:
+          "Optional override: tCO₂e per $1M USD spend. When set, skips bundled NACE intensity.",
+      },
+    },
+    {
+      name: "totalRevenue",
+      type: "number",
+      min: 0,
+      admin: {
+        description:
+          "Supplier total revenue (USD). When set, allocation = directSpend / totalRevenue.",
+      },
+    },
+    {
+      name: "estimatedEmissions",
+      type: "number",
+      min: 0,
+      admin: {
+        description:
+          "Estimated attributable tCO₂e when no measured supplier data (Tier 2/3 hybrid estimator)",
+      },
+    },
+    {
+      name: "estimationMethod",
+      type: "select",
+      options: [
+        { label: "Actual (measured)", value: "actual" },
+        { label: "Industry average", value: "industry_avg" },
+        { label: "Top-down", value: "top_down" },
+      ],
+      admin: {
+        description: "How estimatedEmissions / attributable figure was derived",
+      },
+    },
+    {
+      name: "estimationConfidence",
+      type: "select",
+      options: [
+        { label: "High", value: "high" },
+        { label: "Medium", value: "medium" },
+        { label: "Low", value: "low" },
+      ],
+      admin: {
+        description: "High if actual; low if industry average",
+      },
+    },
+    {
+      name: "parentSupplier",
+      type: "relationship",
+      relationTo: "suppliers",
+      admin: {
+        description: "Parent Tier-1 (or Tier-2) supplier when this row is Tier 2/3",
+      },
+    },
     {
       name: "requestPeriod",
       type: "relationship",

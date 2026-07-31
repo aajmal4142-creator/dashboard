@@ -1,21 +1,22 @@
 import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
+import { calculatePathway, validatePathwayTargets } from "@/lib/analytics/pathwayPlanner";
+import {
+  parseInterventionsBody,
+  planToPayloadData,
+} from "@/lib/analytics/pathwayService";
 import { getCurrentContext } from "@/lib/auth";
 import config from "@/payload.config";
-import {
-  generateOptimizedPathway,
-  generateMilestonePathway,
-} from "@/lib/analytics/pathwayPlanner";
 
 /**
  * GET /api/app/analytics/pathways
- * List decarbonization pathways for organization
+ * List decarbonization pathways for the active organisation.
  */
 export async function GET() {
   const ctx = await getCurrentContext();
-  if (!ctx.activeOrg) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx.user || !ctx.activeOrg) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
@@ -27,6 +28,7 @@ export async function GET() {
         organisation: { equals: ctx.activeOrg.id },
       },
       sort: "-createdAt",
+      limit: 100,
     });
 
     return NextResponse.json({
@@ -39,68 +41,94 @@ export async function GET() {
   }
 }
 
+type CreateBody = {
+  name?: string;
+  description?: string | null;
+  baselineEmissions?: number;
+  targetEmissions?: number;
+  baselineYear?: number;
+  targetYear?: number;
+  startYear?: number;
+  distribution?: "even" | "front_loaded" | "back_loaded";
+  interventions?: unknown;
+  interventionTemplates?: unknown;
+  peerTypicalAnnualPercent?: number;
+  includeMilestones?: boolean;
+};
+
 /**
  * POST /api/app/analytics/pathways
- * Create new decarbonization pathway
+ * Create a pathway via the wizard (target year + interventions).
  */
 export async function POST(req: Request) {
   const ctx = await getCurrentContext();
-  if (!ctx.activeOrg) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!ctx.user || !ctx.activeOrg) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const body = await req.json();
-    const payload = await getPayload({ config });
+    const body = (await req.json()) as CreateBody;
+    const baselineYear = Number(body.baselineYear ?? body.startYear);
+    const targetYear = Number(body.targetYear);
+    const baselineEmissions = Number(body.baselineEmissions);
+    const targetEmissions = Number(body.targetEmissions);
 
-    // Generate optimized pathway
-    const pathway = generateOptimizedPathway(
-      body.baselineEmissions,
-      body.targetEmissions,
-      body.baselineYear,
-      body.targetYear,
-      body.availableLevers || [],
-    );
-
-    // Generate milestone pathway if requested
-    let milestonePathway = null;
-    if (body.includeMilestones) {
-      milestonePathway = generateMilestonePathway(
-        body.baselineEmissions,
-        body.targetEmissions,
-        body.baselineYear,
-        body.targetYear,
-      );
+    const validation = validatePathwayTargets({
+      baselineEmissions,
+      targetEmissions,
+      baselineYear,
+      targetYear,
+    });
+    if (validation) {
+      return NextResponse.json({ error: validation }, { status: 400 });
     }
 
-    // Save to database
+    const interventions = parseInterventionsBody(body.interventions);
+    const interventionTemplates = parseInterventionsBody(body.interventionTemplates);
+
+    const plan = calculatePathway({
+      name: body.name,
+      baselineEmissions,
+      targetEmissions,
+      baselineYear,
+      targetYear,
+      distribution: body.distribution,
+      interventions,
+      interventionTemplates,
+      peerTypicalAnnualPercent:
+        body.peerTypicalAnnualPercent !== undefined
+          ? Number(body.peerTypicalAnnualPercent)
+          : undefined,
+    });
+
+    const payload = await getPayload({ config });
     const created = await payload.create({
       collection: "decarbonization-pathways",
       data: {
         organisation: ctx.activeOrg.id,
-        name: pathway.name,
-        description: body.description,
-        baselineYear: pathway.baselineYear,
-        targetYear: pathway.targetYear,
-        baselineEmissions: pathway.baselineEmissions,
-        targetEmissions: pathway.targetEmissions,
-        targetReduction: pathway.targetReduction,
-        stages: pathway.stages,
-        scienceBasedTargetAlignment: pathway.scienceBasedTargetAlignment,
-        status: "draft",
+        ...planToPayloadData(plan, {
+          description: body.description ?? null,
+          status: "draft",
+        }),
       },
     });
 
     return NextResponse.json(
       {
         pathway: created,
-        details: pathway,
-        milestones: milestonePathway,
+        plan: {
+          milestones: plan.milestones,
+          feasibility: plan.feasibility,
+          timeline: plan.timeline,
+          costEstimate: plan.costEstimate,
+          scienceBasedTargetAlignment: plan.scienceBasedTargetAlignment,
+        },
       },
       { status: 201 },
     );
   } catch (error) {
     console.error("Pathway creation error:", error);
-    return NextResponse.json({ error: "Failed to create pathway" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Failed to create pathway";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -1,6 +1,3 @@
-// Analytics & Insights Library
-// Exports all analytics services for use in API routes and components
-
 export {
   calculatePeerBenchmarks,
   getAnonymizedPeers,
@@ -42,6 +39,18 @@ export {
   generateOptimizedPathway,
   generateMilestonePathway,
   comparePathways,
+  calculatePathway,
+  calculateRequiredAnnualReduction,
+  calculateFeasibility,
+  distributeReductionsAcrossYears,
+  buildMilestonesFromDistribution,
+  buildTimeline,
+  compareActualToPathway,
+  expectedEmissionsAtYear,
+  validatePathwayTargets,
+  parseMilestoneStatus,
+  parsePathwayScope,
+  DEFAULT_INTERVENTION_TEMPLATES,
 } from "./pathwayPlanner";
 
 export type {
@@ -49,6 +58,17 @@ export type {
   DecarbonizationPathway,
   MilestonePathway,
   PathwayComparison,
+  PathwayMilestone,
+  PathwayPlanInput,
+  PathwayPlanResult,
+  PathwayTimelinePoint,
+  FeasibilityResult,
+  FeasibilityLevel,
+  InterventionTemplate,
+  MilestoneStatus,
+  PathwayScope,
+  ActualProgressComparison,
+  ActualProgressInput,
 } from "./pathwayPlanner";
 
 export {
@@ -61,14 +81,48 @@ export {
 export type { TimeSeriesPoint, ForecastResult, ForecastModel } from "./trendForecasting";
 
 export {
+  calculateEmissionsForecast,
+  formatProjectionSummary,
+  linearRegression,
+  projectYear,
+  resolveForecastConfidence,
+  validateAssumptions,
+  ASSUMPTION_BOUNDS,
+  DEFAULT_SCENARIO_GROWTH,
+} from "./forecast";
+
+export type {
+  EmissionsPeriod,
+  ForecastAssumptions,
+  ForecastConfidence,
+  ForecastInput,
+  ForecastIntervention,
+  ForecastPoint,
+  ForecastResultSet,
+  ForecastScenarioType,
+  ScenarioForecast,
+  ScenarioGrowthDefaults,
+} from "./forecast";
+
+export { loadEmissionsByPeriod } from "./loadEmissionsByPeriod";
+
+export {
+  calculateEmissionsIntensity,
   calculateEmissionsPerRevenue,
   calculateEmissionsPerEmployee,
   calculateEmissionsPerUnit,
+  calculateEmissionsPerSquareMeter,
+  buildOutputIntensityUnit,
   calculateYoYChange,
+  compareIntensityToMedian,
+  resolveIntensityForType,
   buildIntensityTrends,
   analyzeDecoupling,
   calculateIntensityMetrics,
   generateIntensityReport,
+  intensityBenchmarkMetricKey,
+  DEFAULT_INTENSITY_UNITS,
+  INTENSITY_TYPES,
 } from "./consumptionIntensity";
 
 export type {
@@ -77,4 +131,10 @@ export type {
   DecouplingAnalysis,
   IntensityMetrics,
   IntensityReport,
+  IntensityType,
+  IntensityConfidence,
+  IntensityPeerStatus,
+  EmissionsIntensityResult,
+  IntensityDenominators,
+  CalculateEmissionsIntensityOptions,
 } from "./consumptionIntensity";

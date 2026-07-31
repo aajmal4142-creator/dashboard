@@ -1,8 +1,10 @@
 import type { CollectionConfig } from "payload";
 import { tenantAccess } from "@/lib/access";
 
+export const SUPPLIER_QUESTIONNAIRES_SLUG = "supplier-questionnaires" as const;
+
 export const SupplierQuestionnaire: CollectionConfig = {
-  slug: "supplier-questionnaires",
+  slug: SUPPLIER_QUESTIONNAIRES_SLUG,
   admin: {
     useAsTitle: "supplier",
     defaultColumns: ["supplier", "status", "completionPercent", "submittedAt"],
@@ -30,18 +32,39 @@ export const SupplierQuestionnaire: CollectionConfig = {
       defaultValue: "draft",
       options: [
         { label: "Draft", value: "draft" },
-        { label: "Sent", value: "sent" },
+        { label: "Invited", value: "invited" },
+        /** @deprecated legacy — treat as invited in app code */
+        { label: "Sent (legacy)", value: "sent" },
         { label: "In Progress", value: "in_progress" },
         { label: "Submitted", value: "submitted" },
         { label: "Reviewed", value: "reviewed" },
+        { label: "Approved", value: "approved" },
+        { label: "Archived", value: "archived" },
       ],
       index: true,
+    },
+    {
+      name: "publicToken",
+      type: "text",
+      unique: true,
+      index: true,
+      admin: {
+        description: "Opaque token for the public /s/q/[token] form (no login)",
+      },
     },
     {
       name: "responses",
       type: "json",
       admin: {
         description: "Questionnaire responses as JSON: { questionId: answer }",
+      },
+    },
+    {
+      name: "customSections",
+      type: "json",
+      admin: {
+        description:
+          "Org-defined sections: [{ id, title, questions: [{ id, label, type, required, options }] }]",
       },
     },
     {
@@ -58,14 +81,21 @@ export const SupplierQuestionnaire: CollectionConfig = {
       name: "invitedAt",
       type: "date",
       admin: {
-        description: "When questionnaire was sent to supplier",
+        description: "When questionnaire invite was first sent",
       },
     },
     {
       name: "sentAt",
       type: "date",
       admin: {
-        description: "When last sent/reminder was sent",
+        description: "When last invite or reminder email was sent",
+      },
+    },
+    {
+      name: "startedAt",
+      type: "date",
+      admin: {
+        description: "When supplier first opened / started the form",
       },
     },
     {
@@ -88,7 +118,7 @@ export const SupplierQuestionnaire: CollectionConfig = {
       min: 0,
       defaultValue: 0,
       admin: {
-        description: "Number of reminder emails sent",
+        description: "Number of reminder emails sent (max 2: day 7 and 14)",
       },
     },
     {
@@ -106,10 +136,17 @@ export const SupplierQuestionnaire: CollectionConfig = {
       },
     },
     {
+      name: "notes",
+      type: "textarea",
+      admin: {
+        description: "Internal review notes",
+      },
+    },
+    {
       name: "reviewNotes",
       type: "textarea",
       admin: {
-        description: "Admin notes after review",
+        description: "Legacy alias kept for existing records — prefer notes",
       },
     },
     {
@@ -125,6 +162,21 @@ export const SupplierQuestionnaire: CollectionConfig = {
       type: "date",
       admin: {
         description: "When the submission was reviewed",
+      },
+    },
+    {
+      name: "approvedBy",
+      type: "relationship",
+      relationTo: "users",
+      admin: {
+        description: "User who approved the submission",
+      },
+    },
+    {
+      name: "approvedAt",
+      type: "date",
+      admin: {
+        description: "When the submission was approved",
       },
     },
   ],

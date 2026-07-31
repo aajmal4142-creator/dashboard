@@ -145,6 +145,11 @@ export interface Config {
     'compliance-assessments': ComplianceAssessment;
     'email-import-logs': EmailImportLog;
     'datapoint-versions': DatapointVersion;
+    'scheduled-reports': ScheduledReport;
+    'sbti-targets': SbtiTarget;
+    'green-taxonomy-assessments': GreenTaxonomyAssessment;
+    'report-embed-tokens': ReportEmbedToken;
+    'iot-gateways': IotGateway;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -230,6 +235,11 @@ export interface Config {
     'compliance-assessments': ComplianceAssessmentsSelect<false> | ComplianceAssessmentsSelect<true>;
     'email-import-logs': EmailImportLogsSelect<false> | EmailImportLogsSelect<true>;
     'datapoint-versions': DatapointVersionsSelect<false> | DatapointVersionsSelect<true>;
+    'scheduled-reports': ScheduledReportsSelect<false> | ScheduledReportsSelect<true>;
+    'sbti-targets': SbtiTargetsSelect<false> | SbtiTargetsSelect<true>;
+    'green-taxonomy-assessments': GreenTaxonomyAssessmentsSelect<false> | GreenTaxonomyAssessmentsSelect<true>;
+    'report-embed-tokens': ReportEmbedTokensSelect<false> | ReportEmbedTokensSelect<true>;
+    'iot-gateways': IotGatewaysSelect<false> | IotGatewaysSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -339,6 +349,26 @@ export interface Organisation {
    */
   country: string;
   employeeCount?: number | null;
+  /**
+   * Absolute annual revenue in reporting currency (for emissions intensity per $M).
+   */
+  annualRevenue?: number | null;
+  /**
+   * Expected annual revenue growth as a fraction (0.03 = 3%). Used as the baseline emissions forecast growth rate.
+   */
+  expectedRevenueGrowth?: number | null;
+  /**
+   * Annual production / output volume for intensity per unit.
+   */
+  annualOutputUnits?: number | null;
+  /**
+   * Label for output units, e.g. "widgets" → tCO2e/widgets.
+   */
+  outputUnitLabel?: string | null;
+  /**
+   * Gross floor area in m² for emissions intensity per square meter.
+   */
+  floorAreaSqm?: number | null;
   revenueBand?: ('lt_2m' | '2_10m' | '10_50m' | '50_250m' | 'gt_250m') | null;
   /**
    * MM-DD, e.g. 03-31
@@ -348,6 +378,18 @@ export interface Organisation {
    * Consultancy parent — one level deep only
    */
   parentOrg?: (string | null) | Organisation;
+  /**
+   * Consolidation parent (S9.3). Distinct from consultancy parentOrg. Must be set explicitly — subsidiaries are never auto-included.
+   */
+  parentOrganisation?: (string | null) | Organisation;
+  /**
+   * How this organisation's emissions roll up to the consolidation parent. Full = 100%; proportional/equity = ownership %.
+   */
+  consolidationMethod?: ('full' | 'proportional' | 'equity') | null;
+  /**
+   * Parent ownership of this organisation (0–100). Applied when consolidationMethod is proportional or equity.
+   */
+  ownershipPercent?: number | null;
   /**
    * Legacy white-label fields — prefer settings.branding. Kept for read fallback.
    */
@@ -403,6 +445,63 @@ export interface Organisation {
    * Opt out of anonymised sector benchmark aggregation (ToS consent).
    */
   benchmarkOptOut?: boolean | null;
+  /**
+   * Science-Based Targets Initiative commitment metadata (S7.2).
+   */
+  sbti?: {
+    hasCommitment?: boolean | null;
+    commitmentStatus?: ('none' | 'draft' | 'submitted' | 'validated' | 'approved') | null;
+    /**
+     * Primary SBTi target used on the progress dashboard.
+     */
+    activeTarget?: (string | null) | SbtiTarget;
+    registryUrl?: string | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sbti-targets".
+ */
+export interface SbtiTarget {
+  id: string;
+  organisation: string | Organisation;
+  name: string;
+  /**
+   * Absolute = total tCO2e reduction. Intensity = tCO2e per revenue unit.
+   */
+  targetType: 'absolute' | 'intensity';
+  /**
+   * User-selected reference year — never hardcoded.
+   */
+  baselineYear: number;
+  /**
+   * Absolute: tCO2e. Intensity: tCO2e per $M revenue (or chosen unit).
+   */
+  baselineEmissions: number;
+  targetYear: number;
+  /**
+   * Optional when reductionPercent is set. Absolute tCO2e or intensity.
+   */
+  targetEmissions?: number | null;
+  /**
+   * Optional when targetEmissions is set. Percent reduction from baseline.
+   */
+  reductionPercent?: number | null;
+  /**
+   * GHG scopes included in this target.
+   */
+  scopesCovered: ('Scope1' | 'Scope2' | 'Scope3')[];
+  /**
+   * Status discipline: create as draft or submitted; advance to validated/approved later.
+   */
+  status: 'draft' | 'submitted' | 'validated' | 'approved';
+  /**
+   * Public link on the SBTi companies-taking-action register.
+   */
+  validationUrl?: string | null;
+  notes?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -704,8 +803,48 @@ export interface Supplier {
   organisation: string | Organisation;
   name: string;
   contactEmail: string;
+  /**
+   * Supplier consented to receive engagement / questionnaire emails. Required before send.
+   */
+  emailConsent?: boolean | null;
   category: 'purchased_goods' | 'capital_goods' | 'transport' | 'waste' | 'business_travel' | 'other';
   annualSpend?: number | null;
+  /**
+   * Supply-chain tier relative to the reporting org: 1 = direct, 2/3 = upstream
+   */
+  tier?: number | null;
+  /**
+   * Amount spent by you (or the parent supplier) on this supplier — used for Tier 2/3 allocation
+   */
+  directSpend?: number | null;
+  /**
+   * NACE Rev. 2 industry code (section or class). Required for industry-average estimates — never assumed.
+   */
+  naceCode?: string | null;
+  /**
+   * Optional override: tCO₂e per $1M USD spend. When set, skips bundled NACE intensity.
+   */
+  industryIntensityOverride?: number | null;
+  /**
+   * Supplier total revenue (USD). When set, allocation = directSpend / totalRevenue.
+   */
+  totalRevenue?: number | null;
+  /**
+   * Estimated attributable tCO₂e when no measured supplier data (Tier 2/3 hybrid estimator)
+   */
+  estimatedEmissions?: number | null;
+  /**
+   * How estimatedEmissions / attributable figure was derived
+   */
+  estimationMethod?: ('actual' | 'industry_avg' | 'top_down') | null;
+  /**
+   * High if actual; low if industry average
+   */
+  estimationConfidence?: ('high' | 'medium' | 'low') | null;
+  /**
+   * Parent Tier-1 (or Tier-2) supplier when this row is Tier 2/3
+   */
+  parentSupplier?: (string | null) | Supplier;
   /**
    * Reporting period this request token is bound to
    */
@@ -869,7 +1008,11 @@ export interface SupplierQuestionnaire {
   id: string;
   organisation: string | Organisation;
   supplier: string | Supplier;
-  status: 'draft' | 'sent' | 'in_progress' | 'submitted' | 'reviewed';
+  status: 'draft' | 'invited' | 'sent' | 'in_progress' | 'submitted' | 'reviewed' | 'approved' | 'archived';
+  /**
+   * Opaque token for the public /s/q/[token] form (no login)
+   */
+  publicToken?: string | null;
   /**
    * Questionnaire responses as JSON: { questionId: answer }
    */
@@ -883,17 +1026,33 @@ export interface SupplierQuestionnaire {
     | boolean
     | null;
   /**
+   * Org-defined sections: [{ id, title, questions: [{ id, label, type, required, options }] }]
+   */
+  customSections?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
    * Percentage of questions answered (0-100)
    */
   completionPercent?: number | null;
   /**
-   * When questionnaire was sent to supplier
+   * When questionnaire invite was first sent
    */
   invitedAt?: string | null;
   /**
-   * When last sent/reminder was sent
+   * When last invite or reminder email was sent
    */
   sentAt?: string | null;
+  /**
+   * When supplier first opened / started the form
+   */
+  startedAt?: string | null;
   /**
    * When supplier submitted completed questionnaire
    */
@@ -903,7 +1062,7 @@ export interface SupplierQuestionnaire {
    */
   lastUpdatedAt?: string | null;
   /**
-   * Number of reminder emails sent
+   * Number of reminder emails sent (max 2: day 7 and 14)
    */
   reminderCount?: number | null;
   /**
@@ -915,7 +1074,11 @@ export interface SupplierQuestionnaire {
    */
   expiresAt?: string | null;
   /**
-   * Admin notes after review
+   * Internal review notes
+   */
+  notes?: string | null;
+  /**
+   * Legacy alias kept for existing records — prefer notes
    */
   reviewNotes?: string | null;
   /**
@@ -926,6 +1089,14 @@ export interface SupplierQuestionnaire {
    * When the submission was reviewed
    */
   reviewedAt?: string | null;
+  /**
+   * User who approved the submission
+   */
+  approvedBy?: (string | null) | User;
+  /**
+   * When the submission was approved
+   */
+  approvedAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1378,21 +1549,49 @@ export interface SupplyChainNetwork {
   id: string;
   organisation: string | Organisation;
   /**
-   * Supply chain relationship name
+   * Groups edge rows into one named network snapshot (UUID). Configurable tiers live under this key.
+   */
+  networkKey: string;
+  /**
+   * Display name for the network snapshot
+   */
+  networkName?: string | null;
+  /**
+   * Supply chain relationship / node name
    */
   name: string;
   /**
-   * Supplier in this relationship
+   * Supplier in this relationship (optional for estimated Tier 2/3 placeholders)
    */
-  supplier_id: string | Supplier;
+  supplier_id?: (string | null) | Supplier;
   /**
    * Parent supplier (if this is a Tier 2/3)
    */
   parent_supplier_id?: (string | null) | Supplier;
   /**
-   * Tier level: 1 (direct), 2, 3, etc.
+   * Parent edge id or synthetic node key when parent is estimated (no supplier doc)
+   */
+  parentNodeKey?: string | null;
+  /**
+   * Tier level: 1 (direct) through 5 — configurable, not hard-coded
    */
   tier_level: number;
+  /**
+   * GHG scope for colour coding on the map
+   */
+  scope?: ('Scope1' | 'Scope2' | 'Scope3') | null;
+  /**
+   * Country / region for location-based estimation
+   */
+  location?: string | null;
+  /**
+   * Supplier category (mirrors Suppliers.category when known)
+   */
+  category?: string | null;
+  /**
+   * True when Tier 2/3 was estimated (survey / spend), not measured
+   */
+  estimated?: boolean | null;
   /**
    * Annual spend with this supplier
    */
@@ -1468,6 +1667,14 @@ export interface Scope3Activity {
   organisation: string | Organisation;
   source: string | Scope3Source;
   period: string | ReportingPeriod;
+  /**
+   * Linked supplier when this activity is Category 1 purchased goods
+   */
+  supplier?: (string | null) | Supplier;
+  /**
+   * Supply-chain tier (1|2|3) for Category 1 breakdown — avoids double-count
+   */
+  supplyTier?: number | null;
   /**
    * JSON object with activity field values
    */
@@ -1768,6 +1975,18 @@ export interface ComplianceObligation {
    * Plain-language why this obligation was derived or overridden
    */
   derivationReason?: string | null;
+  /**
+   * Checklist progress for export — independent of confirmedAt (scope confirmation)
+   */
+  checklistStatus: 'pending' | 'complete';
+  /**
+   * Responsible person for this obligation (checklist export)
+   */
+  owner?: string | null;
+  /**
+   * URL to supporting evidence for checklist export
+   */
+  evidenceLink?: string | null;
   /**
    * needs_confirmation surfaces a gentle Runway prompt; derived is still confirmable, never legal advice
    */
@@ -2600,7 +2819,7 @@ export interface WebhookRegistration {
    */
   secret: string;
   /**
-   * Array of event types: ["datapoint.created", "datapoint.updated"]
+   * Array of event types: ["datapoint.created", "datapoint.updated", "report.generated"]
    */
   events:
     | {
@@ -3155,6 +3374,31 @@ export interface DecarbonizationPathway {
   baselineEmissions: number;
   targetEmissions: number;
   targetReduction?: number | null;
+  milestones?:
+    | {
+        year: number;
+        action: string;
+        emissionsSaved: number;
+        cost?: number | null;
+        status: 'planned' | 'in_progress' | 'completed' | 'missed';
+        scope?: ('1' | '2' | '3' | 'cross') | null;
+        cumulativeEmissionsSaved?: number | null;
+        pathwayEmissions?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  feasibility?: {
+    level?: ('achievable' | 'aggressive' | 'unrealistic') | null;
+    requiredAnnualReduction?: number | null;
+    requiredAnnualReductionPercent?: number | null;
+    peerTypicalAnnualPercent?: number | null;
+    warning?: string | null;
+    message?: string | null;
+  };
+  costEstimate?: number | null;
+  /**
+   * Derived stage targets (compat with scenario levers view).
+   */
   stages?:
     | {
         year: number;
@@ -3184,6 +3428,18 @@ export interface DecarbonizationPathway {
     | number
     | boolean
     | null;
+  /**
+   * Year-by-year baseline hold vs pathway emissions.
+   */
+  timeline?:
+    | {
+        year: number;
+        baselineHold: number;
+        pathwayEmissions: number;
+        isMilestone?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
   status?: ('draft' | 'in_progress' | 'approved' | 'completed') | null;
   approval?: {
     approvedBy?: (string | null) | User;
@@ -3199,10 +3455,67 @@ export interface DecarbonizationPathway {
 export interface TrendForecast {
   id: string;
   organisation: string | Organisation;
-  metricKey: string;
-  model: 'arima' | 'ets' | 'hybrid';
-  baselineDate: string;
-  forecastPeriodMonths: number;
+  /**
+   * e.g. 2027 or 2025–2027 horizon
+   */
+  period?: string | null;
+  /**
+   * Primary projection for the scenario (usually the final horizon year).
+   */
+  forecastedEmissions?: number | null;
+  /**
+   * Data-driven confidence from historical year count.
+   */
+  confidence?: ('high' | 'medium' | 'low') | null;
+  scenario?: ('conservative' | 'baseline' | 'aggressive') | null;
+  /**
+   * Calculation method identifier.
+   */
+  methodology?: string | null;
+  lastCalculatedAt?: string | null;
+  /**
+   * Growth rates, efficiency, interventions, and horizon used for this run.
+   */
+  assumptionsUsed?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  projectionPoints?:
+    | {
+        year: number;
+        emissions: number;
+        lower: number;
+        upper: number;
+        reasoning?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  historicalYears?:
+    | {
+        year: number;
+        emissions: number;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Fitted YoY slope (tCO2e/year).
+   */
+  slopePerYear?: number | null;
+  warnings?:
+    | {
+        message: string;
+        id?: string | null;
+      }[]
+    | null;
+  metricKey?: string | null;
+  model?: ('arima' | 'ets' | 'hybrid' | 'linear_regression') | null;
+  baselineDate?: string | null;
+  forecastPeriodMonths?: number | null;
   forecastData?:
     | {
         month: number;
@@ -3239,26 +3552,34 @@ export interface TrendForecast {
 export interface AccountingConnection {
   id: string;
   organisationId: string | Organisation;
-  provider: 'xero' | 'quickbooks';
+  provider: 'xero' | 'quickbooks' | 'wave';
+  /**
+   * Sandbox uses encrypted mock tokens when OAuth client secrets are not configured
+   */
+  connectionMode?: ('sandbox' | 'live') | null;
   status?: ('pending' | 'connected' | 'failed' | 'expired') | null;
   /**
-   * Xero Tenant ID or QB Realm ID
+   * Company / tenant name from the accounting provider
+   */
+  companyName?: string | null;
+  /**
+   * Xero Tenant ID, QuickBooks Realm ID, or Wave business ID
    */
   providerId: string;
   /**
-   * OAuth access token
+   * OAuth access token (AES-256-GCM encrypted at rest)
    */
   accessToken?: string | null;
   /**
-   * OAuth refresh token
+   * OAuth refresh token (AES-256-GCM encrypted at rest)
    */
   refreshToken?: string | null;
   /**
-   * Token expiration time
+   * Access token expiration
    */
   expiresAt?: string | null;
   /**
-   * Maps expense categories to GL codes for emissions calculation, e.g., { travel: 6200, utilities: 6100 }
+   * Account code/name → { category, scope }. Example: { "6110": { "category": "fuel_energy", "scope": "1" } }
    */
   expenseCategoryMapping?:
     | {
@@ -3269,22 +3590,35 @@ export interface AccountingConnection {
     | number
     | boolean
     | null;
+  /**
+   * Chart of accounts discovered on last sync (code, name)
+   */
+  discoveredAccounts?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   syncConfig?: {
     /**
-     * Sync expense data
+     * Sync expense / bill spend
      */
     enableExpenseSync?: boolean | null;
     /**
-     * Sync bank feeds for utility bills (Xero only)
+     * Sync bank feeds for utility bills (Xero)
      */
     enableBankFeedSync?: boolean | null;
     /**
-     * Auto-categorize expenses by GL code
+     * Auto-categorize by account name / GL code
      */
     enableAutoCateg?: boolean | null;
     syncFrequency?: ('manual' | 'daily' | 'weekly' | 'monthly') | null;
   };
   lastSyncAt?: string | null;
+  nextSyncAt?: string | null;
   lastSyncStatus?: string | null;
   syncErrorCount?: number | null;
   connectedAt?: string | null;
@@ -3302,7 +3636,7 @@ export interface IntegrationSyncLog {
    * Foreign key to connection (accounting-connections, etc.)
    */
   integrationId: string;
-  provider: 'xero' | 'quickbooks' | 'csv' | 'webhook';
+  provider: 'xero' | 'quickbooks' | 'wave' | 'csv' | 'webhook';
   status?: ('success' | 'partial' | 'failed') | null;
   recordsProcessed?: number | null;
   recordsFailed?: number | null;
@@ -3546,6 +3880,10 @@ export interface IotDevice {
   deviceType:
     'http' | 'mqtt' | 'modbus' | 'opc_ua' | 'utility_energy' | 'utility_water' | 'utility_gas' | 'smart_meter';
   /**
+   * IoT hub / gateway this device is assigned to (multi-gateway orgs)
+   */
+  gateway?: (string | null) | IotGateway;
+  /**
    * Protocol version (e.g., MQTT v3.1.1)
    */
   protocol?: string | null;
@@ -3620,6 +3958,64 @@ export interface IotDevice {
    * Deprecated plaintext field — use apiKeyHash / rotate via API
    */
   credentials?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * IoT hubs / gateways — credentials encrypted at rest
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "iot-gateways".
+ */
+export interface IotGateway {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Human-readable label (e.g. "Office MQTT")
+   */
+  name: string;
+  gatewayType: 'mqtt' | 'http' | 'webhook' | 'direct' | 'cloud';
+  /**
+   * Cloud IoT free-tier stub only — no paid APIs
+   */
+  cloudProvider?: ('aws_iot' | 'azure_iot' | 'gcp_iot') | null;
+  /**
+   * Broker URL, webhook base URL, or cloud endpoint
+   */
+  endpoint?: string | null;
+  /**
+   * AES-256-GCM ciphertext. Never log or return to clients.
+   */
+  encryptedCredentials?: string | null;
+  status: 'online' | 'offline' | 'stale' | 'error';
+  /**
+   * Last I'm-alive signal from the gateway
+   */
+  lastHeartbeat?: string | null;
+  /**
+   * Last reading ingested via a device on this gateway
+   */
+  lastDataReceived?: string | null;
+  /**
+   * Last independent sync attempt (per-gateway)
+   */
+  lastSyncAt?: string | null;
+  /**
+   * When the >30 min offline alert was last raised
+   */
+  offlineAlertSentAt?: string | null;
+  /**
+   * Operator note when this gateway is offline and devices should use a peer
+   */
+  failoverNote?: string | null;
+  /**
+   * Preferred peer for same device-type failover when this hub is offline
+   */
+  preferredFailoverGateway?: (string | null) | IotGateway;
+  /**
+   * Sync this gateway independently of other hubs in the org
+   */
+  syncIndependent?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3738,69 +4134,61 @@ export interface DataQualityRule {
 export interface Iso14064Compliance {
   id: string;
   organisation: string | Organisation;
-  status?: ('not_started' | 'in_progress' | 'pending_review' | 'verified' | 'non_compliant') | null;
-  checklist?:
+  status: 'not_started' | 'in_progress' | 'completed';
+  /**
+   * ISO 14064-1 (org) and 14064-2 (project) checklist rows seeded on create.
+   */
+  sections?:
     | {
         /**
-         * ISO 14064-1 requirement
+         * Stable seed key (e.g. p1-01). Used for updates.
          */
-        requirement: string;
+        itemKey: string;
         /**
-         * Detailed requirement description
+         * Display section number (e.g. 1.1, 2.3)
          */
+        sectionNumber: string;
+        part: 'part1' | 'part2';
+        requirement: string;
         description?: string | null;
-        status?: ('not_started' | 'in_progress' | 'completed' | 'na') | null;
-        evidence?:
-          | {
-              document?: (string | null) | Media;
-              description?: string | null;
-              uploadedAt?: string | null;
-              id?: string | null;
-            }[]
-          | null;
-        assignedTo?: (string | null) | User;
-        dueDate?: string | null;
-        completedAt?: string | null;
+        status: 'not_started' | 'in_progress' | 'completed' | 'na';
+        /**
+         * At least one evidence link is required to mark completed.
+         */
+        evidenceIds?: (string | Evidence)[] | null;
         notes?: string | null;
+        completedAt?: string | null;
+        /**
+         * Hint for evidence auto-suggest in the UI.
+         */
+        autoLinkHint?: ('none' | 'csrd_report' | 'datapoints' | 'audit_logs' | 'emission_factors') | null;
         id?: string | null;
       }[]
     | null;
   /**
-   * Compliance score percentage (0-100)
+   * Third-party auditor / verifier (org membership user).
+   */
+  verifierAssigned?: (string | null) | User;
+  /**
+   * Optional linked assurance firm from the partner directory.
+   */
+  assurancePartner?: (string | null) | AssurancePartner;
+  lastReviewDate?: string | null;
+  nextReviewDate?: string | null;
+  /**
+   * Percent of applicable items completed (0–100).
    */
   complianceScore: number;
-  gaps?:
-    | {
-        gap: string;
-        severity?: ('low' | 'medium' | 'high') | null;
-        remediationPlan?: string | null;
-        id?: string | null;
-      }[]
-    | null;
   /**
-   * Assigned auditor/reviewer
+   * When the last verifier assignment notice was sent.
    */
-  auditor?: (string | null) | User;
-  /**
-   * Date of last audit
-   */
-  lastAuditDate?: string | null;
-  /**
-   * Scheduled next audit
-   */
-  nextAuditDate?: string | null;
-  /**
-   * Final audit report document
-   */
-  auditReport?: (string | null) | Media;
-  /**
-   * Auditor verification notes
-   */
-  verificationNotes?: string | null;
+  verifierNoticeSentAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
 /**
+ * Curated ESG assurance firm directory. Seeded statically — not a live marketplace.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "assurance-partners".
  */
@@ -4827,30 +5215,109 @@ export interface SpendBasedEmission {
  */
 export interface RegulatoryDeadline {
   id: string;
-  organisation: string | Organisation;
+  /**
+   * Empty for global catalog templates; set for org-tracked copies.
+   */
+  organisation?: (string | null) | Organisation;
+  /**
+   * Global template — filtered onto orgs via applicability rules.
+   */
+  isCatalog?: boolean | null;
+  /**
+   * Stable seed key (e.g. csrd-wave2-2028). Used for idempotent seed + org copies.
+   */
+  catalogKey?: string | null;
   /**
    * e.g., CSRD Annual Report Filing, BRSR Submission
    */
   name: string;
+  type: 'CSRD' | 'ISSB' | 'SBTi' | 'Taxonomy' | 'Other';
   /**
-   * Optional context or notes about this deadline
+   * Full regulation context shown in the detail modal
    */
   description?: string | null;
+  /**
+   * Official documentation / guidance URL
+   */
+  documentationUrl?: string | null;
   /**
    * ISO country/region code or scope
    */
   jurisdiction: 'EU' | 'IN' | 'GB' | 'US' | 'GLOBAL' | 'OTHER';
-  framework: 'CSRD' | 'BRSR' | 'GRI' | 'SASB' | 'TCFD' | 'ISO14064' | 'OTHER';
+  /**
+   * Primary country code (ISO 3166-1 alpha-2) or region label
+   */
+  country?: string | null;
+  framework: 'CSRD' | 'ISSB' | 'SBTi' | 'Taxonomy' | 'BRSR' | 'GRI' | 'SASB' | 'TCFD' | 'ISO14064' | 'OTHER';
   /**
    * Deadline date for this obligation
    */
   dueDate: string;
   /**
+   * applies_to dimension for catalog filtering
+   */
+  scope: 'all' | 'industry' | 'size' | 'country';
+  severity: 'critical' | 'high' | 'medium';
+  /**
+   * Rule-based filter: org size, industry (NACE), country
+   */
+  organisationApplicability?: {
+    appliesTo?: ('all' | 'industry' | 'size' | 'country') | null;
+    /**
+     * ISO alpha-2 codes when appliesTo=country
+     */
+    countries?:
+      | {
+          code: string;
+          id?: string | null;
+        }[]
+      | null;
+    /**
+     * NACE prefixes (e.g. C, K64) when appliesTo=industry
+     */
+    industries?:
+      | {
+          nacePrefix: string;
+          id?: string | null;
+        }[]
+      | null;
+    /**
+     * Inclusive lower bound when appliesTo=size
+     */
+    minEmployeeCount?: number | null;
+    /**
+     * Inclusive upper bound when appliesTo=size
+     */
+    maxEmployeeCount?: number | null;
+    revenueBands?: ('lt_2m' | '2_10m' | '10_50m' | '50_250m' | 'gt_250m')[] | null;
+    /**
+     * When true, only EU-operating countries (obligations rules set)
+     */
+    euOperatingOnly?: boolean | null;
+    /**
+     * When true, require large-undertaking size proxy from obligations rules
+     */
+    requireLargeUndertaking?: boolean | null;
+  };
+  /**
    * Current status of the deadline
    */
-  status: 'not_started' | 'in_progress' | 'completed' | 'submitted' | 'verified' | 'overdue';
+  status: 'pending' | 'in_progress' | 'completed' | 'missed' | 'not_started' | 'submitted' | 'verified' | 'overdue';
   /**
-   * Auto-linked report when status changes to submitted
+   * Pre-requisite checklist items for this deadline
+   */
+  prerequisiteTasks?:
+    | {
+        task: string;
+        /**
+         * Org-copy completion flag
+         */
+        done?: boolean | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Auto-linked report when status changes to submitted/completed
    */
   linkedReport?: (string | null) | Report;
   /**
@@ -4870,9 +5337,9 @@ export interface RegulatoryDeadline {
    */
   verifiedBy?: (string | null) | User;
   /**
-   * Calendar display color
+   * Calendar display color (prefer severity tokens in UI)
    */
-  colour?: ('green' | 'yellow' | 'red' | 'blue' | 'gray') | null;
+  colour?: ('green' | 'yellow' | 'red' | 'blue' | 'gray' | 'default') | null;
   /**
    * Email notification history
    */
@@ -5476,6 +5943,156 @@ export interface DatapointVersion {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scheduled-reports".
+ */
+export interface ScheduledReport {
+  id: string;
+  organisation: string | Organisation;
+  report: string | Report;
+  schedule: {
+    frequency: 'daily' | 'weekly' | 'monthly';
+    /**
+     * Local wall-clock time HH:mm (24h) in the schedule timezone
+     */
+    time: string;
+    /**
+     * IANA timezone used to interpret time (nextRunAt stored in UTC)
+     */
+    timezone: string;
+    /**
+     * ISO weekday 1=Mon … 7=Sun (weekly schedules)
+     */
+    dayOfWeek?: number | null;
+    /**
+     * Calendar day 1–31 (monthly schedules; clamped to month length)
+     */
+    dayOfMonth?: number | null;
+  };
+  recipients: {
+    email: string;
+    id?: string | null;
+  }[];
+  format: 'pdf' | 'csv' | 'json' | 'xml';
+  status: 'active' | 'paused' | 'completed';
+  /**
+   * Next due instant in UTC
+   */
+  nextRunAt: string;
+  lastRunAt?: string | null;
+  lastStatus?: ('success' | 'failed' | 'skipped') | null;
+  /**
+   * Last failure message (truncated for UI)
+   */
+  lastError?: string | null;
+  retryCount: number;
+  /**
+   * UTC nextRunAt that was successfully delivered (idempotency key for that slot)
+   */
+  lastDeliveredForRunAt?: string | null;
+  /**
+   * Worker claim timestamp to prevent duplicate concurrent sends
+   */
+  claimedAt?: string | null;
+  /**
+   * The nextRunAt slot currently claimed by a worker
+   */
+  claimedRunAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "green-taxonomy-assessments".
+ */
+export interface GreenTaxonomyAssessment {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Reporting period for this taxonomy assessment.
+   */
+  period?: (string | null) | ReportingPeriod;
+  status: 'draft' | 'completed' | 'verified';
+  /**
+   * Primary NACE Rev. 2 code (from official Eurostat catalog).
+   */
+  naceCode: string;
+  /**
+   * Denormalised NACE label at save time.
+   */
+  naceName?: string | null;
+  objectives?:
+    | {
+        objective:
+          'climate_mitigation' | 'climate_adaptation' | 'water' | 'circular_economy' | 'pollution' | 'biodiversity';
+        applicable: 'unanswered' | 'yes' | 'no';
+        /**
+         * Cached alignment % for this objective (0–100).
+         */
+        criteriasMet?: number | null;
+        /**
+         * Supporting evidence for this objective.
+         */
+        evidence?: (string | Evidence)[] | null;
+        answers?:
+          | {
+              criteriaId: string;
+              met: 'unanswered' | 'yes' | 'no';
+              evidence?: (string | null) | Evidence;
+              notes?: string | null;
+              id?: string | null;
+            }[]
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  dnshCompliance?:
+    | {
+        objective:
+          'climate_mitigation' | 'climate_adaptation' | 'water' | 'circular_economy' | 'pollution' | 'biodiversity';
+        criteriaId: string;
+        compliant: 'unanswered' | 'yes' | 'no';
+        notes?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Mean alignment of applicable objectives only (non-applicable excluded).
+   */
+  overallAlignmentPercent?: number | null;
+  /**
+   * Current wizard step (1 NACE + 6 objectives).
+   */
+  wizardStep?: number | null;
+  completedAt?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "report-embed-tokens".
+ */
+export interface ReportEmbedToken {
+  id: string;
+  organisation: string | Organisation;
+  report: string | Report;
+  /**
+   * Opaque public token — never includes organisation id
+   */
+  token: string;
+  expiresAt: string;
+  usageCount: number;
+  lastAccessedAt?: string | null;
+  createdBy?: (string | null) | User;
+  /**
+   * Set when the token is revoked; access denied thereafter
+   */
+  revokedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -5809,6 +6426,26 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'datapoint-versions';
         value: string | DatapointVersion;
+      } | null)
+    | ({
+        relationTo: 'scheduled-reports';
+        value: string | ScheduledReport;
+      } | null)
+    | ({
+        relationTo: 'sbti-targets';
+        value: string | SbtiTarget;
+      } | null)
+    | ({
+        relationTo: 'green-taxonomy-assessments';
+        value: string | GreenTaxonomyAssessment;
+      } | null)
+    | ({
+        relationTo: 'report-embed-tokens';
+        value: string | ReportEmbedToken;
+      } | null)
+    | ({
+        relationTo: 'iot-gateways';
+        value: string | IotGateway;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -5908,9 +6545,17 @@ export interface OrganisationsSelect<T extends boolean = true> {
   sector?: T;
   country?: T;
   employeeCount?: T;
+  annualRevenue?: T;
+  expectedRevenueGrowth?: T;
+  annualOutputUnits?: T;
+  outputUnitLabel?: T;
+  floorAreaSqm?: T;
   revenueBand?: T;
   fiscalYearEnd?: T;
   parentOrg?: T;
+  parentOrganisation?: T;
+  consolidationMethod?: T;
+  ownershipPercent?: T;
   brand?:
     | T
     | {
@@ -5940,6 +6585,14 @@ export interface OrganisationsSelect<T extends boolean = true> {
   onboardedAt?: T;
   guideProgress?: T;
   benchmarkOptOut?: T;
+  sbti?:
+    | T
+    | {
+        hasCommitment?: T;
+        commitmentStatus?: T;
+        activeTarget?: T;
+        registryUrl?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -6157,8 +6810,18 @@ export interface SuppliersSelect<T extends boolean = true> {
   organisation?: T;
   name?: T;
   contactEmail?: T;
+  emailConsent?: T;
   category?: T;
   annualSpend?: T;
+  tier?: T;
+  directSpend?: T;
+  naceCode?: T;
+  industryIntensityOverride?: T;
+  totalRevenue?: T;
+  estimatedEmissions?: T;
+  estimationMethod?: T;
+  estimationConfidence?: T;
+  parentSupplier?: T;
   requestPeriod?: T;
   requestToken?: T;
   requestStatus?: T;
@@ -6203,18 +6866,24 @@ export interface SupplierQuestionnairesSelect<T extends boolean = true> {
   organisation?: T;
   supplier?: T;
   status?: T;
+  publicToken?: T;
   responses?: T;
+  customSections?: T;
   completionPercent?: T;
   invitedAt?: T;
   sentAt?: T;
+  startedAt?: T;
   submittedAt?: T;
   lastUpdatedAt?: T;
   reminderCount?: T;
   lastReminderAt?: T;
   expiresAt?: T;
+  notes?: T;
   reviewNotes?: T;
   reviewedBy?: T;
   reviewedAt?: T;
+  approvedBy?: T;
+  approvedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -6267,10 +6936,17 @@ export interface SupplierDocumentsSelect<T extends boolean = true> {
  */
 export interface SupplyChainNetworksSelect<T extends boolean = true> {
   organisation?: T;
+  networkKey?: T;
+  networkName?: T;
   name?: T;
   supplier_id?: T;
   parent_supplier_id?: T;
+  parentNodeKey?: T;
   tier_level?: T;
+  scope?: T;
+  location?: T;
+  category?: T;
+  estimated?: T;
   spend?: T;
   emissions?: T;
   relationship_strength?: T;
@@ -6299,6 +6975,8 @@ export interface Scope3ActivitiesSelect<T extends boolean = true> {
   organisation?: T;
   source?: T;
   period?: T;
+  supplier?: T;
+  supplyTier?: T;
   activityData?: T;
   calculatedEmissions?: T;
   status?: T;
@@ -6473,6 +7151,9 @@ export interface ComplianceObligationsSelect<T extends boolean = true> {
   filingDeadline?: T;
   notes?: T;
   derivationReason?: T;
+  checklistStatus?: T;
+  owner?: T;
+  evidenceLink?: T;
   confidence?: T;
   source?: T;
   confirmedAt?: T;
@@ -7127,6 +7808,30 @@ export interface DecarbonizationPathwaysSelect<T extends boolean = true> {
   baselineEmissions?: T;
   targetEmissions?: T;
   targetReduction?: T;
+  milestones?:
+    | T
+    | {
+        year?: T;
+        action?: T;
+        emissionsSaved?: T;
+        cost?: T;
+        status?: T;
+        scope?: T;
+        cumulativeEmissionsSaved?: T;
+        pathwayEmissions?: T;
+        id?: T;
+      };
+  feasibility?:
+    | T
+    | {
+        level?: T;
+        requiredAnnualReduction?: T;
+        requiredAnnualReductionPercent?: T;
+        peerTypicalAnnualPercent?: T;
+        warning?: T;
+        message?: T;
+      };
+  costEstimate?: T;
   stages?:
     | T
     | {
@@ -7145,6 +7850,15 @@ export interface DecarbonizationPathwaysSelect<T extends boolean = true> {
         id?: T;
       };
   scienceBasedTargetAlignment?: T;
+  timeline?:
+    | T
+    | {
+        year?: T;
+        baselineHold?: T;
+        pathwayEmissions?: T;
+        isMilestone?: T;
+        id?: T;
+      };
   status?: T;
   approval?:
     | T
@@ -7161,6 +7875,37 @@ export interface DecarbonizationPathwaysSelect<T extends boolean = true> {
  */
 export interface TrendForecastsSelect<T extends boolean = true> {
   organisation?: T;
+  period?: T;
+  forecastedEmissions?: T;
+  confidence?: T;
+  scenario?: T;
+  methodology?: T;
+  lastCalculatedAt?: T;
+  assumptionsUsed?: T;
+  projectionPoints?:
+    | T
+    | {
+        year?: T;
+        emissions?: T;
+        lower?: T;
+        upper?: T;
+        reasoning?: T;
+        id?: T;
+      };
+  historicalYears?:
+    | T
+    | {
+        year?: T;
+        emissions?: T;
+        id?: T;
+      };
+  slopePerYear?: T;
+  warnings?:
+    | T
+    | {
+        message?: T;
+        id?: T;
+      };
   metricKey?: T;
   model?: T;
   baselineDate?: T;
@@ -7203,12 +7948,15 @@ export interface TrendForecastsSelect<T extends boolean = true> {
 export interface AccountingConnectionsSelect<T extends boolean = true> {
   organisationId?: T;
   provider?: T;
+  connectionMode?: T;
   status?: T;
+  companyName?: T;
   providerId?: T;
   accessToken?: T;
   refreshToken?: T;
   expiresAt?: T;
   expenseCategoryMapping?: T;
+  discoveredAccounts?: T;
   syncConfig?:
     | T
     | {
@@ -7218,6 +7966,7 @@ export interface AccountingConnectionsSelect<T extends boolean = true> {
         syncFrequency?: T;
       };
   lastSyncAt?: T;
+  nextSyncAt?: T;
   lastSyncStatus?: T;
   syncErrorCount?: T;
   connectedAt?: T;
@@ -7329,6 +8078,7 @@ export interface IotDevicesSelect<T extends boolean = true> {
   deviceName?: T;
   deviceId?: T;
   deviceType?: T;
+  gateway?: T;
   protocol?: T;
   connectionString?: T;
   status?: T;
@@ -7424,40 +8174,27 @@ export interface DataQualityRulesSelect<T extends boolean = true> {
 export interface Iso14064ComplianceSelect<T extends boolean = true> {
   organisation?: T;
   status?: T;
-  checklist?:
+  sections?:
     | T
     | {
+        itemKey?: T;
+        sectionNumber?: T;
+        part?: T;
         requirement?: T;
         description?: T;
         status?: T;
-        evidence?:
-          | T
-          | {
-              document?: T;
-              description?: T;
-              uploadedAt?: T;
-              id?: T;
-            };
-        assignedTo?: T;
-        dueDate?: T;
-        completedAt?: T;
+        evidenceIds?: T;
         notes?: T;
+        completedAt?: T;
+        autoLinkHint?: T;
         id?: T;
       };
+  verifierAssigned?: T;
+  assurancePartner?: T;
+  lastReviewDate?: T;
+  nextReviewDate?: T;
   complianceScore?: T;
-  gaps?:
-    | T
-    | {
-        gap?: T;
-        severity?: T;
-        remediationPlan?: T;
-        id?: T;
-      };
-  auditor?: T;
-  lastAuditDate?: T;
-  nextAuditDate?: T;
-  auditReport?: T;
-  verificationNotes?: T;
+  verifierNoticeSentAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -7891,12 +8628,48 @@ export interface SpendBasedEmissionsSelect<T extends boolean = true> {
  */
 export interface RegulatoryDeadlinesSelect<T extends boolean = true> {
   organisation?: T;
+  isCatalog?: T;
+  catalogKey?: T;
   name?: T;
+  type?: T;
   description?: T;
+  documentationUrl?: T;
   jurisdiction?: T;
+  country?: T;
   framework?: T;
   dueDate?: T;
+  scope?: T;
+  severity?: T;
+  organisationApplicability?:
+    | T
+    | {
+        appliesTo?: T;
+        countries?:
+          | T
+          | {
+              code?: T;
+              id?: T;
+            };
+        industries?:
+          | T
+          | {
+              nacePrefix?: T;
+              id?: T;
+            };
+        minEmployeeCount?: T;
+        maxEmployeeCount?: T;
+        revenueBands?: T;
+        euOperatingOnly?: T;
+        requireLargeUndertaking?: T;
+      };
   status?: T;
+  prerequisiteTasks?:
+    | T
+    | {
+        task?: T;
+        done?: T;
+        id?: T;
+      };
   linkedReport?: T;
   completedDate?: T;
   submittedDate?: T;
@@ -8141,6 +8914,143 @@ export interface DatapointVersionsSelect<T extends boolean = true> {
   changedBy?: T;
   changedAt?: T;
   reason?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scheduled-reports_select".
+ */
+export interface ScheduledReportsSelect<T extends boolean = true> {
+  organisation?: T;
+  report?: T;
+  schedule?:
+    | T
+    | {
+        frequency?: T;
+        time?: T;
+        timezone?: T;
+        dayOfWeek?: T;
+        dayOfMonth?: T;
+      };
+  recipients?:
+    | T
+    | {
+        email?: T;
+        id?: T;
+      };
+  format?: T;
+  status?: T;
+  nextRunAt?: T;
+  lastRunAt?: T;
+  lastStatus?: T;
+  lastError?: T;
+  retryCount?: T;
+  lastDeliveredForRunAt?: T;
+  claimedAt?: T;
+  claimedRunAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "sbti-targets_select".
+ */
+export interface SbtiTargetsSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  targetType?: T;
+  baselineYear?: T;
+  baselineEmissions?: T;
+  targetYear?: T;
+  targetEmissions?: T;
+  reductionPercent?: T;
+  scopesCovered?: T;
+  status?: T;
+  validationUrl?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "green-taxonomy-assessments_select".
+ */
+export interface GreenTaxonomyAssessmentsSelect<T extends boolean = true> {
+  organisation?: T;
+  period?: T;
+  status?: T;
+  naceCode?: T;
+  naceName?: T;
+  objectives?:
+    | T
+    | {
+        objective?: T;
+        applicable?: T;
+        criteriasMet?: T;
+        evidence?: T;
+        answers?:
+          | T
+          | {
+              criteriaId?: T;
+              met?: T;
+              evidence?: T;
+              notes?: T;
+              id?: T;
+            };
+        id?: T;
+      };
+  dnshCompliance?:
+    | T
+    | {
+        objective?: T;
+        criteriaId?: T;
+        compliant?: T;
+        notes?: T;
+        id?: T;
+      };
+  overallAlignmentPercent?: T;
+  wizardStep?: T;
+  completedAt?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "report-embed-tokens_select".
+ */
+export interface ReportEmbedTokensSelect<T extends boolean = true> {
+  organisation?: T;
+  report?: T;
+  token?: T;
+  expiresAt?: T;
+  usageCount?: T;
+  lastAccessedAt?: T;
+  createdBy?: T;
+  revokedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "iot-gateways_select".
+ */
+export interface IotGatewaysSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  gatewayType?: T;
+  cloudProvider?: T;
+  endpoint?: T;
+  encryptedCredentials?: T;
+  status?: T;
+  lastHeartbeat?: T;
+  lastDataReceived?: T;
+  lastSyncAt?: T;
+  offlineAlertSentAt?: T;
+  failoverNote?: T;
+  preferredFailoverGateway?: T;
+  syncIndependent?: T;
   updatedAt?: T;
   createdAt?: T;
 }

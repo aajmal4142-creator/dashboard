@@ -15,7 +15,12 @@ import { useSidebarChrome } from "@/components/shell/useSidebarChrome";
 import type { MembershipRole } from "@/lib/access/membership";
 import { cn } from "@/lib/utils";
 
-type ShellOrg = { id: string; name: string };
+type ShellOrg = {
+  id: string;
+  name: string;
+  label?: string;
+  depth?: number;
+};
 
 export type AppShellProps = {
   children: React.ReactNode;

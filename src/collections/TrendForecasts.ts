@@ -5,7 +5,13 @@ import { tenantAccess } from "@/lib/access";
 export const TrendForecasts: CollectionConfig = {
   slug: "trend-forecasts",
   admin: {
-    defaultColumns: ["metricKey", "model", "trendDirection", "createdAt"],
+    defaultColumns: [
+      "scenario",
+      "period",
+      "forecastedEmissions",
+      "confidence",
+      "createdAt",
+    ],
     preview: () => null,
   },
   access: tenantAccess({ writeMin: "contributor", adminWriteMin: "admin" }),
@@ -19,11 +25,99 @@ export const TrendForecasts: CollectionConfig = {
       admin: { hidden: true },
     },
     {
+      name: "period",
+      type: "text",
+      index: true,
+      label: "Forecast period label",
+      admin: {
+        description: "e.g. 2027 or 2025–2027 horizon",
+      },
+    },
+    {
+      name: "forecastedEmissions",
+      type: "number",
+      label: "Forecasted emissions (tCO2e)",
+      admin: {
+        description:
+          "Primary projection for the scenario (usually the final horizon year).",
+      },
+    },
+    {
+      name: "confidence",
+      type: "select",
+      options: [
+        { label: "High", value: "high" },
+        { label: "Medium", value: "medium" },
+        { label: "Low", value: "low" },
+      ],
+      admin: { description: "Data-driven confidence from historical year count." },
+    },
+    {
+      name: "scenario",
+      type: "select",
+      options: [
+        { label: "Conservative (flat)", value: "conservative" },
+        { label: "Baseline", value: "baseline" },
+        { label: "Aggressive", value: "aggressive" },
+      ],
+      index: true,
+    },
+    {
+      name: "methodology",
+      type: "text",
+      defaultValue: "linear_regression_trend_adjusted",
+      admin: {
+        description: "Calculation method identifier.",
+      },
+    },
+    {
+      name: "lastCalculatedAt",
+      type: "date",
+      admin: { readOnly: true },
+    },
+    {
+      name: "assumptionsUsed",
+      type: "json",
+      admin: {
+        description:
+          "Growth rates, efficiency, interventions, and horizon used for this run.",
+      },
+    },
+    {
+      name: "projectionPoints",
+      type: "array",
+      fields: [
+        { name: "year", type: "number", required: true },
+        { name: "emissions", type: "number", required: true },
+        { name: "lower", type: "number", required: true },
+        { name: "upper", type: "number", required: true },
+        { name: "reasoning", type: "textarea" },
+      ],
+    },
+    {
+      name: "historicalYears",
+      type: "array",
+      fields: [
+        { name: "year", type: "number", required: true },
+        { name: "emissions", type: "number", required: true },
+      ],
+    },
+    {
+      name: "slopePerYear",
+      type: "number",
+      admin: { description: "Fitted YoY slope (tCO2e/year)." },
+    },
+    {
+      name: "warnings",
+      type: "array",
+      fields: [{ name: "message", type: "text", required: true }],
+    },
+    // —— Legacy ARIMA/ETS fields (kept for existing docs; optional) ——
+    {
       name: "metricKey",
       type: "text",
-      required: true,
       index: true,
-      label: "Metric Key",
+      label: "Metric Key (legacy)",
     },
     {
       name: "model",
@@ -32,19 +126,17 @@ export const TrendForecasts: CollectionConfig = {
         { label: "ARIMA", value: "arima" },
         { label: "ETS (Error-Trend-Seasonal)", value: "ets" },
         { label: "Hybrid", value: "hybrid" },
+        { label: "Linear regression (S6.5)", value: "linear_regression" },
       ],
-      required: true,
     },
     {
       name: "baselineDate",
       type: "date",
-      required: true,
       label: "Forecast baseline date",
     },
     {
       name: "forecastPeriodMonths",
       type: "number",
-      required: true,
       defaultValue: 12,
     },
     {

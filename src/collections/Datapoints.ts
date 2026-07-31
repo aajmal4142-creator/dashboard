@@ -7,6 +7,7 @@ import {
   recordDatapointVersion,
   type DatapointVersionContext,
 } from "@/lib/data/recordVersion";
+import { scheduleOrgDashboardBroadcast } from "@/lib/realtime";
 import { NO_SUPPLIER_KEY, supplierKeyFrom } from "@/lib/suppliers/supplierKey";
 
 async function periodIsWritable(req: PayloadRequest, periodId: string): Promise<boolean> {
@@ -150,6 +151,14 @@ export const Datapoints: CollectionConfig = {
         } catch (err) {
           console.error("[datapoint-versions] afterChange failed", err);
         }
+
+        // S6.6: fan-out public KPIs to in-process SSE subscribers (fire-and-forget).
+        scheduleOrgDashboardBroadcast(req.payload, organisationId, {
+          kind: "datapoint",
+          metricKey: typeof doc.metricKey === "string" ? doc.metricKey : undefined,
+          id: String(doc.id),
+        });
+
         return doc;
       },
     ],

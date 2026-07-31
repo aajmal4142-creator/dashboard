@@ -3,6 +3,7 @@ import type { MatrixPoint } from "@/lib/materiality";
 
 import type { ReportDataGap } from "./dataGaps";
 import type { EsrsDisclosures } from "./esrsNarrative";
+import type { ReportForecastSection } from "./forecastSection";
 
 export const REPORT_DISCLAIMER =
   "ClearESG is not an assurance provider. This report summarises management-reported data and calculated estimates. It is not an audit opinion.";
@@ -72,6 +73,8 @@ export type ReportSnapshot = {
     auditTrail: Array<{ label: string; detail: string }>;
   };
   complianceDeclaration?: string;
+  /** Predictive emissions forecast (S6.5) — omitted when history is insufficient. */
+  forecast?: ReportForecastSection | null;
 };
 
 export function diffSnapshots(

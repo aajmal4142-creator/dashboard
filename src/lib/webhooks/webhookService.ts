@@ -4,6 +4,26 @@ import config from "@/payload.config";
 import { writeAuditLog } from "@/lib/audit/write";
 import { generateSecret } from "./webhookValidator";
 
+export type WebhookRetryPolicy = {
+  maxRetries: number;
+  retryDelayMs: number;
+  exponentialBackoff: boolean;
+};
+
+export type WebhookAuthentication = {
+  type: "bearer" | "apikey" | "basic";
+  value?: string;
+  apiKeyHeader?: string;
+  username?: string;
+  password?: string;
+};
+
+export type RegisterWebhookOptions = {
+  headers?: Record<string, string>;
+  authentication?: WebhookAuthentication;
+  retry_policy?: WebhookRetryPolicy;
+};
+
 export interface WebhookRegistration {
   id: string;
   webhook_id: string;
@@ -14,6 +34,9 @@ export interface WebhookRegistration {
   status: "active" | "inactive";
   last_triggered_at?: string;
   retry_count: number;
+  retry_policy?: WebhookRetryPolicy | null;
+  headers?: Record<string, string> | null;
+  authentication?: WebhookAuthentication | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -38,10 +61,33 @@ export async function registerWebhook(
   endpoint: string,
   events: string[],
   actorId?: string,
+  options?: RegisterWebhookOptions,
 ): Promise<WebhookRegistration> {
   const payload = await getPayload({ config });
   const webhookId = randomUUID();
   const secret = generateSecret();
+
+  const data: Record<string, unknown> = {
+    organisation: organisationId,
+    webhook_id: webhookId,
+    endpoint_url: endpoint,
+    secret,
+    events,
+    status: "active",
+    retry_count: 0,
+  };
+
+  if (options?.headers) data.headers = options.headers;
+  if (options?.authentication) data.authentication = options.authentication;
+  if (options?.retry_policy) {
+    data.retry_policy = options.retry_policy;
+  } else if (events.includes("report.generated")) {
+    data.retry_policy = {
+      maxRetries: 3,
+      retryDelayMs: 1000,
+      exponentialBackoff: true,
+    };
+  }
 
   const webhook = await (
     payload.create as (args: {
@@ -51,14 +97,7 @@ export async function registerWebhook(
     }) => Promise<WebhookRegistration>
   )({
     collection: "webhook-registrations",
-    data: {
-      organisation: organisationId,
-      webhook_id: webhookId,
-      endpoint_url: endpoint,
-      secret,
-      events,
-      status: "active",
-    },
+    data,
     overrideAccess: true,
   });
 
@@ -68,10 +107,55 @@ export async function registerWebhook(
     action: "webhook.registered",
     entityType: "webhook-registrations",
     entityId: webhookId,
-    after: { webhook_id: webhookId, endpoint_url: endpoint, events },
+    after: {
+      webhook_id: webhookId,
+      endpoint_url: endpoint,
+      events,
+      has_custom_headers: Boolean(options?.headers),
+      has_authentication: Boolean(options?.authentication),
+    },
   });
 
   return webhook;
+}
+
+function orgIdFromRelation(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && value !== null && "id" in value) {
+    return String((value as { id: string }).id);
+  }
+  return "";
+}
+
+function normalizeWebhookDoc(doc: WebhookRegistration): WebhookRegistration {
+  const events = Array.isArray(doc.events)
+    ? doc.events.filter((e): e is string => typeof e === "string")
+    : [];
+  const headers =
+    doc.headers && typeof doc.headers === "object" && !Array.isArray(doc.headers)
+      ? (doc.headers as Record<string, string>)
+      : null;
+  const authentication =
+    doc.authentication &&
+    typeof doc.authentication === "object" &&
+    !Array.isArray(doc.authentication)
+      ? (doc.authentication as WebhookAuthentication)
+      : null;
+  const retry_policy =
+    doc.retry_policy &&
+    typeof doc.retry_policy === "object" &&
+    !Array.isArray(doc.retry_policy)
+      ? (doc.retry_policy as WebhookRetryPolicy)
+      : null;
+
+  return {
+    ...doc,
+    organisation: orgIdFromRelation(doc.organisation),
+    events,
+    headers,
+    authentication,
+    retry_policy,
+  };
 }
 
 export async function listWebhooks(
@@ -93,7 +177,7 @@ export async function listWebhooks(
     overrideAccess: true,
   });
 
-  return result.docs;
+  return result.docs.map(normalizeWebhookDoc);
 }
 
 export async function getWebhook(webhookId: string): Promise<WebhookRegistration | null> {
@@ -113,7 +197,8 @@ export async function getWebhook(webhookId: string): Promise<WebhookRegistration
     overrideAccess: true,
   });
 
-  return result.docs[0] || null;
+  const doc = result.docs[0];
+  return doc ? normalizeWebhookDoc(doc) : null;
 }
 
 export async function deleteWebhook(

@@ -8,13 +8,38 @@ import {
   ApiError,
   ErrorCodes,
   createErrorResponse,
+  type RegisterWebhookOptions,
 } from "@/lib/webhooks";
+
+const WebhookEventSchema = z.enum([
+  "datapoint.created",
+  "datapoint.updated",
+  "report.generated",
+]);
+
+const RetryPolicySchema = z.object({
+  maxRetries: z.number().int().min(0).max(10).default(3),
+  retryDelayMs: z.number().int().min(0).max(120_000).default(1000),
+  exponentialBackoff: z.boolean().default(true),
+});
+
+const AuthenticationSchema = z.object({
+  type: z.enum(["bearer", "apikey", "basic"]),
+  value: z.string().min(1).optional(),
+  apiKeyHeader: z.string().min(1).optional(),
+  username: z.string().min(1).optional(),
+  password: z.string().min(1).optional(),
+});
 
 const RegisterWebhookSchema = z.object({
   endpoint_url: z.string().url(),
-  events: z.array(z.enum(["datapoint.created", "datapoint.updated"])).min(1),
+  events: z.array(WebhookEventSchema).min(1),
+  headers: z.record(z.string(), z.string()).optional(),
+  authentication: AuthenticationSchema.optional(),
+  retry_policy: RetryPolicySchema.optional(),
 });
 
+/** @deprecated Prefer POST /api/app/webhooks — kept for compatibility. */
 export async function POST(req: Request) {
   try {
     const ctx = await getCurrentContext();
@@ -38,11 +63,17 @@ export async function POST(req: Request) {
     }
 
     const body = RegisterWebhookSchema.parse(await req.json());
+    const options: RegisterWebhookOptions = {};
+    if (body.headers) options.headers = body.headers;
+    if (body.authentication) options.authentication = body.authentication;
+    if (body.retry_policy) options.retry_policy = body.retry_policy;
+
     const webhook = await registerWebhook(
       ctx.activeOrg.id,
       body.endpoint_url,
       body.events,
       ctx.user.id,
+      options,
     );
 
     return NextResponse.json(
@@ -53,6 +84,7 @@ export async function POST(req: Request) {
         secret: webhook.secret,
         events: webhook.events,
         status: webhook.status,
+        retry_policy: webhook.retry_policy ?? null,
         createdAt: webhook.createdAt,
       },
       { status: 201 },
@@ -113,6 +145,7 @@ export async function GET() {
         status: w.status,
         last_triggered_at: w.last_triggered_at,
         retry_count: w.retry_count,
+        retry_policy: w.retry_policy ?? null,
         createdAt: w.createdAt,
       })),
     });

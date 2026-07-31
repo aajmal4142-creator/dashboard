@@ -1,64 +1,75 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import {
+  AlertCircle,
+  AlertTriangle,
   Calendar,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Download,
-  Search,
-  AlertCircle,
-  CheckCircle2,
   Clock,
-  AlertTriangle,
+  Download,
+  ExternalLink,
+  List,
+  X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface Deadline {
+import { Button } from "@/components/ui/button";
+import { EmptyState, StatusLine } from "@/components/shell/PageFrame";
+import { cn } from "@/lib/utils";
+
+type DeadlineSeverity = "critical" | "high" | "medium";
+type DeadlineStatus = "pending" | "in-progress" | "completed" | "missed";
+
+type PrerequisiteTask = {
+  id?: string;
+  task: string;
+  done: boolean;
+};
+
+type Deadline = {
   id: string;
   name: string;
   description?: string;
+  documentationUrl?: string;
+  type: string;
   jurisdiction: string;
+  country?: string;
   framework: string;
   dueDate: string;
-  status: string;
-  colour: string;
-}
+  scope: string;
+  severity: DeadlineSeverity;
+  status: DeadlineStatus;
+  daysRemaining: number;
+  urgent: boolean;
+  prerequisiteTasks: PrerequisiteTask[];
+};
 
-interface CalendarDay {
+type CalendarDay = {
   date: string;
   deadlines: Deadline[];
   isToday: boolean;
   isOverdue: boolean;
-}
+};
 
-interface CalendarData {
+type CalendarData = {
   year: number;
   month: number;
   days: CalendarDay[];
-}
+};
 
-interface Summary {
+type Summary = {
   total: number;
-  notStarted: number;
+  pending: number;
   inProgress: number;
   completed: number;
-  submitted: number;
-  verified: number;
+  missed: number;
   overdue: number;
+  urgent: number;
   dueInNext7Days: number;
   dueInNext30Days: number;
-}
+};
 
 const MONTHS = [
   "January",
@@ -73,149 +84,154 @@ const MONTHS = [
   "October",
   "November",
   "December",
-];
+] as const;
 
-const JURISDICTIONS = ["EU", "IN", "GB", "US", "GLOBAL", "OTHER"];
-const FRAMEWORKS = ["CSRD", "BRSR", "GRI", "SASB", "TCFD", "ISO14064", "OTHER"];
-const STATUSES = [
-  "not_started",
-  "in_progress",
-  "completed",
-  "submitted",
-  "verified",
-  "overdue",
-];
+function severityBorder(severity: DeadlineSeverity): string {
+  switch (severity) {
+    case "critical":
+      return "border-[color:var(--rust)]";
+    case "high":
+      return "border-[color:var(--amber)]";
+    default:
+      return "border-[color:var(--cobalt)]";
+  }
+}
 
-function getStatusIcon(status: string) {
+function severityInk(severity: DeadlineSeverity): string {
+  switch (severity) {
+    case "critical":
+      return "text-[color:var(--rust)]";
+    case "high":
+      return "text-[color:var(--amber)]";
+    default:
+      return "text-[color:var(--cobalt)]";
+  }
+}
+
+function statusLabel(status: DeadlineStatus): string {
   switch (status) {
-    case "verified":
-    case "submitted":
-      return <CheckCircle2 className="w-4 h-4 text-green-600" />;
+    case "in-progress":
+      return "In progress";
     case "completed":
-      return <CheckCircle2 className="w-4 h-4 text-green-500" />;
-    case "in_progress":
-      return <Clock className="w-4 h-4 text-yellow-600" />;
-    case "overdue":
-      return <AlertTriangle className="w-4 h-4 text-red-600" />;
+      return "Completed";
+    case "missed":
+      return "Missed";
     default:
-      return <AlertCircle className="w-4 h-4 text-gray-400" />;
+      return "Pending";
   }
 }
 
-function getStatusLabel(status: string) {
-  const labels: Record<string, string> = {
-    not_started: "Not Started",
-    in_progress: "In Progress",
-    completed: "Completed",
-    submitted: "Submitted",
-    verified: "Verified",
-    overdue: "Overdue",
-  };
-  return labels[status] || status;
+function StatusIcon({ status }: { status: DeadlineStatus }) {
+  if (status === "completed") {
+    return <CheckCircle2 className="size-4 text-[color:var(--signal)]" aria-hidden />;
+  }
+  if (status === "in-progress") {
+    return <Clock className="size-4 text-[color:var(--amber)]" aria-hidden />;
+  }
+  if (status === "missed") {
+    return <AlertTriangle className="size-4 text-[color:var(--rust)]" aria-hidden />;
+  }
+  return <AlertCircle className="size-4 text-[color:var(--ink-muted)]" aria-hidden />;
 }
 
-function getColorClass(colour: string): string {
-  switch (colour) {
-    case "green":
-      return "bg-green-100 text-green-800 border-green-300";
-    case "yellow":
-      return "bg-yellow-100 text-yellow-800 border-yellow-300";
-    case "red":
-      return "bg-red-100 text-red-800 border-red-300";
-    case "blue":
-      return "bg-blue-100 text-blue-800 border-blue-300";
-    default:
-      return "bg-gray-100 text-gray-800 border-gray-300";
-  }
+function formatDue(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split("-").map(Number);
+  const date = new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1));
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function daysLabel(days: number): string {
+  if (days === 0) return "Due today";
+  if (days === 1) return "1 day left";
+  if (days === -1) return "1 day overdue";
+  if (days < 0) return `${Math.abs(days)} days overdue`;
+  return `${days} days left`;
 }
 
 export function CalendarClient() {
-  const [view, setView] = useState<"calendar" | "list">("calendar");
+  const [mode, setMode] = useState<"calendar" | "today">("calendar");
   const [calendarData, setCalendarData] = useState<CalendarData | null>(null);
-  const [listDeadlines, setListDeadlines] = useState<Deadline[]>([]);
+  const [todayList, setTodayList] = useState<Deadline[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [selected, setSelected] = useState<Deadline | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [tone, setTone] = useState<"neutral" | "error" | "ok">("neutral");
+  const [pending, startTransition] = useTransition();
+  const [loaded, setLoaded] = useState(false);
 
-  // Filters
-  const [jurisdiction, setJurisdiction] = useState<string>("");
-  const [framework, setFramework] = useState<string>("");
-  const [status, setStatus] = useState<string>("");
-  const [search, setSearch] = useState<string>("");
-  const [listView, setListView] = useState<"upcoming" | "overdue" | "all">("upcoming");
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
 
-  // Fetch calendar data
-  useEffect(() => {
-    async function loadCalendarData() {
+  const load = useCallback(() => {
+    startTransition(async () => {
       try {
-        const params = new URLSearchParams({
+        const calParams = new URLSearchParams({
           view: "calendar",
-          year: String(currentDate.getFullYear()),
-          month: String(currentDate.getMonth()),
+          year: String(year),
+          month: String(month),
         });
-        const response = await fetch(`/api/app/compliance/calendar?${params}`);
-        if (!response.ok) throw new Error("Failed to load calendar");
-        const data = await response.json();
-        setCalendarData(data);
+        const [calRes, listRes, sumRes] = await Promise.all([
+          fetch(`/api/app/compliance/calendar?${calParams}`),
+          fetch("/api/app/compliance/deadlines?view=today"),
+          fetch("/api/app/compliance/calendar?view=summary"),
+        ]);
+
+        const calData = (await calRes.json()) as CalendarData & { error?: string };
+        const listData = (await listRes.json()) as {
+          deadlines?: Deadline[];
+          error?: string;
+        };
+        const sumData = (await sumRes.json()) as Summary & { error?: string };
+
+        if (!calRes.ok) {
+          setTone("error");
+          setMessage(calData.error ?? "Failed to load calendar");
+          setLoaded(true);
+          return;
+        }
+        if (!listRes.ok) {
+          setTone("error");
+          setMessage(listData.error ?? "Failed to load deadlines");
+          setLoaded(true);
+          return;
+        }
+
+        setCalendarData(calData);
+        setTodayList(listData.deadlines ?? []);
+        if (sumRes.ok) setSummary(sumData);
+        setTone("neutral");
+        setMessage(null);
+        setLoaded(true);
       } catch (err) {
-        console.error(err);
+        setTone("error");
+        setMessage(err instanceof Error ? err.message : "Failed to load calendar");
+        setLoaded(true);
       }
-    }
+    });
+  }, [year, month]);
 
-    loadCalendarData();
-  }, [currentDate, view]);
-
-  // Fetch list view
   useEffect(() => {
-    async function loadListData() {
-      try {
-        const params = new URLSearchParams({
-          view: "list",
-          listView,
-        });
-        if (jurisdiction) params.append("jurisdiction", jurisdiction);
-        if (framework) params.append("framework", framework);
-        if (status) params.append("status", status);
-        if (search) params.append("search", search);
+    const id = window.setTimeout(() => {
+      load();
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [load]);
 
-        const response = await fetch(`/api/app/compliance/calendar?${params}`);
-        if (!response.ok) throw new Error("Failed to load deadlines");
-        const data = await response.json();
-        setListDeadlines(data.deadlines || []);
-      } catch (err) {
-        console.error(err);
-      }
-    }
+  function handlePrevMonth() {
+    setCurrentDate(new Date(year, month - 1, 1));
+  }
 
-    if (view === "list") {
-      loadListData();
-    }
-  }, [view, jurisdiction, framework, status, search, listView]);
+  function handleNextMonth() {
+    setCurrentDate(new Date(year, month + 1, 1));
+  }
 
-  // Fetch summary
-  useEffect(() => {
-    async function loadSummary() {
-      try {
-        const response = await fetch(`/api/app/compliance/calendar?view=summary`);
-        if (!response.ok) throw new Error("Failed to load summary");
-        const data = await response.json();
-        setSummary(data);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    loadSummary();
-  }, []);
-
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
-  };
-
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
-  };
-
-  const handleExport = async () => {
+  async function handleExport() {
     try {
       const response = await fetch("/api/app/compliance/calendar/export");
       if (!response.ok) throw new Error("Export failed");
@@ -223,338 +239,443 @@ export function CalendarClient() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `deadlines-${new Date().toISOString().split("T")[0]}.ics`;
+      a.download = `deadlines-${new Date().toISOString().slice(0, 10)}.ics`;
       a.click();
-    } catch (err) {
-      console.error("Export failed:", err);
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setTone("error");
+      setMessage("Export failed. Try again.");
     }
-  };
+  }
+
+  async function markStatus(deadlineId: string, status: DeadlineStatus) {
+    startTransition(async () => {
+      try {
+        const res = await fetch(`/api/app/compliance/deadlines/${deadlineId}/status`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        });
+        const data = (await res.json()) as { deadline?: Deadline; error?: string };
+        if (!res.ok) {
+          setTone("error");
+          setMessage(data.error ?? "Failed to update status");
+          return;
+        }
+        setTone("ok");
+        setMessage(`Marked ${statusLabel(status).toLowerCase()}.`);
+        if (data.deadline) setSelected(data.deadline);
+        load();
+      } catch {
+        setTone("error");
+        setMessage("Failed to update status");
+      }
+    });
+  }
+
+  if (!loaded && pending) {
+    return <p className="text-sm text-[color:var(--ink-muted)]">Loading calendar…</p>;
+  }
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      {summary && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Deadlines
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{summary.total}</div>
-            </CardContent>
-          </Card>
+      {message ? <StatusLine tone={tone}>{message}</StatusLine> : null}
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Due in 7 days
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">
-                {summary.dueInNext7Days}
+      {summary ? (
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[
+            { label: "Applicable", value: summary.total },
+            { label: "Urgent (<30d)", value: summary.urgent },
+            { label: "Due in 7 days", value: summary.dueInNext7Days },
+            { label: "Overdue", value: summary.overdue },
+          ].map((card) => (
+            <div
+              key={card.label}
+              className="rounded-[6px] border border-[color:var(--rule)] bg-[color:var(--surface-1)] p-4"
+            >
+              <div className="text-xs uppercase tracking-wide text-[color:var(--ink-muted)]">
+                {card.label}
               </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Overdue
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{summary.overdue}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Verified
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{summary.verified}</div>
-            </CardContent>
-          </Card>
+              <div className="mt-1 font-mono text-2xl tabular-nums text-[color:var(--ink)]">
+                {card.value}
+              </div>
+            </div>
+          ))}
         </div>
-      )}
+      ) : null}
 
-      {/* Controls */}
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+      <div className="flex flex-col gap-3 border-b border-[color:var(--rule)] pb-4 md:flex-row md:items-center md:justify-between">
         <div className="flex gap-2">
           <Button
-            variant={view === "calendar" ? "default" : "outline"}
-            onClick={() => setView("calendar")}
+            type="button"
+            variant={mode === "calendar" ? "default" : "outline"}
+            onClick={() => setMode("calendar")}
             className="gap-2"
           >
-            <Calendar className="w-4 h-4" />
-            Calendar
+            <Calendar className="size-4" aria-hidden />
+            Monthly
           </Button>
           <Button
-            variant={view === "list" ? "default" : "outline"}
-            onClick={() => setView("list")}
+            type="button"
+            variant={mode === "today" ? "default" : "outline"}
+            onClick={() => setMode("today")}
+            className="gap-2"
           >
-            List
+            <List className="size-4" aria-hidden />
+            By urgency
           </Button>
         </div>
-
-        <Button onClick={handleExport} variant="outline" className="gap-2">
-          <Download className="w-4 h-4" />
+        <Button type="button" variant="outline" onClick={handleExport} className="gap-2">
+          <Download className="size-4" aria-hidden />
           Export iCal
         </Button>
       </div>
 
-      {/* Calendar View */}
-      {view === "calendar" && calendarData && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>
-                {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
-              </CardTitle>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={handlePrevMonth}>
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <Button size="sm" variant="outline" onClick={handleNextMonth}>
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
+      {mode === "calendar" && calendarData ? (
+        <div className="rounded-[6px] border border-[color:var(--rule)] bg-[color:var(--surface-1)]">
+          <div className="flex items-center justify-between border-b border-[color:var(--rule)] px-4 py-3">
+            <h2 className="font-[family-name:var(--font-display)] text-lg text-[color:var(--ink)]">
+              {MONTHS[month]} <span className="font-mono tabular-nums">{year}</span>
+            </h2>
+            <div className="flex gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={handlePrevMonth}>
+                <ChevronLeft className="size-4" aria-hidden />
+                <span className="sr-only">Previous month</span>
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={handleNextMonth}>
+                <ChevronRight className="size-4" aria-hidden />
+                <span className="sr-only">Next month</span>
+              </Button>
             </div>
-          </CardHeader>
+          </div>
 
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr>
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                      <th
-                        key={day}
-                        className="text-center p-2 font-medium text-muted-foreground"
+          <div className="overflow-x-auto p-2">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead>
+                <tr>
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                    <th
+                      key={day}
+                      className="p-2 text-center text-xs font-medium text-[color:var(--ink-muted)]"
+                    >
+                      {day}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {buildMonthRows(calendarData, month, year).map((row, idx) => (
+                  <tr key={idx}>
+                    {row.map((day, cellIdx) => (
+                      <td
+                        key={cellIdx}
+                        className={cn(
+                          "min-h-24 align-top border border-[color:var(--rule)] p-2",
+                          !day && "bg-[color:var(--surface-2)]",
+                          day?.isToday && "bg-[color:var(--accent-quiet)]",
+                        )}
                       >
-                        {day}
-                      </th>
+                        {day ? (
+                          <div className="space-y-1">
+                            <div
+                              className={cn(
+                                "font-mono text-xs tabular-nums",
+                                day.isToday
+                                  ? "text-[color:var(--accent)]"
+                                  : "text-[color:var(--ink-muted)]",
+                              )}
+                            >
+                              {Number(day.date.slice(8, 10))}
+                            </div>
+                            <div className="space-y-1">
+                              {day.deadlines.map((deadline) => (
+                                <button
+                                  key={deadline.id}
+                                  type="button"
+                                  onClick={() => setSelected(deadline)}
+                                  className={cn(
+                                    "w-full rounded-[2px] border-l-2 bg-[color:var(--surface-2)] px-1.5 py-1 text-left text-[10px] leading-tight text-[color:var(--ink)]",
+                                    severityBorder(deadline.severity),
+                                    deadline.urgent && "ring-1 ring-[color:var(--rust)]",
+                                  )}
+                                >
+                                  <span className="line-clamp-2">{deadline.name}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </td>
                     ))}
                   </tr>
-                </thead>
-                <tbody>
-                  {/* Generate calendar grid */}
-                  {(() => {
-                    const firstDay = new Date(
-                      currentDate.getFullYear(),
-                      currentDate.getMonth(),
-                      1,
-                    ).getDay();
-                    const rows: Array<Array<(CalendarDay & { dayNum: number }) | null>> =
-                      [];
-                    let currentRow: Array<(CalendarDay & { dayNum: number }) | null> = [];
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
 
-                    // Empty cells before first day
-                    for (let i = 0; i < firstDay; i++) {
-                      currentRow.push(null);
-                    }
-
-                    // Calendar days
-                    for (const day of calendarData.days) {
-                      const dayNum = parseInt(day.date.split("-")[2]);
-                      currentRow.push({ ...day, dayNum });
-
-                      if (currentRow.length === 7) {
-                        rows.push(currentRow);
-                        currentRow = [];
-                      }
-                    }
-
-                    // Fill remaining cells
-                    while (currentRow.length > 0 && currentRow.length < 7) {
-                      currentRow.push(null);
-                    }
-                    if (currentRow.length === 7) {
-                      rows.push(currentRow);
-                    }
-
-                    return rows.map((row, idx) => (
-                      <tr key={idx}>
-                        {row.map((day, cellIdx: number) => (
-                          <td
-                            key={cellIdx}
-                            className={`border p-2 min-h-24 align-top ${
-                              day
-                                ? day.isToday
-                                  ? "bg-blue-50"
-                                  : day.isOverdue && day.deadlines.length === 0
-                                    ? "bg-gray-50"
-                                    : ""
-                                : "bg-gray-50"
-                            }`}
-                          >
-                            {day && (
-                              <div className="space-y-1">
-                                <div className="font-medium">{day.dayNum}</div>
-                                <div className="space-y-1">
-                                  {day.deadlines.map((deadline) => (
-                                    <div
-                                      key={deadline.id}
-                                      className={`text-xs p-1 rounded border ${getColorClass(
-                                        deadline.colour,
-                                      )}`}
-                                      title={deadline.name}
-                                    >
-                                      {deadline.name.substring(0, 15)}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
+      {mode === "today" ? (
+        <div className="rounded-[6px] border border-[color:var(--rule)] bg-[color:var(--surface-1)]">
+          <div className="border-b border-[color:var(--rule)] px-4 py-3">
+            <h2 className="font-[family-name:var(--font-display)] text-lg text-[color:var(--ink)]">
+              Sorted by urgency
+            </h2>
+            <p className="mt-1 text-sm text-[color:var(--ink-muted)]">
+              Applicable deadlines only. Days remaining from the server.
+            </p>
+          </div>
+          {todayList.length === 0 ? (
+            <EmptyState
+              title="No deadlines in this view"
+              body="No applicable incomplete deadlines for your organisation profile."
+            />
+          ) : (
+            <ul className="divide-y divide-[color:var(--rule)]">
+              {todayList.map((deadline) => (
+                <li key={deadline.id}>
+                  <button
+                    type="button"
+                    onClick={() => setSelected(deadline)}
+                    className="flex w-full items-start justify-between gap-4 px-4 py-4 text-left hover:bg-[color:var(--surface-2)]"
+                  >
+                    <div className="flex items-start gap-3">
+                      <StatusIcon status={deadline.status} />
+                      <div>
+                        <div className="font-medium text-[color:var(--ink)]">
+                          {deadline.name}
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-[color:var(--ink-muted)]">
+                          <span>{deadline.type}</span>
+                          <span>·</span>
+                          <span>{deadline.jurisdiction}</span>
+                          <span
+                            className={cn(
+                              "rounded-[2px] px-1.5 py-0.5 uppercase tracking-wide",
+                              severityInk(deadline.severity),
                             )}
-                          </td>
-                        ))}
-                      </tr>
-                    ));
-                  })()}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* List View */}
-      {view === "list" && (
-        <div className="space-y-4">
-          {/* Filters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Filters</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div className="relative">
-                  <Search className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search deadlines..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
-
-                <Select
-                  value={listView}
-                  onValueChange={(v) => setListView(v as "upcoming" | "overdue" | "all")}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="View" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="upcoming">Upcoming</SelectItem>
-                    <SelectItem value="overdue">Overdue</SelectItem>
-                    <SelectItem value="all">All</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={jurisdiction} onValueChange={setJurisdiction}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Jurisdiction" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All</SelectItem>
-                    {JURISDICTIONS.map((j) => (
-                      <SelectItem key={j} value={j}>
-                        {j}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={framework} onValueChange={setFramework}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Framework" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All</SelectItem>
-                    {FRAMEWORKS.map((f) => (
-                      <SelectItem key={f} value={f}>
-                        {f}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All</SelectItem>
-                    {STATUSES.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {getStatusLabel(s)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Deadlines List */}
-          <Card>
-            <CardContent className="p-0">
-              {listDeadlines.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">
-                  No deadlines found
-                </div>
-              ) : (
-                <div className="divide-y">
-                  {listDeadlines.map((deadline) => (
-                    <div
-                      key={deadline.id}
-                      className="p-4 flex items-start justify-between hover:bg-gray-50"
-                    >
-                      <div className="flex items-start gap-3 flex-1">
-                        <div className="mt-1">{getStatusIcon(deadline.status)}</div>
-                        <div className="flex-1">
-                          <h3 className="font-medium">{deadline.name}</h3>
-                          {deadline.description && (
-                            <p className="text-sm text-muted-foreground">
-                              {deadline.description}
-                            </p>
-                          )}
-                          <div className="flex gap-2 mt-2">
-                            <Badge variant="outline">{deadline.framework}</Badge>
-                            <Badge variant="outline">{deadline.jurisdiction}</Badge>
-                            <Badge className={getColorClass(deadline.colour)}>
-                              {getStatusLabel(deadline.status)}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right ml-4">
-                        <div className="font-medium">
-                          {new Date(deadline.dueDate).toLocaleDateString()}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {Math.ceil(
-                            (new Date(deadline.dueDate).getTime() -
-                              new Date().getTime()) /
-                              (1000 * 60 * 60 * 24),
-                          )}{" "}
-                          days
+                          >
+                            {deadline.severity}
+                          </span>
+                          {deadline.urgent ? (
+                            <span className="text-[color:var(--rust)]">Urgent</span>
+                          ) : null}
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <div className="text-right">
+                      <div className="font-mono text-sm tabular-nums text-[color:var(--ink)]">
+                        {formatDue(deadline.dueDate)}
+                      </div>
+                      <div
+                        className={cn(
+                          "mt-1 font-mono text-xs tabular-nums",
+                          deadline.urgent || deadline.daysRemaining < 0
+                            ? "text-[color:var(--rust)]"
+                            : "text-[color:var(--ink-muted)]",
+                        )}
+                      >
+                        {daysLabel(deadline.daysRemaining)}
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-      )}
+      ) : null}
+
+      {selected ? (
+        <DetailModal
+          deadline={selected}
+          pending={pending}
+          onClose={() => setSelected(null)}
+          onStatus={markStatus}
+        />
+      ) : null}
     </div>
   );
+}
+
+function DetailModal({
+  deadline,
+  pending,
+  onClose,
+  onStatus,
+}: {
+  deadline: Deadline;
+  pending: boolean;
+  onClose: () => void;
+  onStatus: (id: string, status: DeadlineStatus) => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-[color:var(--ink)]/40 p-4 sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="deadline-detail-title"
+    >
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[6px] border border-[color:var(--rule-strong)] bg-[color:var(--surface-1)] shadow-lg">
+        <div className="flex items-start justify-between gap-3 border-b border-[color:var(--rule)] px-4 py-3">
+          <div>
+            <h2
+              id="deadline-detail-title"
+              className="font-[family-name:var(--font-display)] text-lg text-[color:var(--ink)]"
+            >
+              {deadline.name}
+            </h2>
+            <p className="mt-1 font-mono text-sm tabular-nums text-[color:var(--ink-muted)]">
+              {formatDue(deadline.dueDate)} — {daysLabel(deadline.daysRemaining)}
+              {deadline.urgent ? " · urgent" : ""}
+            </p>
+          </div>
+          <Button type="button" size="sm" variant="ghost" onClick={onClose}>
+            <X className="size-4" aria-hidden />
+            <span className="sr-only">Close</span>
+          </Button>
+        </div>
+
+        <div className="space-y-4 px-4 py-4">
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="rounded-[2px] border border-[color:var(--rule)] px-2 py-0.5">
+              {deadline.type}
+            </span>
+            <span className="rounded-[2px] border border-[color:var(--rule)] px-2 py-0.5">
+              {deadline.framework}
+            </span>
+            <span className="rounded-[2px] border border-[color:var(--rule)] px-2 py-0.5">
+              {deadline.jurisdiction}
+            </span>
+            <span
+              className={cn(
+                "rounded-[2px] border px-2 py-0.5 uppercase",
+                severityBorder(deadline.severity),
+                severityInk(deadline.severity),
+              )}
+            >
+              {deadline.severity}
+            </span>
+            <span className="rounded-[2px] border border-[color:var(--rule)] px-2 py-0.5">
+              {statusLabel(deadline.status)}
+            </span>
+          </div>
+
+          {deadline.description ? (
+            <div>
+              <h3 className="text-xs uppercase tracking-wide text-[color:var(--ink-muted)]">
+                Regulation
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-[color:var(--ink)]">
+                {deadline.description}
+              </p>
+            </div>
+          ) : null}
+
+          {deadline.documentationUrl ? (
+            <a
+              href={deadline.documentationUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-[color:var(--accent)] underline-offset-2 hover:underline"
+            >
+              Official documentation
+              <ExternalLink className="size-3.5" aria-hidden />
+            </a>
+          ) : null}
+
+          <div>
+            <h3 className="text-xs uppercase tracking-wide text-[color:var(--ink-muted)]">
+              Checklist
+            </h3>
+            {deadline.prerequisiteTasks.length === 0 ? (
+              <p className="mt-2 text-sm text-[color:var(--ink-muted)]">
+                No prerequisite tasks listed.
+              </p>
+            ) : (
+              <ul className="mt-2 space-y-2">
+                {deadline.prerequisiteTasks.map((task, i) => (
+                  <li
+                    key={task.id ?? `${deadline.id}-task-${i}`}
+                    className="flex items-start gap-2 text-sm text-[color:var(--ink)]"
+                  >
+                    <span
+                      className={cn(
+                        "mt-0.5 size-3.5 shrink-0 rounded-[2px] border border-[color:var(--rule-strong)]",
+                        task.done && "bg-[color:var(--signal)]",
+                      )}
+                      aria-hidden
+                    />
+                    <span
+                      className={
+                        task.done ? "text-[color:var(--ink-muted)] line-through" : ""
+                      }
+                    >
+                      {task.task}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2 border-t border-[color:var(--rule)] pt-4">
+            {deadline.status !== "completed" ? (
+              <Button
+                type="button"
+                disabled={pending}
+                onClick={() => onStatus(deadline.id, "completed")}
+              >
+                Mark completed
+              </Button>
+            ) : null}
+            {deadline.status === "pending" ? (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={pending}
+                onClick={() => onStatus(deadline.id, "in-progress")}
+              >
+                Mark in progress
+              </Button>
+            ) : null}
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function buildMonthRows(
+  calendarData: CalendarData,
+  month: number,
+  year: number,
+): Array<Array<CalendarDay | null>> {
+  const firstDay = new Date(year, month, 1).getDay();
+  const rows: Array<Array<CalendarDay | null>> = [];
+  let currentRow: Array<CalendarDay | null> = [];
+
+  for (let i = 0; i < firstDay; i++) {
+    currentRow.push(null);
+  }
+
+  for (const day of calendarData.days) {
+    currentRow.push(day);
+    if (currentRow.length === 7) {
+      rows.push(currentRow);
+      currentRow = [];
+    }
+  }
+
+  while (currentRow.length > 0 && currentRow.length < 7) {
+    currentRow.push(null);
+  }
+  if (currentRow.length === 7) {
+    rows.push(currentRow);
+  }
+
+  return rows;
 }

@@ -46,6 +46,25 @@ export const Scope3Activities: CollectionConfig = {
       required: true,
     },
     {
+      name: "supplier",
+      type: "relationship",
+      relationTo: "suppliers",
+      index: true,
+      admin: {
+        description: "Linked supplier when this activity is Category 1 purchased goods",
+      },
+    },
+    {
+      name: "supplyTier",
+      type: "number",
+      min: 1,
+      max: 3,
+      admin: {
+        description:
+          "Supply-chain tier (1|2|3) for Category 1 breakdown — avoids double-count",
+      },
+    },
+    {
       name: "activityData",
       type: "json",
       required: true,

@@ -33,6 +33,13 @@ export async function PATCH(req: Request, ctx: Ctx) {
     contactEmail?: string;
     category?: string;
     annualSpend?: number | null;
+    emailConsent?: boolean;
+    tier?: number | null;
+    directSpend?: number | null;
+    naceCode?: string | null;
+    industryIntensityOverride?: number | null;
+    totalRevenue?: number | null;
+    parentSupplier?: string | null;
   };
 
   const updated = await payload.update({
@@ -56,6 +63,39 @@ export async function PATCH(req: Request, ctx: Ctx) {
         : {}),
       ...(body.annualSpend !== undefined
         ? { annualSpend: body.annualSpend ?? undefined }
+        : {}),
+      ...(body.emailConsent !== undefined
+        ? { emailConsent: body.emailConsent === true }
+        : {}),
+      ...(body.tier !== undefined
+        ? {
+            tier:
+              body.tier === 2 || body.tier === 3 || body.tier === 1
+                ? body.tier
+                : undefined,
+          }
+        : {}),
+      ...(body.directSpend !== undefined
+        ? { directSpend: body.directSpend ?? undefined }
+        : {}),
+      ...(body.naceCode !== undefined
+        ? {
+            naceCode:
+              body.naceCode && String(body.naceCode).trim()
+                ? String(body.naceCode).trim()
+                : null,
+          }
+        : {}),
+      ...(body.industryIntensityOverride !== undefined
+        ? {
+            industryIntensityOverride: body.industryIntensityOverride ?? undefined,
+          }
+        : {}),
+      ...(body.totalRevenue !== undefined
+        ? { totalRevenue: body.totalRevenue ?? undefined }
+        : {}),
+      ...(body.parentSupplier !== undefined
+        ? { parentSupplier: body.parentSupplier ?? null }
         : {}),
     },
     overrideAccess: true,

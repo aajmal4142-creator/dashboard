@@ -1,150 +1,286 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, TrendingDown } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
+
 import type {
-  IntensityMetrics,
-  IntensityReport,
-  IntensityTrend,
+  EmissionsIntensityResult,
+  IntensityPeerStatus,
+  IntensityType,
 } from "@/lib/analytics/consumptionIntensity";
 
+type IntensityTypeRow = {
+  type: IntensityType;
+  current: EmissionsIntensityResult;
+  previous_year: EmissionsIntensityResult | null;
+  changePercent: number | null;
+  benchmarkMedian: number | null;
+  status: IntensityPeerStatus;
+};
+
+type IntensityAllResponse = {
+  period: number;
+  totalEmissions: number;
+  types: Record<IntensityType, IntensityTypeRow>;
+  denominators: {
+    annualRevenue: number | null;
+    employeeCount: number | null;
+    annualOutputUnits: number | null;
+    outputUnitLabel: string | null;
+    floorAreaSqm: number | null;
+  };
+  emissionsMessage?: string | null;
+};
+
+const TYPE_LABELS: Record<IntensityType, string> = {
+  per_revenue: "Per revenue",
+  per_employee: "Per employee",
+  per_output: "Per output",
+  per_square_meter: "Per square meter",
+};
+
+const TYPE_ORDER: IntensityType[] = [
+  "per_revenue",
+  "per_employee",
+  "per_output",
+  "per_square_meter",
+];
+
+function fmtNum(value: number | null | undefined, digits = 2): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  return value.toLocaleString(undefined, {
+    maximumFractionDigits: digits,
+    minimumFractionDigits: 0,
+  });
+}
+
+function statusLabel(status: IntensityPeerStatus): string {
+  switch (status) {
+    case "better_than_median":
+      return "Better than peer median";
+    case "worse_than_median":
+      return "Above peer median";
+    case "at_median":
+      return "Near peer median";
+    case "unavailable":
+      return "Peer median unavailable";
+    default: {
+      const _exhaustive: never = status;
+      return String(_exhaustive);
+    }
+  }
+}
+
+function changeTone(change: number | null): string {
+  if (change === null) return "text-ink-muted";
+  if (change < 0) return "text-signal";
+  if (change > 0) return "text-rust";
+  return "text-ink-muted";
+}
+
 export default function ConsumptionIntensity() {
-  const [metrics, setMetrics] = useState<IntensityMetrics | null>(null);
-  const [report, setReport] = useState<IntensityReport | null>(null);
+  const [data, setData] = useState<IntensityAllResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchIntensity = async () => {
+    let cancelled = false;
+    const run = async () => {
       try {
-        const response = await fetch("/api/app/analytics/intensity");
-        if (!response.ok) throw new Error("Failed to fetch intensity metrics");
-        const data: {
-          metrics?: IntensityMetrics;
-          report?: IntensityReport;
-        } = await response.json();
-        setMetrics(data.metrics ?? null);
-        setReport(data.report ?? null);
+        const year = new Date().getFullYear();
+        const res = await fetch(`/api/app/analytics/intensity?period=${year}`);
+        if (!res.ok) {
+          const body: { error?: string } = await res.json().catch(() => ({}));
+          throw new Error(body.error ?? "Failed to fetch intensity metrics");
+        }
+        const json = (await res.json()) as IntensityAllResponse;
+        if (!cancelled) setData(json);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load intensity metrics");
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Failed to load intensity metrics",
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
-
-    fetchIntensity();
+    void run();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading) {
-    return <Skeleton className="h-64 w-full" />;
+    return (
+      <div
+        className="h-64 w-full animate-pulse rounded-[6px] border border-rule bg-surface-2"
+        aria-hidden
+      />
+    );
   }
 
   if (error) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
+      <div className="rounded-[6px] border border-rule bg-surface-1 p-4 md:p-5">
+        <p className="font-display text-[16px] text-ink">Emissions intensity</p>
+        <p className="mt-2 text-[13px] text-ink-muted">
+          {error}. Confirm organisation denominators and reporting periods, then retry.
+        </p>
+      </div>
     );
   }
 
-  if (!metrics) {
+  if (!data?.types) {
     return (
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>No intensity data available yet.</AlertDescription>
-      </Alert>
+      <div className="rounded-[6px] border border-rule bg-surface-1 p-4 md:p-5">
+        <p className="font-display text-[16px] text-ink">Emissions intensity</p>
+        <p className="mt-2 text-[13px] text-ink-muted">
+          No intensity data available yet. Add annual revenue, headcount, or output on the
+          organisation, then enter activity data for the period.
+        </p>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center gap-2">
-          <TrendingDown className="h-5 w-5" />
-          <CardTitle>Emissions Intensity Metrics</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2 p-4 border rounded-lg">
-              <p className="text-sm font-medium text-muted-foreground">Per Revenue</p>
-              <p className="text-3xl font-bold">{metrics.perRevenue?.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">tCO2e per $M</p>
-            </div>
-
-            <div className="space-y-2 p-4 border rounded-lg">
-              <p className="text-sm font-medium text-muted-foreground">Per Employee</p>
-              <p className="text-3xl font-bold">{metrics.perEmployee?.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">tCO2e per employee</p>
-            </div>
-
-            {metrics.perUnit && (
-              <div className="space-y-2 p-4 border rounded-lg">
-                <p className="text-sm font-medium text-muted-foreground">Per Unit</p>
-                <p className="text-3xl font-bold">{metrics.perUnit?.toFixed(2)}</p>
-                <p className="text-xs text-muted-foreground">tCO2e per unit</p>
-              </div>
-            )}
+      <div className="rounded-[6px] border border-rule bg-surface-1 p-4 md:p-5">
+        <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <h2 className="font-display text-[18px] text-ink">Emissions intensity</h2>
+            <p className="mt-1 text-[13px] text-ink-muted">
+              Period {data.period}
+              {" · "}
+              <span className="font-data tabular-nums">
+                {fmtNum(data.totalEmissions, 1)}
+              </span>
+              {" tCO2e total"}
+            </p>
           </div>
+          <Link
+            href="/analytics/intensity"
+            className="text-[12px] text-accent hover:text-accent-hover"
+          >
+            Full detail
+          </Link>
+        </div>
 
-          {report?.decouplingStatus && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Decoupling Status</AlertTitle>
-              <AlertDescription className="mt-2">
-                {report.decouplingStatus}
-              </AlertDescription>
-            </Alert>
-          )}
+        {data.emissionsMessage ? (
+          <p className="mb-4 text-[12px] text-ink-muted">{data.emissionsMessage}</p>
+        ) : null}
 
-          {report?.recommendations && report.recommendations.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="font-semibold">Recommendations</h3>
-              <ul className="space-y-2">
-                {report.recommendations.map((rec, idx) => (
-                  <li key={idx} className="text-sm flex gap-2">
-                    <span className="text-blue-600 font-bold">•</span>
-                    <span>{rec}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {metrics.trends && metrics.trends.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Historical Trends</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {metrics.trends.map((trend: IntensityTrend, idx) => (
-                <div
-                  key={idx}
-                  className="flex justify-between p-2 border rounded hover:bg-muted text-sm"
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {TYPE_ORDER.map((type) => {
+            const row = data.types[type];
+            if (!row) return null;
+            return (
+              <div
+                key={type}
+                className="rounded-[6px] border border-rule bg-surface-2 p-3"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                  {TYPE_LABELS[type]}
+                </p>
+                <p className="mt-2 font-data text-[22px] tabular-nums text-ink">
+                  {fmtNum(row.current.value)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-ink-muted">{row.current.unit}</p>
+                <p
+                  className={`mt-2 text-[12px] font-data tabular-nums ${changeTone(row.changePercent)}`}
                 >
-                  <span className="font-semibold">{trend.year}</span>
-                  <span>{trend.intensity?.toFixed(2)} tCO2e/$M</span>
-                  {trend.yoYChange ? (
-                    <span
-                      className={trend.yoYChange < 0 ? "text-green-600" : "text-red-600"}
-                    >
-                      {trend.yoYChange > 0 ? "+" : ""}
-                      {trend.yoYChange?.toFixed(1)}%
-                    </span>
-                  ) : null}
+                  {row.changePercent === null
+                    ? "YoY —"
+                    : `${row.changePercent > 0 ? "+" : ""}${fmtNum(row.changePercent, 1)}% YoY`}
+                </p>
+                {row.current.explanation ? (
+                  <p className="mt-2 text-[11px] text-ink-muted">
+                    {row.current.explanation}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-[6px] border border-rule bg-surface-1 p-4 md:p-5">
+        <h3 className="font-display text-[16px] text-ink">Peer median comparison</h3>
+        <p className="mt-1 text-[12px] text-ink-muted">
+          Lower intensity is better. Cohort medians publish only when n ≥ 8 and consent
+          gates allow.
+        </p>
+        <div className="mt-4 divide-y divide-rule">
+          {TYPE_ORDER.map((type) => {
+            const row = data.types[type];
+            if (!row) return null;
+            return (
+              <div
+                key={type}
+                className="flex flex-wrap items-center justify-between gap-3 py-3"
+              >
+                <div>
+                  <p className="text-[13px] text-ink">{TYPE_LABELS[type]}</p>
+                  <p className="text-[11px] text-ink-muted">{statusLabel(row.status)}</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <div className="flex gap-6 text-right">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.08em] text-ink-muted">
+                      You
+                    </p>
+                    <p className="font-data text-[14px] tabular-nums text-ink">
+                      {fmtNum(row.current.value)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.08em] text-ink-muted">
+                      Median
+                    </p>
+                    <p className="font-data text-[14px] tabular-nums text-ink">
+                      {fmtNum(row.benchmarkMedian)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-[6px] border border-rule bg-surface-1 p-4 md:p-5">
+        <h3 className="font-display text-[16px] text-ink">Denominators</h3>
+        <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-[13px]">
+          <div>
+            <dt className="text-ink-muted">Annual revenue</dt>
+            <dd className="font-data tabular-nums text-ink">
+              {fmtNum(data.denominators.annualRevenue, 0)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-ink-muted">Employees</dt>
+            <dd className="font-data tabular-nums text-ink">
+              {fmtNum(data.denominators.employeeCount, 0)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-ink-muted">
+              Output
+              {data.denominators.outputUnitLabel
+                ? ` (${data.denominators.outputUnitLabel})`
+                : ""}
+            </dt>
+            <dd className="font-data tabular-nums text-ink">
+              {fmtNum(data.denominators.annualOutputUnits, 0)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-ink-muted">Floor area m²</dt>
+            <dd className="font-data tabular-nums text-ink">
+              {fmtNum(data.denominators.floorAreaSqm, 0)}
+            </dd>
+          </div>
+        </dl>
+      </div>
     </div>
   );
 }

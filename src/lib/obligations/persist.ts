@@ -34,7 +34,11 @@ export type PersistObligationResult = {
   voluntary: boolean;
 };
 
-function toPayloadData(organisationId: string, result: ObligationResult) {
+function toPayloadData(
+  organisationId: string,
+  result: ObligationResult,
+  opts: { includeChecklistDefaults?: boolean } = {},
+) {
   return {
     organisation: organisationId,
     wave: result.wave,
@@ -45,6 +49,7 @@ function toPayloadData(organisationId: string, result: ObligationResult) {
     derivationReason: result.reason,
     confidence: result.confidence,
     source: "engine" as const,
+    ...(opts.includeChecklistDefaults ? { checklistStatus: "pending" as const } : {}),
     derivedInputs: {
       country: result.derivedInputs.country,
       headcount: result.derivedInputs.headcount,
@@ -102,9 +107,8 @@ export async function persistDerivedObligations(
       continue;
     }
 
-    const data = toPayloadData(organisationId, result);
-
     if (match) {
+      const data = toPayloadData(organisationId, result);
       const before = {
         wave: match.wave,
         filingDeadline: match.filingDeadline,
@@ -135,6 +139,9 @@ export async function persistDerivedObligations(
       });
       outcomes.push({ id: updated.id, result, action: "updated" });
     } else {
+      const data = toPayloadData(organisationId, result, {
+        includeChecklistDefaults: true,
+      });
       const created = await (
         payload.create as (args: {
           collection: "compliance-obligations";

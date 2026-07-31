@@ -10,7 +10,32 @@ export {
   updateWebhookLastTriggered,
   type WebhookRegistration,
   type WebhookLog,
+  type WebhookRetryPolicy,
+  type WebhookAuthentication,
+  type RegisterWebhookOptions,
 } from "./webhookService";
+
+export {
+  REPORT_GENERATED_EVENT,
+  DEFAULT_MAX_RETRIES,
+  DEFAULT_INITIAL_DELAY_MS,
+  buildReportGeneratedPayload,
+  computeReportDeliveryBackoffMs,
+  deliverWithRetry,
+  deliverReportWebhooks,
+  scheduleReportGeneratedWebhooks,
+  listReportDeliveries,
+  isReportStatusDeliverable,
+  maskAuthHeaders,
+  maskSecretValue,
+  sanitizePayloadForLog,
+  parseRetryPolicy,
+  webhookSubscribesToEvent,
+  type ReportGeneratedPayload,
+  type ReportDeliveryRetryPolicy,
+  type ReportDeliverySummary,
+  type ReportDeliveryLogRow,
+} from "./reportDelivery";
 
 export {
   checkOrgRateLimit,

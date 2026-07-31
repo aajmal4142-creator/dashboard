@@ -52,6 +52,21 @@ export default async function SettingsPage() {
       />
       <SettingsEmissionsStandardClient initial={emissionsStandard} canEdit={canEdit} />
       <SettingsBiKeysClient canEdit={canEdit} />
+      <section className="mt-10 border-t border-rule pt-8">
+        <div className="max-w-xl">
+          <h2 className="font-display text-xl text-ink">Org hierarchy</h2>
+          <div className="title-rule mt-2" />
+          <p className="mt-3 text-sm text-ink-muted">
+            Link subsidiaries for consolidated emissions reporting. Set parent,
+            consolidation method, and ownership %. Circular hierarchies are rejected.
+          </p>
+          <p className="mt-4">
+            <a href="/settings/org-hierarchy" className="editorial-link text-accent">
+              Manage org hierarchy
+            </a>
+          </p>
+        </div>
+      </section>
     </PageFrame>
   );
 }

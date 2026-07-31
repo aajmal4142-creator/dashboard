@@ -1,11 +1,17 @@
 import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
+import { writeAuditLog } from "@/lib/audit/write";
 import { getCurrentContext } from "@/lib/auth";
 import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
-import { AccountingService } from "@/lib/integrations/accounting";
 
+import { buildAccountingService, loadOwnedAccountingConnection } from "../_shared";
+
+/**
+ * Legacy POST /api/app/integrations/accounting/sync
+ * Prefer POST /api/app/integrations/accounting/[id]/sync
+ */
 export async function POST(req: Request) {
   const ctx = await getCurrentContext();
   if (!ctx.activeOrg) {
@@ -35,49 +41,27 @@ export async function POST(req: Request) {
   }
 
   const payload = await getPayload({ config });
-
-  const connection = await payload.findByID({
-    collection: "accounting-connections",
-    id: connectionId,
-    overrideAccess: true,
-  });
-
+  const connection = await loadOwnedAccountingConnection(
+    payload,
+    connectionId,
+    ctx.activeOrg.id,
+  );
   if (!connection) {
     return NextResponse.json({ error: "Connection not found" }, { status: 404 });
   }
 
-  if (String(connection.organisationId) !== ctx.activeOrg.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
-
   try {
-    const provider = connection.provider as "xero" | "quickbooks";
-    const clientId =
-      provider === "xero"
-        ? process.env.XERO_CLIENT_ID || ""
-        : process.env.QB_CLIENT_ID || "";
-    const clientSecret =
-      provider === "xero"
-        ? process.env.XERO_CLIENT_SECRET || ""
-        : process.env.QB_CLIENT_SECRET || "";
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/app/integrations/accounting/callback`;
-
-    const service = new AccountingService(
-      payload,
-      provider,
-      clientId,
-      clientSecret,
-      redirectUri,
-    );
-
-    const result = await service.syncExpenses(connectionId, ctx.activeOrg.id, periodId);
+    const service = buildAccountingService(payload, connection);
+    const result = await service.syncExpenses(connectionId, ctx.activeOrg.id, periodId, {
+      actorId: ctx.user.id,
+    });
 
     await payload.create({
       collection: "integration-sync-logs",
       data: {
         organisationId: ctx.activeOrg.id,
         integrationId: connectionId,
-        provider,
+        provider: connection.provider,
         status: result.status,
         recordsProcessed: result.recordsProcessed,
         recordsFailed: result.recordsFailed,
@@ -87,6 +71,15 @@ export async function POST(req: Request) {
         triggeredBy: ctx.user.id,
       },
       overrideAccess: true,
+    });
+
+    await writeAuditLog(payload, {
+      organisationId: ctx.activeOrg.id,
+      actorId: ctx.user.id,
+      action: "accounting.sync",
+      entityType: "accounting-connections",
+      entityId: connectionId,
+      after: { status: result.status, recordsProcessed: result.recordsProcessed },
     });
 
     return NextResponse.json(result);

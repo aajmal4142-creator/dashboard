@@ -617,6 +617,55 @@ export function ReportPdfDocument({
           </View>
         ) : null}
 
+        {snapshot.forecast && snapshot.forecast.scenarios.length > 0 ? (
+          <View style={{ marginTop: 18 }}>
+            <Text style={styles.sectionEyebrow}>Emissions forecast</Text>
+            <Text style={styles.body}>
+              Based on a {snapshot.forecast.confidence}-confidence{" "}
+              {snapshot.forecast.latestHistoricalYear
+                ? `${snapshot.forecast.latestHistoricalYear} `
+                : ""}
+              baseline of{" "}
+              <Text style={styles.mono}>
+                {formatTco2e(snapshot.forecast.latestHistoricalEmissions)}
+              </Text>{" "}
+              tCO2e (slope{" "}
+              <Text style={styles.mono}>
+                {formatTco2e(snapshot.forecast.slopePerYear)}
+              </Text>{" "}
+              tCO2e/yr). Methodology: {snapshot.forecast.methodology}.
+            </Text>
+            <View style={[styles.table, { marginTop: 10 }]}>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.colHeader, { flex: 1.2 }]}>Scenario</Text>
+                <Text style={styles.colHeaderValue}>Year</Text>
+                <Text style={styles.colHeaderValue}>tCO2e</Text>
+                <Text style={styles.colHeaderValue}>Lower</Text>
+                <Text style={styles.colHeaderValue}>Upper</Text>
+              </View>
+              {snapshot.forecast.scenarios.map((row, i, arr) => (
+                <View
+                  key={row.scenario}
+                  style={i === arr.length - 1 ? styles.tableRowLast : styles.tableRow}
+                >
+                  <Text style={[styles.colLabel, { flex: 1.2 }]}>
+                    {row.scenario} ({(row.growthRate * 100).toFixed(0)}%)
+                  </Text>
+                  <Text style={styles.colValue}>{row.year}</Text>
+                  <Text style={styles.colValue}>{formatTco2e(row.emissions)}</Text>
+                  <Text style={styles.colValue}>{formatTco2e(row.lower)}</Text>
+                  <Text style={styles.colValue}>{formatTco2e(row.upper)}</Text>
+                </View>
+              ))}
+            </View>
+            {snapshot.forecast.warnings.length > 0 ? (
+              <Text style={[styles.muted, { marginTop: 8 }]}>
+                {snapshot.forecast.warnings[0]}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
         <PageFooter
           org={snapshot.organisationName}
           version={snapshot.version}

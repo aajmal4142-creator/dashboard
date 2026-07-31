@@ -25,6 +25,7 @@ type DeviceDoc = {
   apiKeyHash?: string | null;
   anomalyDetectionEnabled?: boolean | null;
   retentionDays?: number | null;
+  gateway?: string | { id: string } | null;
   sensorMappings?: Array<{
     sensorType: string;
     metricKey: string;
@@ -319,6 +320,27 @@ export async function ingestIotReading(input: {
     },
     overrideAccess: true,
   });
+
+  const gatewayRef = device.gateway;
+  if (gatewayRef) {
+    const gatewayId = typeof gatewayRef === "string" ? gatewayRef : gatewayRef.id;
+    try {
+      await payload.update({
+        collection: "iot-gateways",
+        id: gatewayId,
+        data: {
+          lastDataReceived: nowIso,
+          lastHeartbeat: nowIso,
+          lastSyncAt: nowIso,
+          status: "online",
+          offlineAlertSentAt: null,
+        },
+        overrideAccess: true,
+      });
+    } catch (err) {
+      console.error("IoT gateway lastDataReceived update failed:", err);
+    }
+  }
 
   // Map to period datapoint — measured quality; anomalies keep value but audit
   const dp = await writeDatapoint(payload, {

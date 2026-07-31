@@ -1,0 +1,340 @@
+{
+  "rows": [
+    {
+      "id": "6a6112adbaea9eb9de9e4027",
+      "label": "FY2026",
+      "startDate": "2025-04-01T00:00:00.000Z",
+      "endDate": "2026-03-31T00:00:00.000Z",
+      "startY": 2025,
+      "endY": 2026
+    }
+  ],
+  "datapoints": 15,
+  "sample": [
+    {
+      "id": "6a67aa78a00245d0c39c91fd",
+      "metricKey": "board_independent",
+      "value": 34,
+      "period": {
+        "createdAt": "2026-07-22T18:57:49.166Z",
+        "updatedAt": "2026-07-22T18:57:49.166Z",
+        "organisation": {
+          "createdAt": "2026-07-22T18:50:02.042Z",
+          "updatedAt": "2026-07-31T00:27:10.925Z",
+          "name": "My organisation",
+          "slug": "my-organisation-mrwft31w",
+          "type": "company",
+          "sector": "H49",
+          "country": "IN",
+          "employeeCount": 80,
+          "revenueBand": "10_50m",
+          "brand": {
+            "logo": null,
+            "primaryColor": "#0028F0",
+            "domain": null
+          },
+          "plan": "consultant",
+          "subscriptionStatus": "active",
+          "onboardedAt": "2026-07-24T13:41:55.553Z",
+          "benchmarkOptOut": true,
+          "guideProgress": {
+            "sector": true,
+            "baseline": true,
+            "top3": true,
+            "supplier": true,
+            "publish": true
+          },
+          "settings": {
+            "branding": {
+              "logo": null,
+              "primaryColor": "#0028F0",
+              "secondaryColor": "#718FEA",
+              "fontFamily": "plus_jakarta",
+              "defaultMode": null,
+              "radius": "soft"
+            },
+            "domain": null,
+            "emissionsStandard": "GHGProtocol2004"
+          },
+          "consolidationMethod": "full",
+          "ownershipPercent": 100,
+          "sbti": {
+            "hasCommitment": false,
+            "commitmentStatus": "none"
+          },
+          "annualOutputUnits": 12000,
+          "annualRevenue": 30000000,
+          "expectedRevenueGrowth": 0.03,
+          "floorAreaSqm": 4500,
+          "outputUnitLabel": "units",
+          "id": "6a6110dabaea9eb9de9e3f7b"
+        },
+        "label": "FY2026",
+        "startDate": "2025-04-01T00:00:00.000Z",
+        "endDate": "2026-03-31T00:00:00.000Z",
+        "status": "open",
+        "id": "6a6112adbaea9eb9de9e4027"
+      }
+    },
+    {
+      "id": "6a67aa75a00245d0c39c91e3",
+      "metricKey": "injuries_recordable",
+      "value": 45,
+      "period": {
+        "createdAt": "2026-07-22T18:57:49.166Z",
+        "updatedAt": "2026-07-22T18:57:49.166Z",
+        "organisation": {
+          "createdAt": "2026-07-22T18:50:02.042Z",
+          "updatedAt": "2026-07-31T00:27:10.925Z",
+          "name": "My organisation",
+          "slug": "my-organisation-mrwft31w",
+          "type": "company",
+          "sector": "H49",
+          "country": "IN",
+          "employeeCount": 80,
+          "revenueBand": "10_50m",
+          "brand": {
+            "logo": null,
+            "primaryColor": "#0028F0",
+            "domain": null
+          },
+          "plan": "consultant",
+          "subscriptionStatus": "active",
+          "onboardedAt": "2026-07-24T13:41:55.553Z",
+          "benchmarkOptOut": true,
+          "guideProgress": {
+            "sector": true,
+            "baseline": true,
+            "top3": true,
+            "supplier": true,
+            "publish": true
+          },
+          "settings": {
+            "branding": {
+              "logo": null,
+              "primaryColor": "#0028F0",
+              "secondaryColor": "#718FEA",
+              "fontFamily": "plus_jakarta",
+              "defaultMode": null,
+              "radius": "soft"
+            },
+            "domain": null,
+            "emissionsStandard": "GHGProtocol2004"
+          },
+          "consolidationMethod": "full",
+          "ownershipPercent": 100,
+          "sbti": {
+            "hasCommitment": false,
+            "commitmentStatus": "none"
+          },
+          "annualOutputUnits": 12000,
+          "annualRevenue": 30000000,
+          "expectedRevenueGrowth": 0.03,
+          "floorAreaSqm": 4500,
+          "outputUnitLabel": "units",
+          "id": "6a6110dabaea9eb9de9e3f7b"
+        },
+        "label": "FY2026",
+        "startDate": "2025-04-01T00:00:00.000Z",
+        "endDate": "2026-03-31T00:00:00.000Z",
+        "status": "open",
+        "id": "6a6112adbaea9eb9de9e4027"
+      }
+    },
+    {
+      "id": "6a67aa73a00245d0c39c91c9",
+      "metricKey": "electricity_renewable_pct",
+      "value": 45,
+      "period": {
+        "createdAt": "2026-07-22T18:57:49.166Z",
+        "updatedAt": "2026-07-22T18:57:49.166Z",
+        "organisation": {
+          "createdAt": "2026-07-22T18:50:02.042Z",
+          "updatedAt": "2026-07-31T00:27:10.925Z",
+          "name": "My organisation",
+          "slug": "my-organisation-mrwft31w",
+          "type": "company",
+          "sector": "H49",
+          "country": "IN",
+          "employeeCount": 80,
+          "revenueBand": "10_50m",
+          "brand": {
+            "logo": null,
+            "primaryColor": "#0028F0",
+            "domain": null
+          },
+          "plan": "consultant",
+          "subscriptionStatus": "active",
+          "onboardedAt": "2026-07-24T13:41:55.553Z",
+          "benchmarkOptOut": true,
+          "guideProgress": {
+            "sector": true,
+            "baseline": true,
+            "top3": true,
+            "supplier": true,
+            "publish": true
+          },
+          "settings": {
+            "branding": {
+              "logo": null,
+              "primaryColor": "#0028F0",
+              "secondaryColor": "#718FEA",
+              "fontFamily": "plus_jakarta",
+              "defaultMode": null,
+              "radius": "soft"
+            },
+            "domain": null,
+            "emissionsStandard": "GHGProtocol2004"
+          },
+          "consolidationMethod": "full",
+          "ownershipPercent": 100,
+          "sbti": {
+            "hasCommitment": false,
+            "commitmentStatus": "none"
+          },
+          "annualOutputUnits": 12000,
+          "annualRevenue": 30000000,
+          "expectedRevenueGrowth": 0.03,
+          "floorAreaSqm": 4500,
+          "outputUnitLabel": "units",
+          "id": "6a6110dabaea9eb9de9e3f7b"
+        },
+        "label": "FY2026",
+        "startDate": "2025-04-01T00:00:00.000Z",
+        "endDate": "2026-03-31T00:00:00.000Z",
+        "status": "open",
+        "id": "6a6112adbaea9eb9de9e4027"
+      }
+    },
+    {
+      "id": "6a67aa72a00245d0c39c91af",
+      "metricKey": "employees_total",
+      "value": 5,
+      "period": {
+        "createdAt": "2026-07-22T18:57:49.166Z",
+        "updatedAt": "2026-07-22T18:57:49.166Z",
+        "organisation": {
+          "createdAt": "2026-07-22T18:50:02.042Z",
+          "updatedAt": "2026-07-31T00:27:10.925Z",
+          "name": "My organisation",
+          "slug": "my-organisation-mrwft31w",
+          "type": "company",
+          "sector": "H49",
+          "country": "IN",
+          "employeeCount": 80,
+          "revenueBand": "10_50m",
+          "brand": {
+            "logo": null,
+            "primaryColor": "#0028F0",
+            "domain": null
+          },
+          "plan": "consultant",
+          "subscriptionStatus": "active",
+          "onboardedAt": "2026-07-24T13:41:55.553Z",
+          "benchmarkOptOut": true,
+          "guideProgress": {
+            "sector": true,
+            "baseline": true,
+            "top3": true,
+            "supplier": true,
+            "publish": true
+          },
+          "settings": {
+            "branding": {
+              "logo": null,
+              "primaryColor": "#0028F0",
+              "secondaryColor": "#718FEA",
+              "fontFamily": "plus_jakarta",
+              "defaultMode": null,
+              "radius": "soft"
+            },
+            "domain": null,
+            "emissionsStandard": "GHGProtocol2004"
+          },
+          "consolidationMethod": "full",
+          "ownershipPercent": 100,
+          "sbti": {
+            "hasCommitment": false,
+            "commitmentStatus": "none"
+          },
+          "annualOutputUnits": 12000,
+          "annualRevenue": 30000000,
+          "expectedRevenueGrowth": 0.03,
+          "floorAreaSqm": 4500,
+          "outputUnitLabel": "units",
+          "id": "6a6110dabaea9eb9de9e3f7b"
+        },
+        "label": "FY2026",
+        "startDate": "2025-04-01T00:00:00.000Z",
+        "endDate": "2026-03-31T00:00:00.000Z",
+        "status": "open",
+        "id": "6a6112adbaea9eb9de9e4027"
+      }
+    },
+    {
+      "id": "6a67aa6ca00245d0c39c913d",
+      "metricKey": "employees_women",
+      "value": 89,
+      "period": {
+        "createdAt": "2026-07-22T18:57:49.166Z",
+        "updatedAt": "2026-07-22T18:57:49.166Z",
+        "organisation": {
+          "createdAt": "2026-07-22T18:50:02.042Z",
+          "updatedAt": "2026-07-31T00:27:10.925Z",
+          "name": "My organisation",
+          "slug": "my-organisation-mrwft31w",
+          "type": "company",
+          "sector": "H49",
+          "country": "IN",
+          "employeeCount": 80,
+          "revenueBand": "10_50m",
+          "brand": {
+            "logo": null,
+            "primaryColor": "#0028F0",
+            "domain": null
+          },
+          "plan": "consultant",
+          "subscriptionStatus": "active",
+          "onboardedAt": "2026-07-24T13:41:55.553Z",
+          "benchmarkOptOut": true,
+          "guideProgress": {
+            "sector": true,
+            "baseline": true,
+            "top3": true,
+            "supplier": true,
+            "publish": true
+          },
+          "settings": {
+            "branding": {
+              "logo": null,
+              "primaryColor": "#0028F0",
+              "secondaryColor": "#718FEA",
+              "fontFamily": "plus_jakarta",
+              "defaultMode": null,
+              "radius": "soft"
+            },
+            "domain": null,
+            "emissionsStandard": "GHGProtocol2004"
+          },
+          "consolidationMethod": "full",
+          "ownershipPercent": 100,
+          "sbti": {
+            "hasCommitment": false,
+            "commitmentStatus": "none"
+          },
+          "annualOutputUnits": 12000,
+          "annualRevenue": 30000000,
+          "expectedRevenueGrowth": 0.03,
+          "floorAreaSqm": 4500,
+          "outputUnitLabel": "units",
+          "id": "6a6110dabaea9eb9de9e3f7b"
+        },
+        "label": "FY2026",
+        "startDate": "2025-04-01T00:00:00.000Z",
+        "endDate": "2026-03-31T00:00:00.000Z",
+        "status": "open",
+        "id": "6a6112adbaea9eb9de9e4027"
+      }
+    }
+  ]
+}

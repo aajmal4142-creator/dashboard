@@ -1,5 +1,7 @@
 import type { CollectionConfig } from "payload";
 
+import { accessibleOrgIds } from "@/lib/access/membership";
+
 export const IntegrationSyncLogs: CollectionConfig = {
   slug: "integration-sync-logs",
   admin: {
@@ -13,12 +15,13 @@ export const IntegrationSyncLogs: CollectionConfig = {
     ],
   },
   access: {
-    read: async ({ req, id }) => {
+    read: async ({ req }) => {
       if (!req.user) return false;
-      if (!id) return false;
-      return { organisationId: { equals: req.user.id } };
+      const ids = await accessibleOrgIds(req);
+      if (ids.length === 0) return false;
+      return { organisationId: { in: ids } };
     },
-    create: async ({ req }) => req.user !== null,
+    create: async ({ req }) => Boolean(req.user),
     update: () => false,
     delete: () => false,
   },
@@ -44,6 +47,7 @@ export const IntegrationSyncLogs: CollectionConfig = {
       options: [
         { label: "Xero", value: "xero" },
         { label: "QuickBooks", value: "quickbooks" },
+        { label: "Wave", value: "wave" },
         { label: "CSV", value: "csv" },
         { label: "Webhook", value: "webhook" },
       ],

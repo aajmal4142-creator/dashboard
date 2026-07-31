@@ -64,6 +64,7 @@ import { BulkOperations } from "./collections/BulkOperations";
 import { FreeTierAccounts } from "./collections/FreeTierAccounts";
 import { IoTDevices } from "./collections/IoTDevices";
 import { IoTDataStreams } from "./collections/IoTDataStreams";
+import { IoTGateways } from "./collections/IoTGateways";
 import { DataQualityRules } from "./collections/DataQualityRules";
 import { ISO14064Compliance } from "./collections/ISO14064Compliance";
 import { AssurancePartners } from "./collections/AssurancePartners";
@@ -83,6 +84,10 @@ import { BiApiKeys } from "./collections/BiApiKeys";
 import { SupplierPortalConfig } from "./collections/SupplierPortalConfig";
 import { ComplianceAssessments } from "./collections/ComplianceAssessments";
 import { DatapointVersions } from "./collections/DatapointVersions";
+import { ScheduledReports } from "./collections/ScheduledReports";
+import { SbtiTargets } from "./collections/SbtiTargets";
+import { GreenTaxonomyAssessments } from "./collections/GreenTaxonomyAssessments";
+import { ReportEmbedTokens } from "./collections/ReportEmbedTokens";
 
 /**
  * Collection registration — APPEND-ONLY for feature chats.
@@ -190,6 +195,11 @@ export default buildConfig({
     ComplianceAssessments,
     EmailImportLogs,
     DatapointVersions,
+    ScheduledReports,
+    SbtiTargets,
+    GreenTaxonomyAssessments,
+    ReportEmbedTokens,
+    IoTGateways,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,

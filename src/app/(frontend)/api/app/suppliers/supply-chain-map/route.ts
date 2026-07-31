@@ -3,16 +3,23 @@ import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
 import { requirePermission } from "@/lib/policy/protect";
+import { analyzeBottlenecks } from "@/lib/suppliers/bottleneckAnalyzer";
 import {
-  buildSupplyChainGraph,
-  analyzeBottlenecks,
-} from "@/lib/suppliers/bottleneckAnalyzer";
+  buildNetworkView,
+  createNetworkFromSuppliers,
+  listNetworksForOrg,
+} from "@/lib/suppliers/supplyChainService";
+import type { SizeMode } from "@/lib/suppliers/supplyChainMap";
 import config from "@/payload.config";
 
-export async function GET() {
+/**
+ * GET /api/app/suppliers/supply-chain-map
+ * Convenience: latest org network + bottleneck analysis (Membership-gated).
+ */
+export async function GET(req: Request) {
   const ctx = await getCurrentContext();
-  if (!ctx.activeOrg) {
-    return NextResponse.json({ error: "No active organisation" }, { status: 403 });
+  if (!ctx.user || !ctx.activeOrg) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const allowed = await requirePermission(
@@ -27,50 +34,79 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const url = new URL(req.url);
+  const sizeMode: SizeMode =
+    url.searchParams.get("size") === "spend" ? "spend" : "emissions";
+  const tiersRaw = url.searchParams.get("tiers");
+  const visibleTiers: number[] | "all" =
+    !tiersRaw || tiersRaw === "all"
+      ? "all"
+      : tiersRaw
+          .split(",")
+          .map((p) => Number(p.trim()))
+          .filter((n) => Number.isFinite(n) && n >= 1 && n <= 5);
+
   const payload = await getPayload({ config });
-  const suppliers = await payload.find({
-    collection: "suppliers",
-    where: { organisation: { equals: ctx.activeOrg.id } },
-    limit: 500,
-    overrideAccess: true,
-  });
+  let networks = await listNetworksForOrg(payload, ctx.activeOrg.id);
 
-  const org = await payload.findByID({
-    collection: "organisations",
-    id: ctx.activeOrg.id,
-    overrideAccess: true,
-  });
-
-  // Build graph data
-  const graphData = suppliers.docs.map((s) => {
-    const rawTier = (s.riskMetrics as Record<string, unknown> | null)?.tier;
-    let riskTier: "low" | "medium" | "high" | "critical" | undefined;
-    if (
-      rawTier === "low" ||
-      rawTier === "medium" ||
-      rawTier === "high" ||
-      rawTier === "critical"
-    ) {
-      riskTier = rawTier;
+  // Auto-build once when org has suppliers but no network yet
+  if (networks.length === 0) {
+    const suppliers = await payload.find({
+      collection: "suppliers",
+      where: { organisation: { equals: ctx.activeOrg.id } },
+      limit: 1,
+      overrideAccess: true,
+    });
+    if (suppliers.totalDocs > 0) {
+      await createNetworkFromSuppliers({
+        payload,
+        organisationId: ctx.activeOrg.id,
+        includeEstimates: true,
+      });
+      networks = await listNetworksForOrg(payload, ctx.activeOrg.id);
     }
+  }
 
-    return {
-      id: String(s.id),
-      name: s.name,
-      tier: 1, // Simplified for now
-      spend: s.annualSpend ?? 0,
-      emissions: 0, // Would come from Scope 3 data
-      riskTier,
-      country: s.country ?? undefined,
-      category: s.category ?? undefined,
-    };
+  const latest = networks[0];
+  if (!latest) {
+    return NextResponse.json({
+      network: null,
+      layout: null,
+      bottlenecks: null,
+      message: "No suppliers yet — add suppliers, then build a network.",
+    });
+  }
+
+  const view = await buildNetworkView({
+    payload,
+    organisationId: ctx.activeOrg.id,
+    orgName: ctx.activeOrg.name,
+    networkKey: latest.id,
+    visibleTiers: visibleTiers.length === 0 ? "all" : visibleTiers,
+    sizeMode,
   });
 
-  const graph = buildSupplyChainGraph(org?.name ?? "Your Organization", graphData);
-  const bottlenecks = analyzeBottlenecks(graphData);
+  if (!view) {
+    return NextResponse.json({ error: "Network not found" }, { status: 404 });
+  }
+
+  const bottleneckInput = view.nodes.map((n) => ({
+    id: n.id,
+    name: n.name,
+    tier: n.tier,
+    spend: n.spend,
+    emissions: n.emissions,
+    country: n.location ?? undefined,
+    category: n.category ?? undefined,
+  }));
+  const bottlenecks = analyzeBottlenecks(bottleneckInput);
 
   return NextResponse.json({
-    graph,
+    network: { id: view.id, name: view.name },
+    organisationName: ctx.activeOrg.name,
+    sizeMode: view.sizeMode,
+    nodes: view.nodes,
+    layout: view.layout,
     bottlenecks,
   });
 }

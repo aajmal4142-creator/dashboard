@@ -1,5 +1,7 @@
 import { getPayload } from "payload";
 
+import { calculateEmissionsForecast } from "@/lib/analytics/forecast";
+import { loadEmissionsByPeriod } from "@/lib/analytics/loadEmissionsByPeriod";
 import { calculate, type CalcResult, type Quality } from "@/lib/calc";
 import {
   EMISSIONS_STANDARD_LABELS,
@@ -13,6 +15,7 @@ import config from "@/payload.config";
 
 import { detectReportDataGaps } from "./dataGaps";
 import { buildComplianceDeclaration, buildEsrsDisclosures } from "./esrsNarrative";
+import { buildReportForecastSection } from "./forecastSection";
 import { REPORT_DISCLAIMER, type ReportSnapshot, type ScopeBreakdownRow } from "./types";
 
 function relationId(value: unknown): string | null {
@@ -365,6 +368,27 @@ export async function buildReportSnapshot(opts: {
     dataGapCount: dataGaps.filter((g) => g.severity === "high").length,
   });
 
+  let forecast: ReportSnapshot["forecast"] = null;
+  try {
+    const { periods } = await loadEmissionsByPeriod(payload, opts.organisationId, {
+      lookbackYears: 5,
+      endYear: year,
+    });
+    if (periods.length >= 1) {
+      const forecastResult = calculateEmissionsForecast({
+        emissionsByPeriod: periods,
+        orgGrowthRate:
+          typeof org.expectedRevenueGrowth === "number"
+            ? org.expectedRevenueGrowth
+            : null,
+        horizonYears: 3,
+      });
+      forecast = buildReportForecastSection(forecastResult);
+    }
+  } catch {
+    forecast = null;
+  }
+
   return {
     organisationName: org.name,
     periodLabel: period.label,
@@ -441,6 +465,7 @@ export async function buildReportSnapshot(opts: {
       ],
     },
     complianceDeclaration,
+    forecast,
   };
 }
 

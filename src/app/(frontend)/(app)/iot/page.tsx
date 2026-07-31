@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getCurrentContext } from "@/lib/auth";
@@ -19,7 +20,14 @@ export default async function IoTPage() {
         <p className="mt-3 max-w-2xl text-sm text-ink-muted">
           Register devices, ingest REST readings with API keys, and review online status,
           anomalies, and 24-hour aggregates. Readings map to datapoints via the emissions
-          factor registry.
+          factor registry. Multi-gateway hubs live under{" "}
+          <Link
+            href="/integrations/iot/gateways"
+            className="text-accent hover:text-accent-hover"
+          >
+            Integrations → IoT gateways
+          </Link>
+          .
         </p>
       </header>
 

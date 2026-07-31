@@ -86,6 +86,31 @@ export const ComplianceObligations: CollectionConfig = {
       },
     },
     {
+      name: "checklistStatus",
+      type: "select",
+      required: true,
+      defaultValue: "pending",
+      options: [
+        { label: "Pending", value: "pending" },
+        { label: "Complete", value: "complete" },
+      ],
+      admin: {
+        description:
+          "Checklist progress for export — independent of confirmedAt (scope confirmation)",
+      },
+      index: true,
+    },
+    {
+      name: "owner",
+      type: "text",
+      admin: { description: "Responsible person for this obligation (checklist export)" },
+    },
+    {
+      name: "evidenceLink",
+      type: "text",
+      admin: { description: "URL to supporting evidence for checklist export" },
+    },
+    {
       name: "confidence",
       type: "select",
       options: [

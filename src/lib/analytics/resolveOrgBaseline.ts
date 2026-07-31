@@ -27,9 +27,14 @@ export async function resolveOrgBaselineByScope(
     overrideAccess: true,
   });
 
-  const baselinePeriod = periods.docs.find(
-    (p) => new Date(String(p.startDate)).getFullYear() === baselineYear,
-  );
+  // Match endDate year — same convention as intensity, reports, runway, home.
+  const baselinePeriod =
+    periods.docs.find(
+      (p) => new Date(String(p.endDate)).getFullYear() === baselineYear,
+    ) ??
+    periods.docs.find(
+      (p) => new Date(String(p.startDate)).getFullYear() === baselineYear,
+    );
 
   if (!baselinePeriod) {
     return {

@@ -8,7 +8,7 @@ import { selectBestForecastModel } from "@/lib/analytics/trendForecasting";
 
 /**
  * GET /api/app/analytics/forecasts
- * List trend forecasts for organization
+ * List trend forecasts for the active organisation (Membership).
  */
 export async function GET(req: Request) {
   const ctx = await getCurrentContext();
@@ -19,22 +19,23 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const metricKey = url.searchParams.get("metricKey");
+    const scenario = url.searchParams.get("scenario");
+    const methodology = url.searchParams.get("methodology");
 
     const payload = await getPayload({ config });
 
-    const where: Where = metricKey
-      ? {
-          and: [
-            { organisation: { equals: ctx.activeOrg.id } },
-            { metricKey: { equals: metricKey } },
-          ],
-        }
-      : { organisation: { equals: ctx.activeOrg.id } };
+    const clauses: Where[] = [{ organisation: { equals: ctx.activeOrg.id } }];
+    if (metricKey) clauses.push({ metricKey: { equals: metricKey } });
+    if (scenario) clauses.push({ scenario: { equals: scenario } });
+    if (methodology) clauses.push({ methodology: { equals: methodology } });
+
+    const where: Where = clauses.length === 1 ? clauses[0]! : { and: clauses };
 
     const forecasts = await payload.find({
       collection: "trend-forecasts",
       where,
       sort: "-createdAt",
+      limit: 50,
     });
 
     return NextResponse.json({
@@ -49,19 +50,28 @@ export async function GET(req: Request) {
 
 /**
  * POST /api/app/analytics/forecasts
- * Generate new forecast
+ * Legacy ARIMA/ETS path — prefer POST /api/app/analytics/forecasts/calculate.
  */
 export async function POST(req: Request) {
   const ctx = await getCurrentContext();
   if (!ctx.activeOrg) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+  if (ctx.role === "viewer") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
-    const body = await req.json();
+    const body = (await req.json()) as {
+      metricKey?: string;
+      forecastPeriods?: number;
+    };
+    if (!body.metricKey) {
+      return NextResponse.json({ error: "metricKey is required" }, { status: 400 });
+    }
+
     const payload = await getPayload({ config });
 
-    // Fetch historical data from datapoints
     const datapoints = await payload.find({
       collection: "datapoints",
       where: {
@@ -81,7 +91,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Convert to time series format
     const historicalData = datapoints.docs
       .map((dp) => ({
         date: new Date(dp.createdAt),
@@ -89,10 +98,8 @@ export async function POST(req: Request) {
       }))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    // Generate forecast
     const model = selectBestForecastModel(historicalData, body.forecastPeriods || 12);
 
-    // Save to database
     const created = await payload.create({
       collection: "trend-forecasts",
       data: {
@@ -101,6 +108,8 @@ export async function POST(req: Request) {
         model: model.model,
         baselineDate: new Date().toISOString(),
         forecastPeriodMonths: body.forecastPeriods || 12,
+        methodology: "legacy_timeseries",
+        lastCalculatedAt: new Date().toISOString(),
         forecastData: model.forecasts.map((f) => ({
           month: Math.floor(
             (f.date.getTime() -

@@ -15,6 +15,14 @@
     {
       "path": "/api/cron/database-sync",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/reports/send-scheduled",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/suppliers/send-engagement-reminders",
+      "schedule": "0 10 * * *"
     }
   ]
 }

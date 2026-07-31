@@ -24,8 +24,14 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const view = url.searchParams.get("view") || "calendar";
-  const year = parseInt(url.searchParams.get("year") || String(new Date().getFullYear()));
-  const month = parseInt(url.searchParams.get("month") || String(new Date().getMonth()));
+  const year = parseInt(
+    url.searchParams.get("year") || String(new Date().getFullYear()),
+    10,
+  );
+  const month = parseInt(
+    url.searchParams.get("month") || String(new Date().getMonth()),
+    10,
+  );
   const jurisdiction = url.searchParams.get("jurisdiction");
   const framework = url.searchParams.get("framework");
   const status = url.searchParams.get("status");
@@ -46,7 +52,7 @@ export async function GET(request: Request) {
         ctx.activeOrg.id,
         {
           view: (url.searchParams.get("listView") || "upcoming") as
-            "upcoming" | "overdue" | "all",
+            "upcoming" | "overdue" | "all" | "today",
           jurisdiction: jurisdiction || undefined,
           framework: framework || undefined,
           status: status || undefined,

@@ -48,6 +48,15 @@ export const IoTDevices: CollectionConfig = {
       ],
     },
     {
+      name: "gateway",
+      type: "relationship",
+      relationTo: "iot-gateways",
+      index: true,
+      admin: {
+        description: "IoT hub / gateway this device is assigned to (multi-gateway orgs)",
+      },
+    },
+    {
       name: "protocol",
       type: "text",
       admin: { description: "Protocol version (e.g., MQTT v3.1.1)" },

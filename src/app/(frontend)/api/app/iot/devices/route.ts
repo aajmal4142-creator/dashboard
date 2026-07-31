@@ -48,6 +48,7 @@ function publicDevice(doc: {
   anomalyDetectionEnabled?: boolean | null;
   retentionDays?: number | null;
   sensorMappings?: unknown;
+  gateway?: string | { id: string } | null;
   createdAt: string;
   updatedAt: string;
 }) {
@@ -62,11 +63,19 @@ function publicDevice(doc: {
     offlineAfterMs,
   });
 
+  const gatewayId =
+    doc.gateway == null
+      ? null
+      : typeof doc.gateway === "string"
+        ? doc.gateway
+        : doc.gateway.id;
+
   return {
     id: doc.id,
     deviceName: doc.deviceName,
     deviceId: doc.deviceId,
     deviceType: doc.deviceType,
+    gatewayId,
     status,
     lastHeartbeat: doc.lastHeartbeat ?? null,
     location: doc.location ?? null,
@@ -139,6 +148,7 @@ export async function POST(request: Request) {
       deviceId?: string;
       deviceType?: string;
       location?: string;
+      gatewayId?: string;
       offlineAfterMinutes?: number;
       retentionDays?: number;
       sensorMappings?: Array<{
@@ -164,6 +174,30 @@ export async function POST(request: Request) {
     const { apiKey, apiKeyHash, apiKeyPrefix } = generateDeviceApiKey();
     const payload = await getPayload({ config });
 
+    if (body.gatewayId) {
+      try {
+        const gw = await payload.findByID({
+          collection: "iot-gateways",
+          id: body.gatewayId,
+          depth: 0,
+          overrideAccess: true,
+        });
+        const gwOrg =
+          typeof gw.organisation === "string" ? gw.organisation : gw.organisation?.id;
+        if (!gw || gwOrg !== ctx.activeOrg.id) {
+          return NextResponse.json(
+            { error: "gatewayId not found in this organisation" },
+            { status: 400 },
+          );
+        }
+      } catch {
+        return NextResponse.json(
+          { error: "gatewayId not found in this organisation" },
+          { status: 400 },
+        );
+      }
+    }
+
     const created = await (
       payload.create as (args: {
         collection: "iot-devices";
@@ -182,6 +216,7 @@ export async function POST(request: Request) {
         anomalyDetectionEnabled?: boolean | null;
         retentionDays?: number | null;
         sensorMappings?: unknown;
+        gateway?: string | { id: string } | null;
         createdAt: string;
         updatedAt: string;
       }>
@@ -196,6 +231,7 @@ export async function POST(request: Request) {
         apiKeyHash,
         apiKeyPrefix,
         location: body.location?.trim() || undefined,
+        gateway: body.gatewayId || undefined,
         offlineAfterMinutes: body.offlineAfterMinutes ?? 60,
         retentionDays: body.retentionDays ?? 365,
         anomalyDetectionEnabled: true,

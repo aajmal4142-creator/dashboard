@@ -61,6 +61,48 @@ export const Organisations: CollectionConfig = {
     },
     { name: "employeeCount", type: "number", min: 0 },
     {
+      name: "annualRevenue",
+      type: "number",
+      min: 0,
+      admin: {
+        description:
+          "Absolute annual revenue in reporting currency (for emissions intensity per $M).",
+      },
+    },
+    {
+      name: "expectedRevenueGrowth",
+      type: "number",
+      min: -0.5,
+      max: 1,
+      admin: {
+        description:
+          "Expected annual revenue growth as a fraction (0.03 = 3%). Used as the baseline emissions forecast growth rate.",
+      },
+    },
+    {
+      name: "annualOutputUnits",
+      type: "number",
+      min: 0,
+      admin: {
+        description: "Annual production / output volume for intensity per unit.",
+      },
+    },
+    {
+      name: "outputUnitLabel",
+      type: "text",
+      admin: {
+        description: 'Label for output units, e.g. "widgets" → tCO2e/widgets.',
+      },
+    },
+    {
+      name: "floorAreaSqm",
+      type: "number",
+      min: 0,
+      admin: {
+        description: "Gross floor area in m² for emissions intensity per square meter.",
+      },
+    },
+    {
       name: "revenueBand",
       type: "select",
       options: [
@@ -81,6 +123,42 @@ export const Organisations: CollectionConfig = {
       type: "relationship",
       relationTo: "organisations",
       admin: { description: "Consultancy parent — one level deep only" },
+    },
+    {
+      name: "parentOrganisation",
+      type: "relationship",
+      relationTo: "organisations",
+      index: true,
+      admin: {
+        description:
+          "Consolidation parent (S9.3). Distinct from consultancy parentOrg. Must be set explicitly — subsidiaries are never auto-included.",
+      },
+    },
+    {
+      name: "consolidationMethod",
+      type: "select",
+      defaultValue: "full",
+      index: true,
+      options: [
+        { label: "Full (100%)", value: "full" },
+        { label: "Proportional (ownership %)", value: "proportional" },
+        { label: "Equity share", value: "equity" },
+      ],
+      admin: {
+        description:
+          "How this organisation's emissions roll up to the consolidation parent. Full = 100%; proportional/equity = ownership %.",
+      },
+    },
+    {
+      name: "ownershipPercent",
+      type: "number",
+      min: 0,
+      max: 100,
+      defaultValue: 100,
+      admin: {
+        description:
+          "Parent ownership of this organisation (0–100). Applied when consolidationMethod is proportional or equity.",
+      },
     },
     {
       name: "brand",
@@ -207,6 +285,47 @@ export const Organisations: CollectionConfig = {
       admin: {
         description: "Opt out of anonymised sector benchmark aggregation (ToS consent).",
       },
+    },
+    {
+      name: "sbti",
+      type: "group",
+      admin: {
+        description: "Science-Based Targets Initiative commitment metadata (S7.2).",
+      },
+      fields: [
+        {
+          name: "hasCommitment",
+          type: "checkbox",
+          defaultValue: false,
+          label: "Has SBTi commitment",
+        },
+        {
+          name: "commitmentStatus",
+          type: "select",
+          defaultValue: "none",
+          options: [
+            { label: "None", value: "none" },
+            { label: "Draft", value: "draft" },
+            { label: "Submitted", value: "submitted" },
+            { label: "Validated", value: "validated" },
+            { label: "Approved", value: "approved" },
+          ],
+        },
+        {
+          name: "activeTarget",
+          type: "relationship",
+          relationTo: "sbti-targets",
+          hasMany: false,
+          admin: {
+            description: "Primary SBTi target used on the progress dashboard.",
+          },
+        },
+        {
+          name: "registryUrl",
+          type: "text",
+          label: "SBTi register URL",
+        },
+      ],
     },
   ],
 };

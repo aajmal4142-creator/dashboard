@@ -3,11 +3,19 @@
  * Falls back to console when RESEND_API_KEY is absent (non-production).
  */
 
+export type SendEmailAttachment = {
+  filename: string;
+  /** Base64-encoded content (Resend wire format) */
+  content: string;
+  contentType?: string;
+};
+
 export type SendEmailInput = {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  attachments?: SendEmailAttachment[];
 };
 
 export type SendEmailResult = {
@@ -23,7 +31,12 @@ export async function sendTransactionalEmail(
 ): Promise<SendEmailResult> {
   const key = process.env.RESEND_API_KEY?.trim();
   if (!key) {
-    console.info(`[email] (no RESEND_API_KEY) to=${input.to} subject=${input.subject}`);
+    console.info(
+      `[email] (no RESEND_API_KEY) to=${input.to} subject=${input.subject}` +
+        (input.attachments?.length
+          ? ` attachments=${input.attachments.map((a) => a.filename).join(",")}`
+          : ""),
+    );
     return { delivery: "console" };
   }
 
@@ -40,6 +53,11 @@ export async function sendTransactionalEmail(
         subject: input.subject,
         html: input.html,
         text: input.text,
+        attachments: input.attachments?.map((a) => ({
+          filename: a.filename,
+          content: a.content,
+          content_type: a.contentType,
+        })),
       }),
     });
     const body = (await res.json()) as { id?: string; message?: string };

@@ -8,6 +8,7 @@ import { writeAuditLog } from "@/lib/audit/write";
 import { BillingDeniedError, billingDeniedResponse } from "@/lib/billing";
 import { mayPublishReports, publishDenial } from "@/lib/launch/gates";
 import { ensureOpenPeriod } from "@/lib/org/period";
+import { scheduleOrgDashboardBroadcast } from "@/lib/realtime";
 import { buildReportSnapshot, diffSnapshots, type ReportSnapshot } from "@/lib/reports";
 import { ensureAssuranceTokens } from "@/lib/reports/ensureAssuranceTokens";
 import { requirePermission } from "@/lib/policy/protect";
@@ -260,6 +261,11 @@ export async function POST(req: Request) {
           after: { framework, version, status: "draft", regenerated: true },
         });
 
+        scheduleOrgDashboardBroadcast(payload, ctx.activeOrg!.id, {
+          kind: "report",
+          id: String(report.id),
+        });
+
         return NextResponse.json({
           id: report.id,
           version,
@@ -301,6 +307,11 @@ export async function POST(req: Request) {
         entityType: "reports",
         entityId: report.id,
         after: { framework, version, status: "draft" },
+      });
+
+      scheduleOrgDashboardBroadcast(payload, ctx.activeOrg!.id, {
+        kind: "report",
+        id: String(report.id),
       });
 
       return NextResponse.json({
@@ -408,6 +419,19 @@ export async function POST(req: Request) {
       entityType: "reports",
       entityId: report.id,
       after: { framework, version: nextVersion, status: "published" },
+    });
+
+    scheduleOrgDashboardBroadcast(payload, ctx.activeOrg!.id, {
+      kind: "report",
+      id: String(report.id),
+    });
+
+    // S10.5 — outbound report.generated webhooks (published only)
+    const { scheduleReportGeneratedWebhooks } =
+      await import("@/lib/webhooks/reportDelivery");
+    scheduleReportGeneratedWebhooks({
+      reportId: String(report.id),
+      organisationId: ctx.activeOrg!.id,
     });
 
     const origin = new URL(req.url).origin;

@@ -42,8 +42,13 @@ export const Reports: CollectionConfig = {
           "versionHistory",
         ] as const;
 
+        // Payload may include unchanged locked fields on update. Reject only when
+        // a locked field's value actually changes (viewCount / pdfUrl / assuranceToken stay allowed).
         for (const key of lockedKeys) {
-          if (Object.prototype.hasOwnProperty.call(data ?? {}, key)) {
+          if (!Object.prototype.hasOwnProperty.call(data ?? {}, key)) continue;
+          const nextVal = (data as Record<string, unknown>)[key];
+          const prevVal = (originalDoc as Record<string, unknown>)[key];
+          if (JSON.stringify(nextVal) !== JSON.stringify(prevVal)) {
             throw new Error(
               "Published reports are immutable. Create a new version instead of editing a final report.",
             );

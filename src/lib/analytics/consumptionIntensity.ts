@@ -1,10 +1,56 @@
 /**
- * Consumption intensity metrics and decoupling analysis
+ * Emissions intensity metrics and decoupling analysis.
+ * Pure — zero I/O. Missing/zero denominators return null, never silent 0.
  */
+
+export type IntensityType =
+  "per_revenue" | "per_employee" | "per_output" | "per_square_meter";
+
+export type IntensityConfidence = "high" | "medium" | "low" | "missing";
+
+export type IntensityPeerStatus =
+  "better_than_median" | "worse_than_median" | "at_median" | "unavailable";
+
+export type EmissionsIntensityResult = {
+  value: number | null;
+  unit: string;
+  confidence: IntensityConfidence;
+  changePercent: number | null;
+  explanation: string | null;
+};
+
+export type CalculateEmissionsIntensityOptions = {
+  /** Prior-period intensity for YoY change% */
+  previousValue?: number | null;
+  /**
+   * Divide denominator by this before intensity (e.g. 1_000_000 → per $M
+   * when annualRevenue is in absolute currency units).
+   */
+  denominatorScale?: number;
+  /** Override default missing/zero explanation */
+  missingExplanation?: string;
+  /** Confidence when value is present */
+  confidence?: IntensityConfidence;
+};
+
+/** Default unit labels — override via `unit` argument (never hardcode-only). */
+export const DEFAULT_INTENSITY_UNITS: Record<IntensityType, string> = {
+  per_revenue: "tCO2e/$M",
+  per_employee: "tCO2e/employee",
+  per_output: "tCO2e/unit",
+  per_square_meter: "tCO2e/m²",
+};
+
+export const INTENSITY_TYPES = [
+  "per_revenue",
+  "per_employee",
+  "per_output",
+  "per_square_meter",
+] as const satisfies ReadonlyArray<IntensityType>;
 
 export interface IntensityMetric {
   metricKey: string;
-  value: number;
+  value: number | null;
   unit: string;
   calculation: string;
 }
@@ -12,9 +58,9 @@ export interface IntensityMetric {
 export interface IntensityTrend {
   year: number;
   emissions: number;
-  driver: number;
-  intensity: number;
-  yoYChange: number;
+  driver: number | null;
+  intensity: number | null;
+  yoYChange: number | null;
 }
 
 export interface DecouplingAnalysis {
@@ -29,110 +75,337 @@ export interface DecouplingAnalysis {
 }
 
 export interface IntensityMetrics {
-  perRevenue: number; // tCO2e per $M revenue
-  perEmployee: number; // tCO2e per employee
-  perUnit?: number; // tCO2e per production unit (if applicable)
+  perRevenue: number | null;
+  perEmployee: number | null;
+  perUnit: number | null;
+  perSquareMeter: number | null;
   trends: IntensityTrend[];
   decoupling: DecouplingAnalysis;
   targetVsActual: {
-    intensityTarget: number;
-    intensityActual: number;
-    onTrack: boolean;
+    intensityTarget: number | null;
+    intensityActual: number | null;
+    onTrack: boolean | null;
   };
 }
 
 /**
- * Calculate emissions per revenue (tCO2e/$M revenue)
+ * Core intensity calculator.
+ * value is null when denominator is missing or ≤ 0 — never silent 0.
+ */
+export function calculateEmissionsIntensity(
+  totalEmissions: number,
+  denominator: number | null | undefined,
+  unit: string,
+  options: CalculateEmissionsIntensityOptions = {},
+): EmissionsIntensityResult {
+  const {
+    previousValue = null,
+    denominatorScale = 1,
+    missingExplanation,
+    confidence = "high",
+  } = options;
+
+  if (denominator === null || denominator === undefined) {
+    return {
+      value: null,
+      unit,
+      confidence: "missing",
+      changePercent: null,
+      explanation:
+        missingExplanation ??
+        "Denominator is missing. Intensity cannot be calculated without a positive activity driver.",
+    };
+  }
+
+  if (!(denominator > 0) || !Number.isFinite(denominator)) {
+    return {
+      value: null,
+      unit,
+      confidence: "missing",
+      changePercent: null,
+      explanation:
+        missingExplanation ??
+        "Denominator is zero or invalid. Intensity cannot be calculated (division by zero avoided).",
+    };
+  }
+
+  if (!Number.isFinite(totalEmissions)) {
+    return {
+      value: null,
+      unit,
+      confidence: "missing",
+      changePercent: null,
+      explanation: "Total emissions is not a finite number.",
+    };
+  }
+
+  const scale =
+    denominatorScale > 0 && Number.isFinite(denominatorScale) ? denominatorScale : 1;
+  const scaledDenominator = denominator / scale;
+  if (!(scaledDenominator > 0)) {
+    return {
+      value: null,
+      unit,
+      confidence: "missing",
+      changePercent: null,
+      explanation:
+        missingExplanation ??
+        "Scaled denominator is zero or invalid. Intensity cannot be calculated.",
+    };
+  }
+
+  const value = totalEmissions / scaledDenominator;
+  const changePercent = calculateYoYChange(value, previousValue ?? null);
+
+  return {
+    value,
+    unit,
+    confidence,
+    changePercent,
+    explanation: null,
+  };
+}
+
+/**
+ * Emissions per $M revenue. `annualRevenue` in absolute currency units.
+ * Returns null when revenue missing/zero.
  */
 export function calculateEmissionsPerRevenue(
-  totalEmissions: number, // tCO2e
-  annualRevenue: number, // $ (actual dollars)
-): number {
-  if (annualRevenue <= 0) return 0;
-  return (totalEmissions / annualRevenue) * 1000; // per $M
+  totalEmissions: number,
+  annualRevenue: number | null | undefined,
+  unit: string = DEFAULT_INTENSITY_UNITS.per_revenue,
+): EmissionsIntensityResult {
+  return calculateEmissionsIntensity(totalEmissions, annualRevenue, unit, {
+    denominatorScale: 1_000_000,
+    missingExplanation:
+      "Annual revenue is missing or zero. Add annualRevenue on the organisation to compute per-revenue intensity.",
+  });
 }
 
 /**
- * Calculate emissions per employee (tCO2e/employee)
+ * Emissions per employee. Returns null when headcount missing/zero.
  */
 export function calculateEmissionsPerEmployee(
-  totalEmissions: number, // tCO2e
-  employeeCount: number,
-): number {
-  if (employeeCount <= 0) return 0;
-  return totalEmissions / employeeCount;
+  totalEmissions: number,
+  employeeCount: number | null | undefined,
+  unit: string = DEFAULT_INTENSITY_UNITS.per_employee,
+): EmissionsIntensityResult {
+  return calculateEmissionsIntensity(totalEmissions, employeeCount, unit, {
+    missingExplanation:
+      "Employee count is missing or zero. Add employeeCount on the organisation to compute per-employee intensity.",
+  });
 }
 
 /**
- * Calculate emissions per production unit
+ * Emissions per production / output unit. Unit label is caller-configurable.
  */
 export function calculateEmissionsPerUnit(
-  totalEmissions: number, // tCO2e
-  productionUnits: number,
-): number {
-  if (productionUnits <= 0) return 0;
-  return totalEmissions / productionUnits;
+  totalEmissions: number,
+  productionUnits: number | null | undefined,
+  unit: string = DEFAULT_INTENSITY_UNITS.per_output,
+): EmissionsIntensityResult {
+  return calculateEmissionsIntensity(totalEmissions, productionUnits, unit, {
+    missingExplanation:
+      "Annual output units are missing or zero. Add annualOutputUnits on the organisation to compute per-output intensity.",
+  });
 }
 
 /**
- * Calculate year-over-year intensity change
+ * Emissions per square meter of floor area.
  */
-export function calculateYoYChange(currentValue: number, previousValue: number): number {
-  if (previousValue === 0) return 0;
+export function calculateEmissionsPerSquareMeter(
+  totalEmissions: number,
+  floorAreaSqm: number | null | undefined,
+  unit: string = DEFAULT_INTENSITY_UNITS.per_square_meter,
+): EmissionsIntensityResult {
+  return calculateEmissionsIntensity(totalEmissions, floorAreaSqm, unit, {
+    missingExplanation:
+      "Floor area (m²) is missing or zero. Configure floorAreaSqm on the organisation to compute intensity per square meter.",
+  });
+}
+
+/**
+ * Build a configurable unit string for output intensity, e.g. "tCO2e/widgets".
+ */
+export function buildOutputIntensityUnit(
+  outputUnitLabel: string | null | undefined,
+  emissionsUnit = "tCO2e",
+): string {
+  const label = (outputUnitLabel ?? "").trim();
+  if (!label) return `${emissionsUnit}/unit`;
+  return `${emissionsUnit}/${label}`;
+}
+
+/**
+ * Year-over-year intensity change %. Null when either side missing or previous is 0.
+ */
+export function calculateYoYChange(
+  currentValue: number | null,
+  previousValue: number | null,
+): number | null {
+  if (currentValue === null || previousValue === null) return null;
+  if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue)) return null;
+  if (previousValue === 0) return null;
   return ((currentValue - previousValue) / previousValue) * 100;
 }
 
 /**
- * Build intensity trends over multiple years
+ * Compare intensity to peer median. Lower intensity is better.
+ */
+export function compareIntensityToMedian(
+  value: number | null,
+  median: number | null,
+  tolerancePct = 5,
+): IntensityPeerStatus {
+  if (
+    value === null ||
+    median === null ||
+    !Number.isFinite(value) ||
+    !Number.isFinite(median)
+  ) {
+    return "unavailable";
+  }
+  if (median === 0) {
+    return value === 0
+      ? "at_median"
+      : value < 0
+        ? "better_than_median"
+        : "worse_than_median";
+  }
+  const deltaPct = ((value - median) / Math.abs(median)) * 100;
+  if (Math.abs(deltaPct) <= tolerancePct) return "at_median";
+  // Lower intensity = better
+  return deltaPct < 0 ? "better_than_median" : "worse_than_median";
+}
+
+export type IntensityDenominators = {
+  annualRevenue?: number | null;
+  employeeCount?: number | null;
+  annualOutputUnits?: number | null;
+  outputUnitLabel?: string | null;
+  floorAreaSqm?: number | null;
+  /** Override default units per type */
+  units?: Partial<Record<IntensityType, string>>;
+};
+
+/**
+ * Resolve intensity for one type given emissions + org denominators.
+ */
+export function resolveIntensityForType(
+  type: IntensityType,
+  totalEmissions: number,
+  denominators: IntensityDenominators,
+  previousValue: number | null = null,
+): EmissionsIntensityResult {
+  const units = denominators.units ?? {};
+
+  let result: EmissionsIntensityResult;
+  switch (type) {
+    case "per_revenue":
+      result = calculateEmissionsPerRevenue(
+        totalEmissions,
+        denominators.annualRevenue,
+        units.per_revenue ?? DEFAULT_INTENSITY_UNITS.per_revenue,
+      );
+      break;
+    case "per_employee":
+      result = calculateEmissionsPerEmployee(
+        totalEmissions,
+        denominators.employeeCount,
+        units.per_employee ?? DEFAULT_INTENSITY_UNITS.per_employee,
+      );
+      break;
+    case "per_output": {
+      const unit =
+        units.per_output ?? buildOutputIntensityUnit(denominators.outputUnitLabel);
+      result = calculateEmissionsPerUnit(
+        totalEmissions,
+        denominators.annualOutputUnits,
+        unit,
+      );
+      break;
+    }
+    case "per_square_meter":
+      result = calculateEmissionsPerSquareMeter(
+        totalEmissions,
+        denominators.floorAreaSqm,
+        units.per_square_meter ?? DEFAULT_INTENSITY_UNITS.per_square_meter,
+      );
+      break;
+    default: {
+      const _exhaustive: never = type;
+      return {
+        value: null,
+        unit: String(_exhaustive),
+        confidence: "missing",
+        changePercent: null,
+        explanation: "Unknown intensity type.",
+      };
+    }
+  }
+
+  if (previousValue !== null && result.value !== null) {
+    return {
+      ...result,
+      changePercent: calculateYoYChange(result.value, previousValue),
+    };
+  }
+  return result;
+}
+
+/**
+ * Build intensity trends over multiple years.
  */
 export function buildIntensityTrends(
   yearlyData: Array<{
     year: number;
-    emissions: number; // tCO2e
-    revenue?: number;
-    employees?: number;
-    productionUnits?: number;
+    emissions: number;
+    revenue?: number | null;
+    employees?: number | null;
+    productionUnits?: number | null;
+    floorAreaSqm?: number | null;
   }>,
-  driverType: "revenue" | "employees" | "production",
+  driverType: "revenue" | "employees" | "production" | "floor_area",
 ): IntensityTrend[] {
   const trends: IntensityTrend[] = [];
 
   for (let i = 0; i < yearlyData.length; i++) {
     const data = yearlyData[i]!;
-    let driver = 0;
+    let driver: number | null = null;
+    let intensityType: IntensityType = "per_revenue";
 
-    if (driverType === "revenue" && data.revenue) {
-      driver = data.revenue;
-    } else if (driverType === "employees" && data.employees) {
-      driver = data.employees;
-    } else if (driverType === "production" && data.productionUnits) {
-      driver = data.productionUnits;
+    if (driverType === "revenue") {
+      driver = data.revenue ?? null;
+      intensityType = "per_revenue";
+    } else if (driverType === "employees") {
+      driver = data.employees ?? null;
+      intensityType = "per_employee";
+    } else if (driverType === "production") {
+      driver = data.productionUnits ?? null;
+      intensityType = "per_output";
+    } else {
+      driver = data.floorAreaSqm ?? null;
+      intensityType = "per_square_meter";
     }
 
-    const intensity = driver > 0 ? data.emissions / driver : 0;
+    const intensityResult = resolveIntensityForType(intensityType, data.emissions, {
+      annualRevenue: driverType === "revenue" ? driver : null,
+      employeeCount: driverType === "employees" ? driver : null,
+      annualOutputUnits: driverType === "production" ? driver : null,
+      floorAreaSqm: driverType === "floor_area" ? driver : null,
+    });
 
-    let yoYChange = 0;
+    let yoYChange: number | null = null;
     if (i > 0) {
-      const prevData = yearlyData[i - 1]!;
-      let prevDriver = 0;
-
-      if (driverType === "revenue" && prevData.revenue) {
-        prevDriver = prevData.revenue;
-      } else if (driverType === "employees" && prevData.employees) {
-        prevDriver = prevData.employees;
-      } else if (driverType === "production" && prevData.productionUnits) {
-        prevDriver = prevData.productionUnits;
-      }
-
-      const prevIntensity = prevDriver > 0 ? prevData.emissions / prevDriver : 0;
-      yoYChange = calculateYoYChange(intensity, prevIntensity);
+      const prev = trends[i - 1]!;
+      yoYChange = calculateYoYChange(intensityResult.value, prev.intensity);
     }
 
     trends.push({
       year: data.year,
       emissions: data.emissions,
       driver,
-      intensity,
+      intensity: intensityResult.value,
       yoYChange,
     });
   }
@@ -141,7 +414,7 @@ export function buildIntensityTrends(
 }
 
 /**
- * Analyze decoupling: emissions growing slower than business activity
+ * Analyze decoupling: emissions growing slower than business activity.
  */
 export function analyzeDecoupling(
   yearlyData: Array<{
@@ -157,55 +430,63 @@ export function analyzeDecoupling(
     };
   }
 
-  const periods = [];
   const firstYear = yearlyData[0]!;
   const lastYear = yearlyData[yearlyData.length - 1]!;
 
-  // Calculate total growth over period
+  if (!(firstYear.emissions > 0) || !(firstYear.driver > 0)) {
+    return {
+      periods: [],
+      summary:
+        "Baseline emissions or driver is missing or zero; decoupling cannot be assessed.",
+    };
+  }
+
   const emissionGrowth = (lastYear.emissions - firstYear.emissions) / firstYear.emissions;
   const driverGrowth = (lastYear.driver - firstYear.driver) / firstYear.driver;
 
   let decoupling: "relative" | "absolute" | "none" = "none";
 
   if (emissionGrowth < 0 && driverGrowth > 0) {
-    decoupling = "absolute"; // Emissions decreased while business grew
+    decoupling = "absolute";
   } else if (emissionGrowth < driverGrowth) {
-    decoupling = "relative"; // Emissions growing slower than business
+    decoupling = "relative";
   }
 
-  periods.push({
-    startYear: firstYear.year,
-    endYear: lastYear.year,
-    emissionGrowth: emissionGrowth * 100,
-    driverGrowth: driverGrowth * 100,
-    decoupling,
-  });
+  const periods = [
+    {
+      startYear: firstYear.year,
+      endYear: lastYear.year,
+      emissionGrowth: emissionGrowth * 100,
+      driverGrowth: driverGrowth * 100,
+      decoupling,
+    },
+  ];
 
-  // Generate summary
   let summary = "";
   if (decoupling === "absolute") {
-    summary = `✓ Absolute decoupling achieved: Emissions decreased ${Math.abs(emissionGrowth * 100).toFixed(1)}% while business grew ${(driverGrowth * 100).toFixed(1)}%.`;
+    summary = `Absolute decoupling: emissions decreased ${Math.abs(emissionGrowth * 100).toFixed(1)}% while activity grew ${(driverGrowth * 100).toFixed(1)}%.`;
   } else if (decoupling === "relative") {
-    summary = `✓ Relative decoupling achieved: Emissions grew ${(emissionGrowth * 100).toFixed(1)}% vs. business growth of ${(driverGrowth * 100).toFixed(1)}%.`;
+    summary = `Relative decoupling: emissions grew ${(emissionGrowth * 100).toFixed(1)}% vs activity growth of ${(driverGrowth * 100).toFixed(1)}%.`;
   } else if (emissionGrowth <= 0) {
-    summary = `✓ Strong performance: Emissions decreased while maintaining business.`;
+    summary = "Emissions decreased while activity held steady or declined.";
   } else {
-    summary = `✗ No decoupling: Emissions growing faster than business activity.`;
+    summary = "No decoupling: emissions growing at or above activity growth.";
   }
 
   return { periods, summary };
 }
 
 /**
- * Calculate intensity metrics for comprehensive ESG reporting
+ * Calculate intensity metrics for comprehensive ESG reporting.
  */
 export function calculateIntensityMetrics(
   data: {
     year: number;
     emissions: number;
-    revenue: number;
-    employees: number;
-    productionUnits?: number;
+    revenue: number | null;
+    employees: number | null;
+    productionUnits?: number | null;
+    floorAreaSqm?: number | null;
   }[],
   intensityTargets?: {
     perRevenue?: number;
@@ -219,31 +500,40 @@ export function calculateIntensityMetrics(
 
   const latest = data[data.length - 1]!;
 
-  const perRevenue = calculateEmissionsPerRevenue(latest.emissions, latest.revenue);
-  const perEmployee = calculateEmissionsPerEmployee(latest.emissions, latest.employees);
-  const perUnit = latest.productionUnits
-    ? calculateEmissionsPerUnit(latest.emissions, latest.productionUnits)
-    : undefined;
+  const perRevenue = calculateEmissionsPerRevenue(latest.emissions, latest.revenue).value;
+  const perEmployee = calculateEmissionsPerEmployee(
+    latest.emissions,
+    latest.employees,
+  ).value;
+  const perUnit =
+    latest.productionUnits != null
+      ? calculateEmissionsPerUnit(latest.emissions, latest.productionUnits).value
+      : null;
+  const perSquareMeter =
+    latest.floorAreaSqm != null
+      ? calculateEmissionsPerSquareMeter(latest.emissions, latest.floorAreaSqm).value
+      : null;
 
-  // Build trends for revenue-driven intensity
   const revenueTrends = buildIntensityTrends(data, "revenue");
 
-  // Analyze decoupling
-  const decouplingData = revenueTrends.map((t) => ({
-    year: t.year,
-    emissions: t.emissions,
-    driver: t.driver,
-  }));
+  const decouplingData = revenueTrends
+    .filter(
+      (t): t is IntensityTrend & { driver: number } => t.driver != null && t.driver > 0,
+    )
+    .map((t) => ({
+      year: t.year,
+      emissions: t.emissions,
+      driver: t.driver,
+    }));
   const decoupling = analyzeDecoupling(decouplingData);
 
-  // Check if on track for targets
   const targetVsActual = {
-    intensityTarget: intensityTargets?.perRevenue || 0,
+    intensityTarget: intensityTargets?.perRevenue ?? null,
     intensityActual: perRevenue,
-    onTrack: true,
+    onTrack: null as boolean | null,
   };
 
-  if (intensityTargets?.perRevenue) {
+  if (intensityTargets?.perRevenue != null && perRevenue != null) {
     targetVsActual.onTrack = perRevenue <= intensityTargets.perRevenue;
   }
 
@@ -251,20 +541,18 @@ export function calculateIntensityMetrics(
     perRevenue,
     perEmployee,
     perUnit,
+    perSquareMeter,
     trends: revenueTrends,
     decoupling,
     targetVsActual,
   };
 }
 
-/**
- * Generate intensity report for board presentation
- */
 export interface IntensityReport {
   title: string;
   keyMetrics: {
     label: string;
-    value: number;
+    value: number | null;
     unit: string;
     trend: string;
   }[];
@@ -277,31 +565,34 @@ export function generateIntensityReport(metrics: IntensityMetrics): IntensityRep
   const latestTrend = trends[trends.length - 1];
   const previousTrend = trends.length > 1 ? trends[trends.length - 2] : null;
 
-  const perRevenueTrend = previousTrend
-    ? calculateYoYChange(metrics.perRevenue, previousTrend.intensity)
-    : 0;
+  const perRevenueTrend =
+    previousTrend && metrics.perRevenue != null && previousTrend.intensity != null
+      ? calculateYoYChange(metrics.perRevenue, previousTrend.intensity)
+      : null;
 
   const recommendations: string[] = [];
 
-  if (perRevenueTrend < -5) {
-    recommendations.push("✓ Excellent: Intensity improving faster than business growth");
-  } else if (perRevenueTrend > 5) {
-    recommendations.push(
-      "⚠ Warning: Intensity increasing; review energy consumption patterns",
-    );
+  if (perRevenueTrend != null && perRevenueTrend < -5) {
+    recommendations.push("Intensity improving faster than activity growth.");
+  } else if (perRevenueTrend != null && perRevenueTrend > 5) {
+    recommendations.push("Intensity increasing; review energy consumption patterns.");
   }
 
   if (metrics.decoupling.periods[0]?.decoupling === "absolute") {
-    recommendations.push("✓ Achieved absolute decoupling; maintain current initiatives");
+    recommendations.push("Absolute decoupling achieved; maintain current initiatives.");
   } else if (metrics.decoupling.periods[0]?.decoupling === "relative") {
     recommendations.push(
-      "→ Relative decoupling in progress; accelerate efficiency programs",
+      "Relative decoupling in progress; accelerate efficiency programs.",
     );
   }
 
-  if (!metrics.targetVsActual.onTrack && metrics.targetVsActual.intensityTarget > 0) {
+  if (
+    metrics.targetVsActual.onTrack === false &&
+    metrics.targetVsActual.intensityTarget != null &&
+    metrics.perRevenue != null
+  ) {
     recommendations.push(
-      `⚠ Off target: Current intensity ${metrics.perRevenue.toFixed(2)} vs. target ${metrics.targetVsActual.intensityTarget.toFixed(2)}`,
+      `Off target: current intensity ${metrics.perRevenue.toFixed(2)} vs target ${metrics.targetVsActual.intensityTarget.toFixed(2)}.`,
     );
   }
 
@@ -311,17 +602,36 @@ export function generateIntensityReport(metrics: IntensityMetrics): IntensityRep
       {
         label: "tCO2e per $M Revenue",
         value: metrics.perRevenue,
-        unit: "tCO2e/$M",
-        trend: perRevenueTrend.toFixed(1) + "%",
+        unit: DEFAULT_INTENSITY_UNITS.per_revenue,
+        trend: perRevenueTrend != null ? `${perRevenueTrend.toFixed(1)}%` : "N/A",
       },
       {
         label: "tCO2e per Employee",
         value: metrics.perEmployee,
-        unit: "tCO2e/emp",
-        trend: latestTrend?.yoYChange.toFixed(1) + "%" || "N/A",
+        unit: DEFAULT_INTENSITY_UNITS.per_employee,
+        trend:
+          latestTrend?.yoYChange != null ? `${latestTrend.yoYChange.toFixed(1)}%` : "N/A",
       },
     ],
     decouplingStatus: metrics.decoupling.summary,
     recommendations,
   };
+}
+
+/** Metric keys used for peer intensity cohort lookups */
+export function intensityBenchmarkMetricKey(type: IntensityType): string {
+  switch (type) {
+    case "per_revenue":
+      return "emissions_intensity_revenue";
+    case "per_employee":
+      return "emissions_intensity_employee";
+    case "per_output":
+      return "emissions_intensity_output";
+    case "per_square_meter":
+      return "emissions_intensity_sqm";
+    default: {
+      const _exhaustive: never = type;
+      return String(_exhaustive);
+    }
+  }
 }

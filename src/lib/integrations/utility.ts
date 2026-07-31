@@ -1,6 +1,6 @@
 /**
  * Integration utilities and re-exports.
- * Supports Xero and QuickBooks accounting integrations.
+ * Supports Xero, QuickBooks, and Wave accounting integrations.
  */
 
 export type IntegrationProvenance = {
@@ -56,5 +56,10 @@ export function utilityFillProvenance(provider: string): IntegrationProvenance {
 
 // Re-export integration types and services
 export * from "./types";
-export { AccountingService } from "./accounting";
+export {
+  AccountingService,
+  isAccountingProvider,
+  resolveProviderCredentials,
+  type AccountingProvider,
+} from "./accounting";
 export { WebhookManager } from "./webhooks";

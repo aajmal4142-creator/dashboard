@@ -32,6 +32,7 @@ export const DecarbonizationPathways: CollectionConfig = {
       name: "baselineYear",
       type: "number",
       required: true,
+      label: "Start / baseline year",
     },
     {
       name: "targetYear",
@@ -48,7 +49,7 @@ export const DecarbonizationPathways: CollectionConfig = {
       name: "targetEmissions",
       type: "number",
       required: true,
-      label: "Target emissions (tCO2e)",
+      label: "Target emissions (tCO2e; 0 = net-zero)",
     },
     {
       name: "targetReduction",
@@ -57,8 +58,116 @@ export const DecarbonizationPathways: CollectionConfig = {
       label: "Target reduction (%)",
     },
     {
+      name: "milestones",
+      type: "array",
+      labels: { singular: "Milestone", plural: "Milestones" },
+      fields: [
+        {
+          name: "year",
+          type: "number",
+          required: true,
+        },
+        {
+          name: "action",
+          type: "text",
+          required: true,
+        },
+        {
+          name: "emissionsSaved",
+          type: "number",
+          required: true,
+          label: "Emissions saved (tCO2e)",
+        },
+        {
+          name: "cost",
+          type: "number",
+          defaultValue: 0,
+          label: "Cost",
+        },
+        {
+          name: "status",
+          type: "select",
+          required: true,
+          defaultValue: "planned",
+          options: [
+            { label: "Planned", value: "planned" },
+            { label: "In progress", value: "in_progress" },
+            { label: "Completed", value: "completed" },
+            { label: "Missed", value: "missed" },
+          ],
+        },
+        {
+          name: "scope",
+          type: "select",
+          options: [
+            { label: "Scope 1", value: "1" },
+            { label: "Scope 2", value: "2" },
+            { label: "Scope 3", value: "3" },
+            { label: "Cross-cutting", value: "cross" },
+          ],
+          defaultValue: "cross",
+        },
+        {
+          name: "cumulativeEmissionsSaved",
+          type: "number",
+          admin: { readOnly: true },
+        },
+        {
+          name: "pathwayEmissions",
+          type: "number",
+          admin: { readOnly: true },
+          label: "Pathway emissions after milestone",
+        },
+      ],
+    },
+    {
+      name: "feasibility",
+      type: "group",
+      fields: [
+        {
+          name: "level",
+          type: "select",
+          options: [
+            { label: "Achievable", value: "achievable" },
+            { label: "Aggressive", value: "aggressive" },
+            { label: "Unrealistic", value: "unrealistic" },
+          ],
+        },
+        {
+          name: "requiredAnnualReduction",
+          type: "number",
+          label: "Required annual reduction (tCO2e)",
+        },
+        {
+          name: "requiredAnnualReductionPercent",
+          type: "number",
+          label: "Required annual reduction (%)",
+        },
+        {
+          name: "peerTypicalAnnualPercent",
+          type: "number",
+        },
+        {
+          name: "warning",
+          type: "textarea",
+        },
+        {
+          name: "message",
+          type: "text",
+        },
+      ],
+    },
+    {
+      name: "costEstimate",
+      type: "number",
+      label: "Total cost estimate",
+    },
+    {
       name: "stages",
       type: "array",
+      admin: {
+        description: "Derived stage targets (compat with scenario levers view).",
+      },
       fields: [
         {
           name: "year",
@@ -106,6 +215,17 @@ export const DecarbonizationPathways: CollectionConfig = {
       admin: {
         description: "SBTi target alignment (1.5C, 2C, etc.)",
       },
+    },
+    {
+      name: "timeline",
+      type: "array",
+      admin: { description: "Year-by-year baseline hold vs pathway emissions." },
+      fields: [
+        { name: "year", type: "number", required: true },
+        { name: "baselineHold", type: "number", required: true },
+        { name: "pathwayEmissions", type: "number", required: true },
+        { name: "isMilestone", type: "checkbox", defaultValue: false },
+      ],
     },
     {
       name: "status",

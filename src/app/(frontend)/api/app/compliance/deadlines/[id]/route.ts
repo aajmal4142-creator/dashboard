@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { getPayload } from "payload";
+
+import config from "@/payload.config";
 import { getCurrentContext } from "@/lib/auth";
 import { requirePermission } from "@/lib/policy/protect";
-import { deadlineStatusTracker } from "@/lib/compliance/statusTracker";
-import { getPayload } from "payload";
-import config from "@/payload.config";
+import { regulatoryDeadlinesService } from "@/lib/compliance/regulatoryDeadlines";
 
 export async function PATCH(
   request: Request,
@@ -28,8 +29,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await request.json();
-  const { status, linkedReportId } = body;
+  const body = (await request.json()) as {
+    status?: string;
+    linkedReportId?: string;
+  };
+  const { status } = body;
 
   if (!status) {
     return NextResponse.json({ error: "Status is required" }, { status: 400 });
@@ -38,11 +42,11 @@ export async function PATCH(
   try {
     const payload = await getPayload({ config });
 
-    // Verify deadline belongs to org
     const deadline = await payload.findByID({
       collection: "regulatory-deadlines",
       id,
-      depth: 1,
+      depth: 0,
+      overrideAccess: true,
     });
 
     if (!deadline) {
@@ -58,19 +62,18 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Update status
-    const event = await deadlineStatusTracker.updateStatus(
+    const updated = await regulatoryDeadlinesService.updateDeadlineStatus(
+      ctx.activeOrg.id,
       id,
       status,
       ctx.user.id,
-      linkedReportId,
     );
 
-    if (!event) {
+    if (!updated) {
       return NextResponse.json({ error: "Failed to update status" }, { status: 500 });
     }
 
-    return NextResponse.json(event);
+    return NextResponse.json({ deadline: updated });
   } catch (error) {
     console.error("Error updating deadline:", error);
     return NextResponse.json({ error: "Failed to update deadline" }, { status: 500 });

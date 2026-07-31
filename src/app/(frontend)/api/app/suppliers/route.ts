@@ -55,6 +55,7 @@ export async function GET() {
     requestExpiresAt: s.requestExpiresAt ?? null,
     respondedAt: s.respondedAt ?? null,
     reminderCount: s.reminderCount ?? 0,
+    emailConsent: Boolean((s as { emailConsent?: boolean | null }).emailConsent),
   }));
 
   return NextResponse.json({
@@ -87,6 +88,7 @@ export async function POST(req: Request) {
     contactEmail?: string;
     category?: string;
     annualSpend?: number | null;
+    emailConsent?: boolean;
   };
 
   const name = body.name?.trim();
@@ -129,6 +131,7 @@ export async function POST(req: Request) {
       contactEmail,
       category: category as (typeof CATEGORIES)[number],
       annualSpend: typeof body.annualSpend === "number" ? body.annualSpend : undefined,
+      emailConsent: body.emailConsent === true,
       requestStatus: "not_sent",
       reminderCount: 0,
     },

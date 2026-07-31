@@ -2,6 +2,7 @@ import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
+import { parseCategoryMapping } from "@/lib/integrations/accounting";
 import config from "@/payload.config";
 
 export async function GET() {
@@ -24,9 +25,16 @@ export async function GET() {
       id: doc.id,
       provider: doc.provider,
       status: doc.status,
+      connectionMode: doc.connectionMode,
+      companyName: doc.companyName,
       connectedAt: doc.connectedAt,
       lastSyncAt: doc.lastSyncAt,
+      nextSyncAt: doc.nextSyncAt,
       lastSyncStatus: doc.lastSyncStatus,
+      syncErrorCount: doc.syncErrorCount,
+      syncConfig: doc.syncConfig,
+      expenseCategoryMapping: parseCategoryMapping(doc.expenseCategoryMapping),
+      discoveredAccounts: doc.discoveredAccounts ?? [],
     })),
   });
 }

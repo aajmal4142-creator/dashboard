@@ -1,15 +1,26 @@
 import type { CollectionConfig } from "payload";
+
 import { tenantAccess } from "@/lib/access";
 
 export const ISO_14064_COMPLIANCE_SLUG = "iso-14064-compliance" as const;
 
+/**
+ * Per-organisation ISO 14064 Part 1 / Part 2 certification checklist.
+ * Checklist rows are copied from the seed catalog on create — never hardcoded in UI.
+ */
 export const ISO14064Compliance: CollectionConfig = {
   slug: ISO_14064_COMPLIANCE_SLUG,
   admin: {
     useAsTitle: "organisation",
-    defaultColumns: ["organisation", "status", "complianceScore", "lastAuditDate"],
+    defaultColumns: [
+      "organisation",
+      "status",
+      "complianceScore",
+      "verifierAssigned",
+      "nextReviewDate",
+    ],
   },
-  access: tenantAccess({ writeMin: "admin" }),
+  access: tenantAccess({ writeMin: "contributor", adminWriteMin: "admin" }),
   fields: [
     {
       name: "organisation",
@@ -18,83 +29,130 @@ export const ISO14064Compliance: CollectionConfig = {
       required: true,
       unique: true,
       index: true,
+      admin: { hidden: true },
     },
     {
       name: "status",
       type: "select",
+      required: true,
       defaultValue: "not_started",
       options: [
         { label: "Not Started", value: "not_started" },
         { label: "In Progress", value: "in_progress" },
-        { label: "Pending Review", value: "pending_review" },
-        { label: "Verified", value: "verified" },
-        { label: "Non-Compliant", value: "non_compliant" },
+        { label: "Completed", value: "completed" },
       ],
       index: true,
     },
     {
-      name: "checklist",
+      name: "sections",
       type: "array",
+      labels: { singular: "Requirement", plural: "Requirements" },
+      admin: {
+        description:
+          "ISO 14064-1 (org) and 14064-2 (project) checklist rows seeded on create.",
+      },
       fields: [
+        {
+          name: "itemKey",
+          type: "text",
+          required: true,
+          admin: {
+            description: "Stable seed key (e.g. p1-01). Used for updates.",
+          },
+        },
+        {
+          name: "sectionNumber",
+          type: "text",
+          required: true,
+          admin: { description: "Display section number (e.g. 1.1, 2.3)" },
+        },
+        {
+          name: "part",
+          type: "select",
+          required: true,
+          options: [
+            { label: "Part 1 — Organisation", value: "part1" },
+            { label: "Part 2 — Project", value: "part2" },
+          ],
+        },
         {
           name: "requirement",
           type: "text",
           required: true,
-          admin: { description: "ISO 14064-1 requirement" },
         },
         {
           name: "description",
           type: "textarea",
-          admin: { description: "Detailed requirement description" },
         },
         {
           name: "status",
           type: "select",
+          required: true,
+          defaultValue: "not_started",
           options: [
             { label: "Not Started", value: "not_started" },
             { label: "In Progress", value: "in_progress" },
             { label: "Completed", value: "completed" },
             { label: "N/A", value: "na" },
           ],
-          defaultValue: "not_started",
         },
         {
-          name: "evidence",
-          type: "array",
-          fields: [
-            {
-              name: "document",
-              type: "relationship",
-              relationTo: "media",
-            },
-            {
-              name: "description",
-              type: "text",
-            },
-            {
-              name: "uploadedAt",
-              type: "date",
-            },
-          ],
-        },
-        {
-          name: "assignedTo",
+          name: "evidenceIds",
           type: "relationship",
-          relationTo: "users",
+          relationTo: "evidence",
+          hasMany: true,
+          admin: {
+            description: "At least one evidence link is required to mark completed.",
+          },
         },
         {
-          name: "dueDate",
-          type: "date",
+          name: "notes",
+          type: "textarea",
         },
         {
           name: "completedAt",
           type: "date",
         },
         {
-          name: "notes",
-          type: "textarea",
+          name: "autoLinkHint",
+          type: "select",
+          options: [
+            { label: "None", value: "none" },
+            { label: "CSRD / report", value: "csrd_report" },
+            { label: "Activity datapoints", value: "datapoints" },
+            { label: "Audit logs", value: "audit_logs" },
+            { label: "Emission factors", value: "emission_factors" },
+          ],
+          defaultValue: "none",
+          admin: {
+            description: "Hint for evidence auto-suggest in the UI.",
+          },
         },
       ],
+    },
+    {
+      name: "verifierAssigned",
+      type: "relationship",
+      relationTo: "users",
+      admin: {
+        description: "Third-party auditor / verifier (org membership user).",
+      },
+    },
+    {
+      name: "assurancePartner",
+      type: "relationship",
+      relationTo: "assurance-partners",
+      admin: {
+        description: "Optional linked assurance firm from the partner directory.",
+      },
+    },
+    {
+      name: "lastReviewDate",
+      type: "date",
+    },
+    {
+      name: "nextReviewDate",
+      type: "date",
     },
     {
       name: "complianceScore",
@@ -103,58 +161,15 @@ export const ISO14064Compliance: CollectionConfig = {
       defaultValue: 0,
       min: 0,
       max: 100,
-      admin: { description: "Compliance score percentage (0-100)" },
+      admin: {
+        description: "Percent of applicable items completed (0–100).",
+        readOnly: true,
+      },
     },
     {
-      name: "gaps",
-      type: "array",
-      fields: [
-        {
-          name: "gap",
-          type: "text",
-          required: true,
-        },
-        {
-          name: "severity",
-          type: "select",
-          options: [
-            { label: "Low", value: "low" },
-            { label: "Medium", value: "medium" },
-            { label: "High", value: "high" },
-          ],
-        },
-        {
-          name: "remediationPlan",
-          type: "textarea",
-        },
-      ],
-    },
-    {
-      name: "auditor",
-      type: "relationship",
-      relationTo: "users",
-      admin: { description: "Assigned auditor/reviewer" },
-    },
-    {
-      name: "lastAuditDate",
+      name: "verifierNoticeSentAt",
       type: "date",
-      admin: { description: "Date of last audit" },
-    },
-    {
-      name: "nextAuditDate",
-      type: "date",
-      admin: { description: "Scheduled next audit" },
-    },
-    {
-      name: "auditReport",
-      type: "relationship",
-      relationTo: "media",
-      admin: { description: "Final audit report document" },
-    },
-    {
-      name: "verificationNotes",
-      type: "textarea",
-      admin: { description: "Auditor verification notes" },
+      admin: { description: "When the last verifier assignment notice was sent." },
     },
   ],
 };

@@ -1,4 +1,5 @@
-export type IntegrationProvider = "xero" | "quickbooks" | "csv" | "webhook" | "manual";
+export type IntegrationProvider =
+  "xero" | "quickbooks" | "wave" | "csv" | "webhook" | "manual";
 
 export type IntegrationConnectionStatus =
   "pending" | "connected" | "failed" | "expired" | "revoked";

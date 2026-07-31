@@ -51,7 +51,8 @@ export const WebhookRegistrations: CollectionConfig = {
       type: "json",
       required: true,
       admin: {
-        description: 'Array of event types: ["datapoint.created", "datapoint.updated"]',
+        description:
+          'Array of event types: ["datapoint.created", "datapoint.updated", "report.generated"]',
       },
     },
     {

@@ -12,6 +12,12 @@ import { Button } from "@/components/ui/button";
 import { BUYER_FAQ } from "@/lib/reports/buyerFaq";
 import { frameworkLabel } from "@/lib/ui/displayLabels";
 
+import { ScheduleDeliveryModal } from "./ScheduleDeliveryModal";
+import { ConsolidatedReportPanel } from "./ConsolidatedReportPanel";
+import { MultiFrameworkReportPanel } from "./MultiFrameworkReportPanel";
+import { ReportExportModal } from "./ReportExportModal";
+import { ShareReportModal } from "./ShareReportModal";
+
 type ReportRow = {
   id: string;
   version: number;
@@ -44,6 +50,18 @@ export function ReportsClient({
   const [pending, setPending] = useState<Framework | null>(null);
   const [busy, setBusy] = useState(false);
   const [notes, setNotes] = useState("");
+  const [scheduleFor, setScheduleFor] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
+  const [exportFor, setExportFor] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
+  const [shareFor, setShareFor] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
 
   async function refresh() {
     const res = await fetch("/api/app/reports");
@@ -337,6 +355,9 @@ export function ReportsClient({
       <div className="space-y-4">
         {status ? <StatusLine tone={statusTone}>{status}</StatusLine> : null}
 
+        <ConsolidatedReportPanel />
+        <MultiFrameworkReportPanel />
+
         {pending ? (
           <PageCard title="Confirm publish">
             <p className="text-[13px] text-ink">
@@ -436,6 +457,30 @@ export function ReportsClient({
                           >
                             PDF
                           </a>
+                          <button
+                            type="button"
+                            className="text-accent underline-offset-2 hover:underline"
+                            onClick={() =>
+                              setExportFor({
+                                id: r.id,
+                                label: `Draft ${frameworkLabel(r.framework)} v${r.version}`,
+                              })
+                            }
+                          >
+                            Export PDF · HTML · Embed
+                          </button>
+                          <button
+                            type="button"
+                            className="text-ink underline-offset-2 hover:underline"
+                            onClick={() =>
+                              setScheduleFor({
+                                id: r.id,
+                                label: `Draft ${frameworkLabel(r.framework)} v${r.version}`,
+                              })
+                            }
+                          >
+                            Schedule deliveries
+                          </button>
                           {canPublish ? (
                             <>
                               <button
@@ -554,6 +599,42 @@ export function ReportsClient({
                           >
                             PDF
                           </a>
+                          <button
+                            type="button"
+                            className="text-accent underline-offset-2 hover:underline"
+                            onClick={() =>
+                              setShareFor({
+                                id: r.id,
+                                label: `Published ${frameworkLabel(r.framework)} v${r.version}`,
+                              })
+                            }
+                          >
+                            Share report
+                          </button>
+                          <button
+                            type="button"
+                            className="text-accent underline-offset-2 hover:underline"
+                            onClick={() =>
+                              setExportFor({
+                                id: r.id,
+                                label: `Published ${frameworkLabel(r.framework)} v${r.version}`,
+                              })
+                            }
+                          >
+                            Export PDF · HTML
+                          </button>
+                          <button
+                            type="button"
+                            className="text-accent underline-offset-2 hover:underline"
+                            onClick={() =>
+                              setScheduleFor({
+                                id: r.id,
+                                label: `Published ${frameworkLabel(r.framework)} v${r.version}`,
+                              })
+                            }
+                          >
+                            Schedule deliveries
+                          </button>
                           <span className="text-[11px] text-ink-muted">
                             <a
                               className="underline-offset-2 hover:underline"
@@ -562,6 +643,15 @@ export function ReportsClient({
                               rel="noreferrer"
                             >
                               JSON
+                            </a>
+                            <span aria-hidden="true"> · </span>
+                            <a
+                              className="underline-offset-2 hover:underline"
+                              href={`/api/app/reports/${r.id}/export?format=xml`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              XML
                             </a>
                             <span aria-hidden="true"> · </span>
                             <a
@@ -583,6 +673,40 @@ export function ReportsClient({
           </PageCard>
         )}
       </div>
+
+      {scheduleFor ? (
+        <ScheduleDeliveryModal
+          open={Boolean(scheduleFor)}
+          onOpenChange={(open) => {
+            if (!open) setScheduleFor(null);
+          }}
+          reportId={scheduleFor.id}
+          reportLabel={scheduleFor.label}
+          canEdit={canPublish}
+        />
+      ) : null}
+
+      {exportFor ? (
+        <ReportExportModal
+          open={Boolean(exportFor)}
+          onOpenChange={(open) => {
+            if (!open) setExportFor(null);
+          }}
+          reportId={exportFor.id}
+          reportLabel={exportFor.label}
+        />
+      ) : null}
+
+      {shareFor ? (
+        <ShareReportModal
+          open={Boolean(shareFor)}
+          onOpenChange={(open) => {
+            if (!open) setShareFor(null);
+          }}
+          reportId={shareFor.id}
+          reportLabel={shareFor.label}
+        />
+      ) : null}
     </PageFrame>
   );
 }

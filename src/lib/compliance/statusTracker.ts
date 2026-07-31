@@ -1,87 +1,91 @@
 import { getPayload } from "payload";
+
 import config from "@/payload.config";
+import { toStoredStatus, type StoredDeadlineStatus } from "./deadlineApplicability";
 
-type DeadlineStatus =
-  "not_started" | "in_progress" | "completed" | "submitted" | "verified" | "overdue";
+export type DeadlineStatus = StoredDeadlineStatus;
 
-export interface StatusUpdateEvent {
+export type StatusUpdateEvent = {
   deadlineId: string;
-  previousStatus: DeadlineStatus;
+  previousStatus: string;
   newStatus: DeadlineStatus;
   timestamp: Date;
   changedBy?: string;
-}
+};
 
 /**
  * Track deadline status transitions and auto-link reports.
  */
 export class DeadlineStatusTracker {
-  private payloadPromise = getPayload({ config });
-
   /**
    * Update deadline status with validation and side effects.
    */
   async updateStatus(
     deadlineId: string,
-    newStatus: DeadlineStatus,
+    newStatusInput: string,
     userId?: string,
     linkedReportId?: string,
   ): Promise<StatusUpdateEvent | null> {
     try {
-      const payload = await this.payloadPromise;
+      const payload = await getPayload({ config });
       const deadline = await payload.findByID({
         collection: "regulatory-deadlines",
         id: deadlineId,
+        overrideAccess: true,
       });
 
       if (!deadline) {
         throw new Error(`Deadline ${deadlineId} not found`);
       }
 
-      const previousStatus = deadline.status as DeadlineStatus;
+      const previousStatus = String(deadline.status);
+      const newStatus = toStoredStatus(newStatusInput);
 
-      // Prepare update data
-      const updateData: Record<string, unknown> = {
+      const updateData: {
+        status: DeadlineStatus;
+        completedDate?: string;
+        submittedDate?: string;
+        verifiedDate?: string;
+        verifiedBy?: string;
+        linkedReport?: string;
+      } = {
         status: newStatus,
       };
 
-      // Set status-specific timestamps
       switch (newStatus) {
         case "completed":
-          updateData.completedDate = new Date().toISOString().split("T")[0];
+          updateData.completedDate = new Date().toISOString().slice(0, 10);
+          if (linkedReportId) updateData.linkedReport = linkedReportId;
           break;
         case "submitted":
-          updateData.submittedDate = new Date().toISOString().split("T")[0];
-          if (linkedReportId) {
-            updateData.linkedReport = linkedReportId;
-          }
+          updateData.submittedDate = new Date().toISOString().slice(0, 10);
+          updateData.status = "completed";
+          if (linkedReportId) updateData.linkedReport = linkedReportId;
           break;
         case "verified":
-          updateData.verifiedDate = new Date().toISOString().split("T")[0];
-          if (userId) {
-            updateData.verifiedBy = userId;
-          }
+          updateData.verifiedDate = new Date().toISOString().slice(0, 10);
+          updateData.status = "completed";
+          if (userId) updateData.verifiedBy = userId;
+          break;
+        case "missed":
+        case "overdue":
+          updateData.status = "missed";
+          break;
+        default:
           break;
       }
 
-      // Perform update
       await payload.update({
         collection: "regulatory-deadlines",
         id: deadlineId,
-        data: updateData as {
-          status?: DeadlineStatus;
-          completedDate?: string;
-          submittedDate?: string;
-          verifiedDate?: string;
-          verifiedBy?: string;
-          linkedReport?: string;
-        },
+        data: updateData,
+        overrideAccess: true,
       });
 
       return {
         deadlineId,
         previousStatus,
-        newStatus,
+        newStatus: updateData.status,
         timestamp: new Date(),
         changedBy: userId,
       };
@@ -93,7 +97,6 @@ export class DeadlineStatusTracker {
 
   /**
    * Auto-link report to deadline when report is submitted.
-   * Called when a CSRD/BRSR/GRI report status changes to submitted.
    */
   async linkReportToDeadline(
     organisationId: string,
@@ -101,65 +104,72 @@ export class DeadlineStatusTracker {
     reportId: string,
   ): Promise<void> {
     try {
-      const payload = await this.payloadPromise;
-      // Find deadlines for this org and framework that are in_progress or completed
+      const payload = await getPayload({ config });
+      const typeMap: Record<string, string> = {
+        CSRD: "CSRD",
+        CSRD_SET1: "CSRD",
+        CSRD_SIMPLIFIED: "CSRD",
+        ISSB: "ISSB",
+        BRSR: "Other",
+      };
+      const deadlineType = typeMap[framework] ?? framework;
+
       const deadlines = await payload.find({
         collection: "regulatory-deadlines",
         where: {
           and: [
             { organisation: { equals: organisationId } },
-            { framework: { equals: framework } },
+            {
+              or: [
+                { type: { equals: deadlineType } },
+                { framework: { equals: framework } },
+              ],
+            },
             {
               status: {
-                in: ["in_progress", "completed"],
+                in: ["pending", "in_progress", "not_started"],
               },
             },
           ],
         },
-        limit: 10,
+        limit: 20,
+        overrideAccess: true,
       });
 
-      // Update each deadline to submitted
       for (const deadline of deadlines.docs || []) {
-        await this.updateStatus(deadline.id, "submitted", undefined, reportId);
+        await this.updateStatus(deadline.id, "completed", undefined, reportId);
       }
     } catch (error) {
       console.error("Error linking report to deadlines:", error);
     }
   }
 
-  /**
-   * Mark overdue deadlines (for scheduled job).
-   */
   async updateOverdueDeadlines(): Promise<number> {
     try {
-      const payload = await this.payloadPromise;
-      const today = new Date().toISOString().split("T")[0];
+      const payload = await getPayload({ config });
+      const today = new Date().toISOString().slice(0, 10);
       const overdueDeadlines = await payload.find({
         collection: "regulatory-deadlines",
         where: {
           and: [
-            {
-              dueDate: {
-                less_than: today,
-              },
-            },
+            { dueDate: { less_than: today } },
             {
               status: {
-                not_in: ["submitted", "verified", "overdue"],
+                not_in: ["completed", "submitted", "verified", "missed", "overdue"],
               },
             },
+            { isCatalog: { not_equals: true } },
           ],
         },
         limit: 100,
+        overrideAccess: true,
       });
 
       let count = 0;
       for (const deadline of overdueDeadlines.docs || []) {
-        await this.updateStatus(deadline.id, "overdue");
+        await this.updateStatus(deadline.id, "missed");
         count++;
       }
-
       return count;
     } catch (error) {
       console.error("Error updating overdue deadlines:", error);
@@ -167,19 +177,18 @@ export class DeadlineStatusTracker {
     }
   }
 
-  /**
-   * Get deadline color based on status.
-   */
   getColorForStatus(status: DeadlineStatus): string {
     switch (status) {
-      case "verified":
+      case "completed":
       case "submitted":
+      case "verified":
         return "green";
       case "in_progress":
-      case "completed":
         return "yellow";
+      case "missed":
       case "overdue":
         return "red";
+      case "pending":
       case "not_started":
         return "gray";
       default:
@@ -188,5 +197,4 @@ export class DeadlineStatusTracker {
   }
 }
 
-// Export singleton instance
 export const deadlineStatusTracker = new DeadlineStatusTracker();

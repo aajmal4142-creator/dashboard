@@ -4,6 +4,7 @@ import { getPayload } from "payload";
 
 import config from "../payload.config";
 import { ensureAssurancePartners } from "../lib/assurancePartners";
+import { ensureRegulatoryDeadlines } from "../lib/compliance/deadlineSeed";
 import { DERIVED_METRICS } from "../lib/derive/registry";
 import { emissionFactors } from "./emission-factors.seed";
 import { metricDefinitions } from "./metric-definitions.seed";
@@ -518,6 +519,7 @@ async function seedOrgBundle(
 
   const obligationData = {
     organisation: org.id,
+    checklistStatus: "pending" as const,
     ...opts.obligation,
   };
 
@@ -733,6 +735,11 @@ async function main() {
   const assuranceSeed = await ensureAssurancePartners(payload);
   console.log(
     `Assurance partners: created ${assuranceSeed.created.length}, existing ${assuranceSeed.existing.length}`,
+  );
+
+  const deadlineSeed = await ensureRegulatoryDeadlines(payload);
+  console.log(
+    `Regulatory deadlines: created ${deadlineSeed.created.length}, existing ${deadlineSeed.existing.length}`,
   );
 
   process.exit(0);

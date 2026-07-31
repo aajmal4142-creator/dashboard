@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 import {
   EmptyState,
@@ -22,6 +23,8 @@ export type SupplierRow = {
   requestStatus: string;
   requestToken: string | null;
   reminderCount: number;
+  emailConsent?: boolean;
+  engagementStatus?: string | null;
 };
 
 const CATEGORIES = [
@@ -54,6 +57,7 @@ export function SuppliersClient({
     contactEmail: "",
     category: "purchased_goods",
     annualSpend: "",
+    emailConsent: false,
   });
 
   function note(message: string, tone: "neutral" | "error" | "ok" = "neutral") {
@@ -92,6 +96,7 @@ export function SuppliersClient({
         contactEmail: form.contactEmail,
         category: form.category,
         annualSpend: form.annualSpend === "" ? null : Number(form.annualSpend),
+        emailConsent: form.emailConsent,
       }),
     });
     if (!res.ok) {
@@ -108,6 +113,7 @@ export function SuppliersClient({
       contactEmail: "",
       category: "purchased_goods",
       annualSpend: "",
+      emailConsent: false,
     });
     note("Supplier added", "ok");
     await refresh();
@@ -214,9 +220,26 @@ export function SuppliersClient({
     <PageFrame
       eyebrow="Supplier chains"
       title="Scope 3 collection"
-      help="Tokenised public forms. No supplier account. Responses flow into your Scope 3 as measured supplier data."
+      help="Tokenised public forms. No supplier account. Responses flow into your Scope 3 as measured supplier data. For full ESG questionnaires, use Engagement."
       actions={
-        !canWrite ? <p className="text-sm text-ink-muted">View only</p> : undefined
+        !canWrite ? (
+          <p className="text-sm text-ink-muted">View only</p>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/scope3/category-1"
+              className="text-sm font-medium text-ink underline-offset-2 hover:underline"
+            >
+              Category 1 breakdown
+            </Link>
+            <Link
+              href="/suppliers/engagement"
+              className="text-sm font-medium text-accent underline-offset-2 hover:underline"
+            >
+              ESG engagement
+            </Link>
+          </div>
+        )
       }
       rail={
         <div className="space-y-5">
@@ -295,6 +318,16 @@ export function SuppliersClient({
                 value={form.annualSpend}
                 onChange={(e) => setForm((f) => ({ ...f, annualSpend: e.target.value }))}
               />
+              <label className="flex items-center gap-2 text-[12px] text-ink md:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={form.emailConsent}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, emailConsent: e.target.checked }))
+                  }
+                />
+                Supplier consents to email contact (required before ESG questionnaire)
+              </label>
               <Button type="submit" className="md:col-span-2" size="sm">
                 Add supplier
               </Button>
@@ -350,7 +383,14 @@ export function SuppliersClient({
                       className="border-b border-rule transition-colors last:border-b-0 hover:bg-surface-2"
                     >
                       <td className="py-2.5 pr-2 align-top">
-                        <div className="font-medium text-ink">{r.name}</div>
+                        <div className="font-medium text-ink">
+                          <Link
+                            href={`/suppliers/${r.id}/tier-emissions`}
+                            className="text-ink underline-offset-2 hover:text-accent hover:underline"
+                          >
+                            {r.name}
+                          </Link>
+                        </div>
                         <div className="text-[11px] text-ink-muted">{r.contactEmail}</div>
                       </td>
                       <td className="py-2.5 pr-2 align-top text-ink-muted">
@@ -365,6 +405,12 @@ export function SuppliersClient({
                       <td className="py-2.5 align-top">
                         {canWrite ? (
                           <div className="flex flex-wrap gap-2">
+                            <Link
+                              href={`/suppliers/${r.id}/tier-emissions`}
+                              className="text-[12px] font-medium text-accent underline-offset-2 hover:underline"
+                            >
+                              Tier 2 estimate
+                            </Link>
                             {r.requestStatus !== "submitted" ? (
                               <button
                                 type="button"
@@ -392,7 +438,12 @@ export function SuppliersClient({
                             </button>
                           </div>
                         ) : (
-                          <span className="text-ink-muted">—</span>
+                          <Link
+                            href={`/suppliers/${r.id}/tier-emissions`}
+                            className="text-[12px] text-accent underline-offset-2 hover:underline"
+                          >
+                            Tier 2
+                          </Link>
                         )}
                       </td>
                     </tr>

@@ -198,7 +198,8 @@ export function analyzeBottlenecks(
 }
 
 /**
- * Build supply chain graph data for visualization
+ * Build supply chain graph data for visualization.
+ * Colour values are CSS custom-property names (tokens), never hex.
  */
 export interface GraphNode {
   id: string;
@@ -227,6 +228,13 @@ export interface SupplyChainGraph {
   };
 }
 
+const RISK_TOKEN: Record<"low" | "medium" | "high" | "critical", string> = {
+  low: "var(--signal)",
+  medium: "var(--amber)",
+  high: "var(--rust)",
+  critical: "var(--rust)",
+};
+
 export function buildSupplyChainGraph(
   orgName: string,
   suppliers: Array<{
@@ -246,7 +254,7 @@ export function buildSupplyChainGraph(
       spend: 0,
       emissions: 0,
       value: 30,
-      color: "#3b82f6",
+      color: "var(--accent)",
     },
   ];
 
@@ -264,17 +272,13 @@ export function buildSupplyChainGraph(
   for (const [tier, suppliersInTier] of Object.entries(tierSuppliers)) {
     const tierNum = parseInt(tier);
     const avgSpend =
-      suppliersInTier.reduce((sum, s) => sum + s.spend, 0) / suppliersInTier.length;
+      suppliersInTier.reduce((sum, s) => sum + s.spend, 0) /
+      Math.max(suppliersInTier.length, 1);
 
     for (const supplier of suppliersInTier) {
       const riskColor = supplier.riskTier
-        ? {
-            low: "#22c55e",
-            medium: "#eab308",
-            high: "#f97316",
-            critical: "#ef4444",
-          }[supplier.riskTier]
-        : "#9ca3af";
+        ? RISK_TOKEN[supplier.riskTier]
+        : "var(--ink-muted)";
 
       nodes.push({
         id: supplier.id,
@@ -282,20 +286,19 @@ export function buildSupplyChainGraph(
         tier: tierNum,
         spend: supplier.spend,
         emissions: supplier.emissions,
-        value: Math.max(5, Math.min(25, supplier.spend / avgSpend + 10)),
+        value: Math.max(
+          5,
+          Math.min(25, (avgSpend > 0 ? supplier.spend / avgSpend : 1) + 10),
+        ),
         color: riskColor,
       });
 
-      // Connect to org (Tier 1) or previous tier
-      const sourceId = tierNum === 1 ? "org" : undefined;
-      if (sourceId || tierNum > 1) {
-        links.push({
-          source: sourceId || "org", // Simplification: all connect to org
-          target: supplier.id,
-          weight: supplier.spend,
-          type: "spend",
-        });
-      }
+      links.push({
+        source: tierNum === 1 ? "org" : "org",
+        target: supplier.id,
+        weight: supplier.spend,
+        type: "spend",
+      });
     }
   }
 

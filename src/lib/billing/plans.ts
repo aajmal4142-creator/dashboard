@@ -34,8 +34,8 @@ export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
   },
   consultant: {
     maxPeriods: Number.POSITIVE_INFINITY,
-    maxSuppliers: 10,
-    maxClients: 10,
+    maxSuppliers: 500,
+    maxClients: 100,
     priceEur: 199,
     label: "Consultant",
   },

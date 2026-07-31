@@ -3,7 +3,13 @@
 import { AppSelectNative } from "@/components/ui/AppField";
 import { cn } from "@/lib/utils";
 
-type OrgOption = { id: string; name: string };
+export type OrgSwitcherOption = {
+  id: string;
+  name: string;
+  /** Display label — may include hierarchy indent. */
+  label?: string;
+  depth?: number;
+};
 
 export function OrgSwitcher({
   orgs,
@@ -11,7 +17,7 @@ export function OrgSwitcher({
   compact = false,
   iconOnly = false,
 }: {
-  orgs: OrgOption[];
+  orgs: OrgSwitcherOption[];
   activeOrgId: string | null;
   compact?: boolean;
   iconOnly?: boolean;
@@ -38,7 +44,7 @@ export function OrgSwitcher({
       >
         {orgs.map((org) => (
           <option key={org.id} value={org.id}>
-            {org.name}
+            {org.label ?? org.name}
           </option>
         ))}
       </AppSelectNative>
@@ -55,7 +61,7 @@ export function OrgSwitcher({
     >
       {orgs.map((org) => (
         <option key={org.id} value={org.id}>
-          {org.name}
+          {org.label ?? org.name}
         </option>
       ))}
     </AppSelectNative>

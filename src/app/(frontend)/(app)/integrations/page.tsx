@@ -117,7 +117,8 @@ export default function IntegrationsPage() {
       <div className="panel p-6">
         <h2 className="text-lg font-semibold text-ink">Accounting Software</h2>
         <p className="mt-2 mb-4 text-sm text-ink-muted">
-          Connect Xero or QuickBooks for automated spend-based emissions calculations
+          Connect QuickBooks, Xero, or Wave for automated spend-based emissions (sandbox
+          OAuth when client secrets are unset)
         </p>
 
         {status?.accounting.length ? (
@@ -164,14 +165,29 @@ export default function IntegrationsPage() {
       <div className="panel p-6">
         <h2 className="text-lg font-semibold text-ink">IoT / meters</h2>
         <p className="mt-2 mb-4 text-sm text-ink-muted">
-          Real-time meter ingest with device API keys, online status, and 24-hour charts
+          Real-time meter ingest with device API keys, multi-gateway hubs, online status,
+          and 24-hour charts. Credentials encrypted at rest.
         </p>
-        <Link
-          href="/iot"
-          className="mt-2 inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover"
-        >
-          Open IoT dashboard
-        </Link>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href="/iot"
+            className="inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover"
+          >
+            Open IoT dashboard
+          </Link>
+          <Link
+            href="/integrations/iot/gateways"
+            className="inline-block rounded-md bg-surface-2 px-4 py-2 text-sm font-medium text-ink hover:bg-accent-quiet"
+          >
+            Manage gateways
+          </Link>
+          <Link
+            href="/integrations/iot/devices"
+            className="inline-block rounded-md bg-surface-2 px-4 py-2 text-sm font-medium text-ink hover:bg-accent-quiet"
+          >
+            Device assignment
+          </Link>
+        </div>
       </div>
 
       <div className="panel p-6">

@@ -215,6 +215,7 @@ export async function POST(req: Request) {
       standardVersion,
       firstReportingFY,
       filingDeadline,
+      checklistStatus: "pending",
       derivationReason,
       confidence,
       source: "engine",

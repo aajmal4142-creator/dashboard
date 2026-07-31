@@ -41,6 +41,22 @@ export type { RawReadingForAggregate } from "./aggregate";
 
 export { resolveDeviceStatus, toStoredStatus, DEFAULT_OFFLINE_AFTER_MS } from "./status";
 
+export {
+  GATEWAY_HEARTBEAT_INTERVAL_MS,
+  GATEWAY_OFFLINE_AFTER_MS,
+  GATEWAY_OFFLINE_ALERT_AFTER_MS,
+  GATEWAY_STALE_DATA_AFTER_MS,
+  resolveGatewayHealth,
+  resolveFailoverGateway,
+  parseDeviceGatewayCsv,
+} from "./gatewayHealth";
+export type {
+  GatewayHealthBadge,
+  GatewayHealthInput,
+  GatewayHealthResult,
+  FailoverGatewayCandidate,
+} from "./gatewayHealth";
+
 export { mqttMessageToIngestPayload } from "./mqttAdapter";
 
 export { ingestIotReading, type IotIngestResult } from "./ingestService";

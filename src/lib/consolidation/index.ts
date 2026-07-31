@@ -1,0 +1,33 @@
+export {
+  CONSOLIDATION_METHODS,
+  CONSOLIDATION_METHOD_LABELS,
+  buildHierarchyForest,
+  consolidateEmissions,
+  consolidatedReportToCsv,
+  findCircularOrgs,
+  findDescendants,
+  findDirectChildren,
+  flattenHierarchyForSwitcher,
+  formatConsolidationFooter,
+  isConsolidationMethod,
+  linkOwnershipFactor,
+  pathOwnershipFactor,
+  wouldCreateCircularHierarchy,
+  type ConsolidatedCategoryRow,
+  type ConsolidatedOrgRow,
+  type ConsolidationMethod,
+  type ConsolidationResult,
+  type HierarchyOrg,
+  type HierarchyTreeNode,
+  type OrgEmissionsSlice,
+} from "./consolidate";
+
+export {
+  buildConsolidatedReport,
+  getHierarchyTree,
+  loadHierarchyOrgs,
+  loadOrgEmissionsSlice,
+  orgDocToHierarchy,
+  setOrganisationHierarchy,
+  type SetHierarchyInput,
+} from "./consolidationService";
