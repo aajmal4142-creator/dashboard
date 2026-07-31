@@ -34,21 +34,23 @@ export type OrgKpiSnapshot = {
   timestamp: string;
 };
 
-export async function computeOrgKpiSnapshot(
+/** Minimal period shape `computeOrgKpiSnapshotForPeriod` needs. */
+export type KpiSnapshotPeriod = {
+  id: string;
+  endDate?: string | Date | null;
+};
+
+/**
+ * Same computation as `computeOrgKpiSnapshot`, but for an arbitrary (already
+ * resolved) period rather than always looking up the org's open period.
+ * Lets callers (e.g. dashboard widgets) build multi-period series.
+ */
+export async function computeOrgKpiSnapshotForPeriod(
   payload: Payload,
   organisationId: string,
+  period: KpiSnapshotPeriod | null,
 ): Promise<OrgKpiSnapshot> {
   const timestamp = new Date().toISOString();
-
-  const periods = await payload.find({
-    collection: "reporting-periods",
-    where: {
-      and: [{ organisation: { equals: organisationId } }, { status: { equals: "open" } }],
-    },
-    limit: 1,
-    overrideAccess: true,
-  });
-  const period = periods.docs[0] ?? null;
 
   const dps = period
     ? await payload.find({
@@ -150,6 +152,31 @@ export async function computeOrgKpiSnapshot(
     },
     timestamp,
   };
+}
+
+/**
+ * Compute public runway KPIs for an organisation's open period.
+ * Used by SSE broadcast and the REST polling fallback.
+ */
+export async function computeOrgKpiSnapshot(
+  payload: Payload,
+  organisationId: string,
+): Promise<OrgKpiSnapshot> {
+  const periods = await payload.find({
+    collection: "reporting-periods",
+    where: {
+      and: [{ organisation: { equals: organisationId } }, { status: { equals: "open" } }],
+    },
+    limit: 1,
+    overrideAccess: true,
+  });
+  const period = periods.docs[0] ?? null;
+
+  return computeOrgKpiSnapshotForPeriod(
+    payload,
+    organisationId,
+    period ? { id: String(period.id), endDate: period.endDate } : null,
+  );
 }
 
 export function snapshotToUpdates(

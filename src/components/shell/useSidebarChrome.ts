@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { TOGGLE_SIDEBAR_EVENT } from "@/lib/keyboard";
+
 const STORAGE_KEY = "clearesg-sidebar";
 const COLLAPSED_W = 64;
 const MIN_W = 200;
@@ -77,8 +79,15 @@ export function useSidebarChrome() {
       e.preventDefault();
       setCollapsed((c) => !c);
     };
+    const onToggleEvent = () => {
+      setCollapsed((c) => !c);
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(TOGGLE_SIDEBAR_EVENT, onToggleEvent);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(TOGGLE_SIDEBAR_EVENT, onToggleEvent);
+    };
   }, []);
 
   const onDragStart = useCallback(

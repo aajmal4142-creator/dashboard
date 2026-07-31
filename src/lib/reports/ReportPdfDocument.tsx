@@ -22,6 +22,8 @@ import {
   reportFrameworkLabel,
   topicLabel,
 } from "./pdfFormat";
+import type { PdfReactPageSize } from "./pdfSettings";
+import { resolvePdfWatermarkText } from "./pdfSettings";
 import type { ReportSnapshot } from "./types";
 
 registerReportPdfFonts();
@@ -473,13 +475,28 @@ function yoyLabel(yoy: ReportSnapshot["yoy"]): string {
   return `vs ${yoy.previousPeriodLabel}: ${sign}${yoy.changePct.toFixed(1)}% (${formatTco2e(yoy.previousTotal)} → current total).`;
 }
 
+export type ReportPdfDocumentProps = {
+  snapshot: ReportSnapshot;
+  /** Plan entitlement: free plans get the ClearESG draft watermark. */
+  watermarked?: boolean;
+  /** Optional custom overlay text (e.g. CONFIDENTIAL). */
+  watermarkLabel?: string | null;
+  pageSize?: PdfReactPageSize;
+  includeCharts?: boolean;
+};
+
+function WatermarkOverlay({ text }: { text: string | null }) {
+  if (!text) return null;
+  return <Text style={styles.watermark}>{text}</Text>;
+}
+
 export function ReportPdfDocument({
   snapshot,
   watermarked = false,
-}: {
-  snapshot: ReportSnapshot;
-  watermarked?: boolean;
-}) {
+  watermarkLabel = null,
+  pageSize = "A4",
+  includeCharts = true,
+}: ReportPdfDocumentProps) {
   const framework = reportFrameworkLabel(snapshot.framework);
   const material = snapshot.materiality.points.filter((p) => p.material);
   const below = snapshot.materiality.points.filter((p) => !p.material);
@@ -495,6 +512,7 @@ export function ReportPdfDocument({
   const accent = snapshot.brandingAccent?.match(/^#[0-9A-Fa-f]{6}$/)
     ? snapshot.brandingAccent
     : C.accent;
+  const watermarkText = resolvePdfWatermarkText(watermarked, watermarkLabel);
 
   return (
     <Document
@@ -504,8 +522,8 @@ export function ReportPdfDocument({
       creator="ClearESG"
     >
       {/* —— Cover —— */}
-      <Page size="A4" style={styles.coverPage}>
-        {watermarked ? <Text style={styles.watermark}>ClearESG</Text> : null}
+      <Page size={pageSize} style={styles.coverPage}>
+        <WatermarkOverlay text={watermarkText} />
         <View style={[styles.accentRule, { backgroundColor: accent }]} />
         {snapshot.logoUrl ? (
           // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image
@@ -526,7 +544,7 @@ export function ReportPdfDocument({
           </Text>
         ) : null}
 
-        <PdfGauge score={snapshot.scores.overall} />
+        {includeCharts ? <PdfGauge score={snapshot.scores.overall} /> : null}
         <View style={styles.bandChip}>
           <Text style={styles.bandChipText}>{bandLabel(snapshot.band)} readiness</Text>
         </View>
@@ -546,8 +564,8 @@ export function ReportPdfDocument({
       </Page>
 
       {/* —— 01 Executive summary —— */}
-      <Page size="A4" style={styles.page}>
-        {watermarked ? <Text style={styles.watermark}>ClearESG</Text> : null}
+      <Page size={pageSize} style={styles.page}>
+        <WatermarkOverlay text={watermarkText} />
         <Text style={styles.sectionEyebrow}>01 — Executive summary</Text>
         <Text style={styles.h2}>Organisation emissions and key metrics</Text>
         <Text style={styles.body}>
@@ -602,6 +620,29 @@ export function ReportPdfDocument({
             <Text style={styles.cardValue}>{formatScore(snapshot.scores.g)}</Text>
           </View>
         </View>
+
+        {snapshot.customMetrics && snapshot.customMetrics.length > 0 ? (
+          <View style={{ marginTop: 16 }}>
+            <Text style={styles.cardLabel}>Custom metrics</Text>
+            {snapshot.customMetrics.slice(0, 8).map((m) => (
+              <View
+                key={m.key}
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginTop: 4,
+                }}
+              >
+                <Text style={{ flex: 1, fontSize: 9, color: C.ink }}>{m.label}</Text>
+                <Text style={styles.monoSm}>
+                  {m.value === null
+                    ? "—"
+                    : `${Number.isInteger(m.value) ? m.value : m.value.toFixed(2)}${m.unit ? ` ${m.unit}` : ""}`}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         {highGaps.length > 0 ? (
           <View style={{ marginTop: 16 }}>
@@ -674,8 +715,8 @@ export function ReportPdfDocument({
       </Page>
 
       {/* —— 02 Scope breakdown —— */}
-      <Page size="A4" style={styles.page}>
-        {watermarked ? <Text style={styles.watermark}>ClearESG</Text> : null}
+      <Page size={pageSize} style={styles.page}>
+        <WatermarkOverlay text={watermarkText} />
         <Text style={styles.sectionEyebrow}>02 — Scope 1, 2, 3 breakdown</Text>
         <Text style={styles.h2}>Sources, methodology, uncertainties</Text>
 
@@ -709,13 +750,15 @@ export function ReportPdfDocument({
           </View>
         </View>
 
-        <View style={{ marginTop: 14 }}>
-          <EmissionsStack
-            scope1={snapshot.emissions.scope1}
-            scope2={snapshot.emissions.scope2}
-            scope3={snapshot.emissions.scope3}
-          />
-        </View>
+        {includeCharts ? (
+          <View style={{ marginTop: 14 }}>
+            <EmissionsStack
+              scope1={snapshot.emissions.scope1}
+              scope2={snapshot.emissions.scope2}
+              scope3={snapshot.emissions.scope3}
+            />
+          </View>
+        ) : null}
 
         {scope
           ? (["scope1", "scope2", "scope3"] as const).map((key, i) => {
@@ -769,8 +812,8 @@ export function ReportPdfDocument({
       </Page>
 
       {/* —— 03 ESRS disclosures —— */}
-      <Page size="A4" style={styles.page}>
-        {watermarked ? <Text style={styles.watermark}>ClearESG</Text> : null}
+      <Page size={pageSize} style={styles.page}>
+        <WatermarkOverlay text={watermarkText} />
         <Text style={styles.sectionEyebrow}>03 — ESRS disclosures</Text>
         <Text style={styles.h2}>Governance, materiality, strategy</Text>
 
@@ -857,8 +900,8 @@ export function ReportPdfDocument({
       </Page>
 
       {/* —— 04 Data integrity —— */}
-      <Page size="A4" style={styles.page}>
-        {watermarked ? <Text style={styles.watermark}>ClearESG</Text> : null}
+      <Page size={pageSize} style={styles.page}>
+        <WatermarkOverlay text={watermarkText} />
         <Text style={styles.sectionEyebrow}>04 — Data integrity</Text>
         <Text style={styles.h2}>Audit trail and preparer notes</Text>
 
@@ -989,8 +1032,8 @@ export function ReportPdfDocument({
       </Page>
 
       {/* —— 05 Compliance declaration —— */}
-      <Page size="A4" style={styles.page}>
-        {watermarked ? <Text style={styles.watermark}>ClearESG</Text> : null}
+      <Page size={pageSize} style={styles.page}>
+        <WatermarkOverlay text={watermarkText} />
         <Text style={styles.sectionEyebrow}>05 — Compliance declaration</Text>
         <Text style={styles.h2}>Audit-ready statement</Text>
         <Text style={styles.body}>

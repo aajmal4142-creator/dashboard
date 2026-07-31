@@ -100,6 +100,89 @@ export const ScheduledReports: CollectionConfig = {
           type: "email",
           required: true,
         },
+        {
+          name: "unsubscribed",
+          type: "checkbox",
+          defaultValue: false,
+          admin: {
+            description: "Recipient opted out via unsubscribe link",
+          },
+        },
+        {
+          name: "unsubscribedAt",
+          type: "date",
+          admin: { date: { pickerAppearance: "dayAndTime" } },
+        },
+      ],
+    },
+    {
+      name: "deliveryHistory",
+      type: "array",
+      admin: {
+        description:
+          "Per-recipient send outcomes (newest first; capped in application code)",
+        readOnly: true,
+      },
+      fields: [
+        {
+          name: "runAt",
+          type: "date",
+          required: true,
+          admin: {
+            description: "Schedule slot (nextRunAt) this delivery belonged to",
+            date: { pickerAppearance: "dayAndTime" },
+          },
+        },
+        {
+          name: "sentAt",
+          type: "date",
+          required: true,
+          admin: { date: { pickerAppearance: "dayAndTime" } },
+        },
+        {
+          name: "email",
+          type: "email",
+          required: true,
+        },
+        {
+          name: "status",
+          type: "select",
+          required: true,
+          options: [
+            { label: "Sent", value: "sent" },
+            { label: "Failed", value: "failed" },
+            { label: "Skipped", value: "skipped" },
+          ],
+        },
+        {
+          name: "error",
+          type: "text",
+        },
+        {
+          name: "trackingId",
+          type: "text",
+          index: true,
+          admin: { description: "Open-tracking pixel id" },
+        },
+        {
+          name: "openCount",
+          type: "number",
+          defaultValue: 0,
+          admin: { readOnly: true },
+        },
+        {
+          name: "openedAt",
+          type: "date",
+          admin: {
+            readOnly: true,
+            date: { pickerAppearance: "dayAndTime" },
+          },
+        },
+        {
+          name: "providerMessageId",
+          type: "text",
+          admin: { description: "Resend message id when available" },
+        },
       ],
     },
     {

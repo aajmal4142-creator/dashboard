@@ -88,6 +88,12 @@ import { ScheduledReports } from "./collections/ScheduledReports";
 import { SbtiTargets } from "./collections/SbtiTargets";
 import { GreenTaxonomyAssessments } from "./collections/GreenTaxonomyAssessments";
 import { ReportEmbedTokens } from "./collections/ReportEmbedTokens";
+import { Notifications } from "./collections/Notifications";
+import { DashboardLayouts } from "./collections/DashboardLayouts";
+import { AlertRules } from "./collections/AlertRules";
+import { SlackIntegrations } from "./collections/SlackIntegrations";
+import { Automations } from "./collections/Automations";
+import { AutomationRuns } from "./collections/AutomationRuns";
 
 /**
  * Collection registration — APPEND-ONLY for feature chats.
@@ -200,6 +206,12 @@ export default buildConfig({
     GreenTaxonomyAssessments,
     ReportEmbedTokens,
     IoTGateways,
+    Notifications,
+    DashboardLayouts,
+    AlertRules,
+    SlackIntegrations,
+    Automations,
+    AutomationRuns,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,

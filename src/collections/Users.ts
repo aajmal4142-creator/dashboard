@@ -26,5 +26,17 @@ export const Users: CollectionConfig = {
     { name: "lastName", type: "text" },
     { name: "avatarUrl", type: "text" },
     { name: "lastSeenAt", type: "date" },
+    {
+      name: "language",
+      type: "select",
+      defaultValue: "en",
+      options: [
+        { label: "English", value: "en" },
+        { label: "Hindi", value: "hi" },
+      ],
+      admin: {
+        description: "UI language preference (en | hi)",
+      },
+    },
   ],
 };

@@ -77,6 +77,7 @@ export const SavedFilters: CollectionConfig = {
         { label: "Users", value: "users" },
         { label: "Materiality", value: "materiality" },
         { label: "Obligations", value: "obligations" },
+        { label: "Search", value: "search" },
       ],
     },
     {

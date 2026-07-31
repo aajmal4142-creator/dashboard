@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+
 import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelectToolbar } from "./MultiSelectToolbar";
 import {
@@ -11,17 +12,25 @@ import {
 } from "@/lib/utils/multiSelect";
 import { useBulkOperations } from "@/lib/hooks/useBulkOperations";
 
-interface SelectableTableProps {
-  items: Array<{ id: string; [key: string]: unknown }>;
+type TableItem = {
+  id: string;
+  [key: string]: unknown;
+};
+
+type SelectableTableProps = {
+  items: TableItem[];
   columns: Array<{
     key: string;
     label: string;
-    render?: (value: unknown) => React.ReactNode;
+    render?: (value: unknown, item: TableItem) => React.ReactNode;
   }>;
   resourceType: "suppliers" | "datapoints" | "users";
-  onItemClick?: (item: { id: string; [key: string]: unknown }) => void;
-  onBulkAction?: (action: string, itemIds: string[]) => Promise<void>;
-}
+  onItemClick?: (item: TableItem) => void;
+  onBulkAction?: (action: string, itemIds: string[], items: TableItem[]) => Promise<void>;
+  onOperationComplete?: () => void;
+  /** When false, selection UI is shown without bulk action menu. */
+  enableBulkActions?: boolean;
+};
 
 export function SelectableTable({
   items,
@@ -29,6 +38,8 @@ export function SelectableTable({
   resourceType,
   onItemClick,
   onBulkAction,
+  onOperationComplete,
+  enableBulkActions = true,
 }: SelectableTableProps) {
   const [selection, setSelection] = useState(new Map<string, boolean>());
   const { createBulkOp } = useBulkOperations();
@@ -50,49 +61,65 @@ export function SelectableTable({
   }, []);
 
   const handleBulkAction = async (action: string, itemIds: string[]) => {
+    if (!enableBulkActions) {
+      throw new Error("Bulk actions are not available");
+    }
+    const selectedItems = items.filter((item) => itemIds.includes(item.id));
     try {
       if (onBulkAction) {
-        await onBulkAction(action, itemIds);
+        await onBulkAction(action, itemIds, selectedItems);
       } else {
-        await createBulkOp(action, resourceType, itemIds, {});
+        const changes = action === "update-status" ? { requestStatus: "pending" } : {};
+        const op = await createBulkOp(
+          action,
+          resourceType,
+          itemIds,
+          changes,
+          selectedItems,
+        );
+        if (!op) throw new Error("Bulk operation failed");
       }
       setSelection(selectNone());
+      onOperationComplete?.();
     } catch (error) {
-      console.error("Bulk action failed:", error);
-      throw error;
+      throw error instanceof Error ? error : new Error("Bulk action failed");
     }
   };
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      <MultiSelectToolbar
-        selectedCount={selectedIds.length}
-        totalCount={items.length}
-        onSelectAll={handleSelectAll}
-        onClearSelection={() => setSelection(selectNone())}
-        onBulkAction={handleBulkAction}
-        selectedIds={selectedIds}
-        resourceType={resourceType}
-      />
+    <div className="overflow-hidden rounded-md border border-rule bg-surface-1">
+      {enableBulkActions ? (
+        <MultiSelectToolbar
+          selectedCount={selectedIds.length}
+          totalCount={items.length}
+          onSelectAll={handleSelectAll}
+          onClearSelection={() => setSelection(selectNone())}
+          onBulkAction={handleBulkAction}
+          selectedIds={selectedIds}
+          resourceType={resourceType}
+        />
+      ) : null}
 
       <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b">
-            <tr>
-              <th className="w-12 px-4 py-3">
-                <Checkbox
-                  checked={
-                    selectedIds.length > 0 && selectedIds.length < items.length
-                      ? "indeterminate"
-                      : selectedIds.length === items.length && items.length > 0
-                  }
-                  onCheckedChange={handleSelectAll}
-                />
-              </th>
+        <table className="w-full min-w-[640px] text-left text-[12px]">
+          <thead>
+            <tr className="border-b-2 border-rule-strong">
+              {enableBulkActions ? (
+                <th className="w-12 px-4 py-2.5">
+                  <Checkbox
+                    checked={
+                      selectedIds.length > 0 && selectedIds.length < items.length
+                        ? "indeterminate"
+                        : selectedIds.length === items.length && items.length > 0
+                    }
+                    onCheckedChange={handleSelectAll}
+                  />
+                </th>
+              ) : null}
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className="px-4 py-3 text-left text-sm font-medium text-gray-700"
+                  className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted"
                 >
                   {col.label}
                 </th>
@@ -103,20 +130,25 @@ export function SelectableTable({
             {items.map((item) => (
               <tr
                 key={item.id}
-                className="border-b hover:bg-gray-50 cursor-pointer"
-                onClick={() => !selection.has(item.id) && onItemClick?.(item)}
+                className="cursor-pointer border-b border-rule transition-colors last:border-b-0 hover:bg-surface-2"
+                onClick={() => onItemClick?.(item)}
               >
-                <td className="w-12 px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                  <Checkbox
-                    checked={selection.has(item.id)}
-                    onCheckedChange={() => handleToggleItem(item.id)}
-                  />
-                </td>
+                {enableBulkActions ? (
+                  <td className="w-12 px-4 py-2.5" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selection.has(item.id)}
+                      onCheckedChange={() => handleToggleItem(item.id)}
+                    />
+                  </td>
+                ) : null}
                 {columns.map((col) => (
-                  <td key={`${item.id}-${col.key}`} className="px-4 py-3 text-sm">
+                  <td
+                    key={`${item.id}-${col.key}`}
+                    className="px-4 py-2.5 align-top text-ink"
+                  >
                     {col.render
-                      ? col.render((item as Record<string, unknown>)[col.key])
-                      : String((item as Record<string, unknown>)[col.key])}
+                      ? col.render(item[col.key], item)
+                      : String(item[col.key] ?? "—")}
                   </td>
                 ))}
               </tr>
@@ -125,9 +157,11 @@ export function SelectableTable({
         </table>
       </div>
 
-      {items.length === 0 && (
-        <div className="p-8 text-center text-gray-500">No items to display</div>
-      )}
+      {items.length === 0 ? (
+        <div className="p-8 text-center text-[12px] text-ink-muted">
+          No items to display
+        </div>
+      ) : null}
     </div>
   );
 }

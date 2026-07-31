@@ -4,11 +4,13 @@ import { NextResponse } from "next/server";
 import { getCurrentContext } from "@/lib/auth";
 import {
   CONFIRMED_APPROVAL_STATE,
+  buildMachineExportDocument,
   parseMachineExportFormat,
   snapshotToJsonExport,
   snapshotToXmlExport,
   type MachineExportDatapointInput,
 } from "@/lib/reports/machineExport";
+import { buildReportExcelBuffer } from "@/lib/reports/excelExport";
 import { snapshotToCsv, type ReportSnapshot } from "@/lib/reports";
 import config from "@/payload.config";
 
@@ -24,8 +26,8 @@ function relationId(value: unknown): string | null {
 }
 
 /**
- * GET /api/app/reports/[id]/export?format=json|xml|csv
- * Membership-gated machine-readable export. Confirmed datapoints only.
+ * GET /api/app/reports/[id]/export?format=json|xml|csv|xlsx
+ * Membership-gated machine-readable export. Confirmed datapoints only for JSON/XML/XLSX.
  */
 export async function GET(req: Request, ctx: Ctx) {
   const auth = await getCurrentContext();
@@ -36,7 +38,10 @@ export async function GET(req: Request, ctx: Ctx) {
   const format = parseMachineExportFormat(new URL(req.url).searchParams.get("format"));
   if (!format) {
     return NextResponse.json(
-      { error: "Unsupported format. Use format=json, format=xml, or format=csv." },
+      {
+        error:
+          "Unsupported format. Use format=json, format=xml, format=csv, or format=xlsx.",
+      },
       { status: 400 },
     );
   }
@@ -109,6 +114,21 @@ export async function GET(req: Request, ctx: Ctx) {
     status: typeof report.status === "string" ? report.status : null,
     datapoints,
   };
+
+  if (format === "xlsx") {
+    const doc = buildMachineExportDocument(snapshot, exportCtx);
+    const buffer = await buildReportExcelBuffer({
+      snapshot,
+      datapoints: doc.datapoints,
+    });
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="${baseName}.xlsx"`,
+      },
+    });
+  }
 
   if (format === "xml") {
     const xml = snapshotToXmlExport(snapshot, exportCtx);

@@ -13,8 +13,25 @@ type BiKeyRow = {
   status: string;
   lastUsedAt: string | null;
   revokedAt: string | null;
+  quotaLimitPerHour: number | null;
+  quotaLimitPerDay: number | null;
+  callsThisHour: number;
+  callsToday: number;
+  remainingHour: number | null;
+  remainingDay: number | null;
+  percentHour: number;
+  percentDay: number;
+  quotaResetAt: string | null;
+  allowedIps: string[] | null;
   createdAt: string;
   updatedAt: string;
+};
+
+type QuotaSummary = {
+  plan: string;
+  perHour: number | null;
+  perDay: number | null;
+  unlimited: boolean;
 };
 
 type Props = {
@@ -30,8 +47,51 @@ function formatWhen(iso: string | null): string {
   }
 }
 
+function formatLimit(n: number | null): string {
+  return n == null ? "unlimited" : String(n);
+}
+
+function QuotaBar({
+  label,
+  used,
+  limit,
+  percent,
+}: {
+  label: string;
+  used: number;
+  limit: number | null;
+  percent: number;
+}) {
+  if (limit == null) {
+    return (
+      <p className="text-xs text-ink-muted">
+        {label}: <span className="font-mono tabular-nums text-ink">{used}</span>{" "}
+        (unlimited)
+      </p>
+    );
+  }
+  const tone = percent >= 100 ? "bg-rust" : percent >= 80 ? "bg-amber" : "bg-accent";
+  return (
+    <div className="mt-1">
+      <div className="flex justify-between gap-2 text-xs text-ink-muted">
+        <span>{label}</span>
+        <span className="font-mono tabular-nums text-ink">
+          {used}/{limit} ({percent}%)
+        </span>
+      </div>
+      <div className="mt-1 h-1.5 overflow-hidden rounded-[2px] bg-surface-2">
+        <div
+          className={cn("h-full transition-[width] duration-300", tone)}
+          style={{ width: `${Math.min(100, percent)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function SettingsBiKeysClient({ canEdit }: Props) {
   const [keys, setKeys] = useState<BiKeyRow[]>([]);
+  const [quota, setQuota] = useState<QuotaSummary | null>(null);
   const [name, setName] = useState("");
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -46,6 +106,7 @@ export function SettingsBiKeysClient({ canEdit }: Props) {
         const res = await fetch("/api/app/settings/bi-keys");
         const data = (await res.json()) as {
           keys?: BiKeyRow[];
+          quota?: QuotaSummary;
           error?: string;
         };
         if (!res.ok) {
@@ -55,6 +116,7 @@ export function SettingsBiKeysClient({ canEdit }: Props) {
           return;
         }
         setKeys(data.keys ?? []);
+        setQuota(data.quota ?? null);
         setLoading(false);
       } catch {
         setStatus("Network error while loading BI API keys.");
@@ -167,6 +229,21 @@ export function SettingsBiKeysClient({ canEdit }: Props) {
           <span className="font-mono text-xs">docs/bi/</span> for setup.
         </p>
 
+        {quota ? (
+          <div className="mt-5 border-y border-rule py-3">
+            <p className="text-sm text-ink">Plan quota ({quota.plan})</p>
+            <p className="mt-1 font-mono text-xs text-ink-muted tabular-nums">
+              {quota.unlimited
+                ? "Unlimited hour and day calls on consultant."
+                : `${formatLimit(quota.perHour)} / hour · ${formatLimit(quota.perDay)} / day`}
+            </p>
+            <p className="mt-2 text-xs text-ink-muted">
+              Approaching 80% sends an in-app alert to org members. Responses include
+              X-RateLimit-* and X-Quota-*-Day headers.
+            </p>
+          </div>
+        ) : null}
+
         {canEdit ? (
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
@@ -218,14 +295,35 @@ export function SettingsBiKeysClient({ canEdit }: Props) {
               {keys.map((k) => (
                 <li
                   key={k.id}
-                  className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between"
                 >
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm text-ink">{k.name}</p>
                     <p className="mt-1 font-mono text-xs text-ink-muted tabular-nums">
                       {k.apiKeyPrefix ?? "—"}… · {k.status}
                       {k.lastUsedAt ? ` · last used ${formatWhen(k.lastUsedAt)}` : ""}
                     </p>
+                    {k.status === "active" ? (
+                      <div className="mt-2 max-w-sm">
+                        <QuotaBar
+                          label="Hour"
+                          used={k.callsThisHour}
+                          limit={k.quotaLimitPerHour}
+                          percent={k.percentHour}
+                        />
+                        <QuotaBar
+                          label="Day"
+                          used={k.callsToday}
+                          limit={k.quotaLimitPerDay}
+                          percent={k.percentDay}
+                        />
+                        {k.allowedIps && k.allowedIps.length > 0 ? (
+                          <p className="mt-2 font-mono text-xs text-ink-muted tabular-nums">
+                            IP allowlist: {k.allowedIps.join(", ")}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
                   {canEdit && k.status === "active" ? (
                     <Button

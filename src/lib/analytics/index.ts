@@ -107,6 +107,33 @@ export type {
 export { loadEmissionsByPeriod } from "./loadEmissionsByPeriod";
 
 export {
+  COMPARE_TYPES,
+  COMPARE_PRESETS,
+  accumulateByKey,
+  calculateChange,
+  compareGrouped,
+  compareMultiPeriod,
+  compareTwoTotals,
+  comparisonToCsv,
+  dimensionFromNote,
+  isCompareType,
+  resolvePresetYears,
+  sumMap,
+} from "./compare";
+
+export type {
+  ChangeStats,
+  ComparePreset,
+  CompareRow,
+  CompareType,
+  ComparisonResult,
+  GroupedComparison,
+  MultiPeriodComparison,
+  PeriodSlice,
+  YoYComparison,
+} from "./compare";
+
+export {
   calculateEmissionsIntensity,
   calculateEmissionsPerRevenue,
   calculateEmissionsPerEmployee,

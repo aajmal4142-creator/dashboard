@@ -150,6 +150,12 @@ export interface Config {
     'green-taxonomy-assessments': GreenTaxonomyAssessment;
     'report-embed-tokens': ReportEmbedToken;
     'iot-gateways': IotGateway;
+    notifications: Notification;
+    'dashboard-layouts': DashboardLayout;
+    'alert-rules': AlertRule;
+    'slack-integrations': SlackIntegration;
+    automations: Automation;
+    'automation-runs': AutomationRun;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -240,6 +246,12 @@ export interface Config {
     'green-taxonomy-assessments': GreenTaxonomyAssessmentsSelect<false> | GreenTaxonomyAssessmentsSelect<true>;
     'report-embed-tokens': ReportEmbedTokensSelect<false> | ReportEmbedTokensSelect<true>;
     'iot-gateways': IotGatewaysSelect<false> | IotGatewaysSelect<true>;
+    notifications: NotificationsSelect<false> | NotificationsSelect<true>;
+    'dashboard-layouts': DashboardLayoutsSelect<false> | DashboardLayoutsSelect<true>;
+    'alert-rules': AlertRulesSelect<false> | AlertRulesSelect<true>;
+    'slack-integrations': SlackIntegrationsSelect<false> | SlackIntegrationsSelect<true>;
+    automations: AutomationsSelect<false> | AutomationsSelect<true>;
+    'automation-runs': AutomationRunsSelect<false> | AutomationRunsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -293,6 +305,10 @@ export interface User {
   lastName?: string | null;
   avatarUrl?: string | null;
   lastSeenAt?: string | null;
+  /**
+   * UI language preference (en | hi)
+   */
+  language?: ('en' | 'hi') | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -672,6 +688,22 @@ export interface DerivedMetricDefinition {
   label: string;
   description: string;
   unit: string;
+  /**
+   * System rows are seeded ESRS mappings. Custom rows are org formulas.
+   */
+  source: 'system' | 'custom';
+  /**
+   * Required for custom metrics. Empty for system registry rows.
+   */
+  organisation?: (string | null) | Organisation;
+  /**
+   * User formula, e.g. "(electricity_kwh) / employees_total". Required when source is custom.
+   */
+  formula?: string | null;
+  category?: ('intensity' | 'efficiency' | 'ratio' | 'total' | 'other') | null;
+  enabled?: boolean | null;
+  usageCount?: number | null;
+  createdBy?: (string | null) | User;
   frameworkMappings?:
     | {
         framework: 'CSRD_SET1' | 'CSRD_SIMPLIFIED' | 'BRSR' | 'VSME' | 'GRI' | 'ISSB_S1' | 'ISSB_S2' | 'EU_TAXONOMY';
@@ -791,6 +823,18 @@ export interface Datapoint {
   enteredBy?: (string | null) | User;
   enteredAt?: string | null;
   note?: string | null;
+  /**
+   * Compact lineage graph snapshot refreshed on write (sources → transforms → result).
+   */
+  lineageSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -3728,7 +3772,8 @@ export interface SavedFilter {
   owner: string | User;
   name: string;
   description?: string | null;
-  resourceType: 'suppliers' | 'datapoints' | 'reports' | 'audit-logs' | 'users' | 'materiality' | 'obligations';
+  resourceType:
+    'suppliers' | 'datapoints' | 'reports' | 'audit-logs' | 'users' | 'materiality' | 'obligations' | 'search';
   /**
    * Query conditions for the filter
    */
@@ -3773,7 +3818,7 @@ export interface BulkOperation {
   id: string;
   organisation: string | Organisation;
   actor: string | User;
-  operationType: 'delete' | 'update-status' | 'assign' | 'email-reminder' | 'export';
+  operationType: 'delete' | 'update-status' | 'assign' | 'email-reminder' | 'export' | 'update';
   resourceType: 'suppliers' | 'datapoints' | 'users';
   /**
    * Array of resource IDs affected
@@ -3815,8 +3860,22 @@ export interface BulkOperation {
     | number
     | boolean
     | null;
+  /**
+   * Snapshot of items after operation for redo
+   */
+  afterSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   canUndo?: boolean | null;
+  canRedo?: boolean | null;
   undoneAt?: string | null;
+  redoneAt?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -4072,7 +4131,7 @@ export interface DataQualityRule {
    * Rule description and business logic
    */
   description?: string | null;
-  ruleType: 'range' | 'regex' | 'business' | 'cross_field' | 'uniqueness' | 'referential';
+  ruleType: 'range' | 'required' | 'pattern' | 'regex' | 'business' | 'cross_field' | 'uniqueness' | 'referential';
   appliesTo: 'datapoints' | 'scope3' | 'supplier' | 'emissions';
   /**
    * Rule configuration (varies by type)
@@ -4086,7 +4145,18 @@ export interface DataQualityRule {
     | number
     | boolean
     | null;
+  /**
+   * Active = enabled. Inactive = disabled.
+   */
   status?: ('active' | 'inactive' | 'testing') | null;
+  /**
+   * Error blocks datapoint approval; warning is advisory.
+   */
+  severity?: ('error' | 'warning') | null;
+  /**
+   * Custom message shown when the rule fails
+   */
+  errorMessage?: string | null;
   priority?: ('low' | 'medium' | 'high' | 'critical') | null;
   action?: ('flag' | 'correct' | 'block' | 'warn') | null;
   /**
@@ -5718,6 +5788,42 @@ export interface BiApiKey {
    * When the key was revoked
    */
   revokedAt?: string | null;
+  /**
+   * Optional per-key hour override. Empty uses plan default (free 10 / pro 500 / consultant unlimited).
+   */
+  quotaLimitPerHour?: number | null;
+  /**
+   * Optional per-key day override. Empty uses plan default (free 100 / pro 10_000 / consultant unlimited).
+   */
+  quotaLimitPerDay?: number | null;
+  /**
+   * Next UTC day boundary when daily usage counters reset for display
+   */
+  quotaResetAt?: string | null;
+  /**
+   * Approximate calls in the current UTC hour (settings display)
+   */
+  callsThisHour?: number | null;
+  /**
+   * Approximate calls since last UTC day reset (settings display)
+   */
+  callsToday?: number | null;
+  /**
+   * When the approaching-limit notification was last sent
+   */
+  quotaWarningSentAt?: string | null;
+  /**
+   * Optional IP whitelist. Empty = all IPs allowed.
+   */
+  allowedIps?:
+    | {
+        /**
+         * Client IP (exact match)
+         */
+        ip: string;
+        id?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -5970,8 +6076,39 @@ export interface ScheduledReport {
   };
   recipients: {
     email: string;
+    /**
+     * Recipient opted out via unsubscribe link
+     */
+    unsubscribed?: boolean | null;
+    unsubscribedAt?: string | null;
     id?: string | null;
   }[];
+  /**
+   * Per-recipient send outcomes (newest first; capped in application code)
+   */
+  deliveryHistory?:
+    | {
+        /**
+         * Schedule slot (nextRunAt) this delivery belonged to
+         */
+        runAt: string;
+        sentAt: string;
+        email: string;
+        status: 'sent' | 'failed' | 'skipped';
+        error?: string | null;
+        /**
+         * Open-tracking pixel id
+         */
+        trackingId?: string | null;
+        openCount?: number | null;
+        openedAt?: string | null;
+        /**
+         * Resend message id when available
+         */
+        providerMessageId?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   format: 'pdf' | 'csv' | 'json' | 'xml';
   status: 'active' | 'paused' | 'completed';
   /**
@@ -6088,6 +6225,231 @@ export interface ReportEmbedToken {
    * Set when the token is revoked; access denied thereafter
    */
   revokedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notifications".
+ */
+export interface Notification {
+  id: string;
+  userId: string | User;
+  organisationId: string | Organisation;
+  type: 'datapoint_approved' | 'report_ready' | 'audit_complete' | 'alert_triggered' | 'supplier_response';
+  title: string;
+  message: string;
+  /**
+   * e.g. datapoint, report, audit
+   */
+  resourceType: string;
+  resourceId: string;
+  isRead: boolean;
+  readAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "dashboard-layouts".
+ */
+export interface DashboardLayout {
+  id: string;
+  userId: string | User;
+  organisationId: string | Organisation;
+  name: string;
+  isDefault: boolean;
+  /**
+   * Ordered widget definitions (chart | metric | table | list)
+   */
+  widgets:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "alert-rules".
+ */
+export interface AlertRule {
+  id: string;
+  organisation: string | Organisation;
+  name: string;
+  enabled: boolean;
+  /**
+   * threshold | consecutive | percent_change | cross_metric condition object
+   */
+  condition:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  actions: ('notify_user' | 'send_email' | 'post_slack')[];
+  muted: boolean;
+  /**
+   * When set, mute expires at this time. Null = indefinite while muted.
+   */
+  mutedUntil?: string | null;
+  triggeredCount: number;
+  lastTriggeredAt?: string | null;
+  lastTriggeredMessage?: string | null;
+  createdBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "slack-integrations".
+ */
+export interface SlackIntegration {
+  id: string;
+  organisationId: string | Organisation;
+  status: 'pending' | 'connected' | 'disconnected' | 'failed';
+  /**
+   * Slack workspace (team) ID
+   */
+  teamId?: string | null;
+  /**
+   * Slack workspace name
+   */
+  teamName?: string | null;
+  /**
+   * Bot OAuth token (AES-256-GCM encrypted at rest)
+   */
+  botToken?: string | null;
+  /**
+   * Installed bot user ID
+   */
+  botUserId?: string | null;
+  /**
+   * Default channel for alert posts
+   */
+  defaultChannelId?: string | null;
+  /**
+   * Default channel display name
+   */
+  defaultChannelName?: string | null;
+  /**
+   * Optional per-event channel overrides
+   */
+  channelMappings?:
+    | {
+        event: 'alert_triggered' | 'datapoint_approved' | 'report_ready' | 'audit_complete';
+        channelId: string;
+        channelName?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  enableSlashCommands?: boolean | null;
+  enableInteractiveButtons?: boolean | null;
+  installedAt?: string | null;
+  installedBy?: (string | null) | User;
+  lastError?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * If-then automation rules: trigger + conditions + actions
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "automations".
+ */
+export interface Automation {
+  id: string;
+  organisation: string | Organisation;
+  name: string;
+  enabled: boolean;
+  triggerType: 'datapoint_approved' | 'alert_triggered' | 'schedule';
+  /**
+   * 5-field cron (minute hour day month weekday). Evaluated by cron every 5 minutes.
+   */
+  cronExpression?: string | null;
+  /**
+   * Array of { field, operator, value }. Empty array = match all events of this trigger.
+   */
+  conditions:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Array of { type, title?, message?, emailTo?, webhookUrl? }
+   */
+  actions:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  runCount: number;
+  lastRunAt?: string | null;
+  lastRunStatus?: ('success' | 'partial' | 'failed' | 'skipped') | null;
+  createdBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Light run log for automation executions
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "automation-runs".
+ */
+export interface AutomationRun {
+  id: string;
+  organisation: string | Organisation;
+  automation: string | Automation;
+  triggerType: 'datapoint_approved' | 'alert_triggered' | 'schedule';
+  status: 'success' | 'partial' | 'failed' | 'skipped';
+  matched: boolean;
+  actionsRun?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  actionsSkipped?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  error?: string | null;
+  /**
+   * Event payload snapshot (sanitized)
+   */
+  context?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -6446,6 +6808,30 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'iot-gateways';
         value: string | IotGateway;
+      } | null)
+    | ({
+        relationTo: 'notifications';
+        value: string | Notification;
+      } | null)
+    | ({
+        relationTo: 'dashboard-layouts';
+        value: string | DashboardLayout;
+      } | null)
+    | ({
+        relationTo: 'alert-rules';
+        value: string | AlertRule;
+      } | null)
+    | ({
+        relationTo: 'slack-integrations';
+        value: string | SlackIntegration;
+      } | null)
+    | ({
+        relationTo: 'automations';
+        value: string | Automation;
+      } | null)
+    | ({
+        relationTo: 'automation-runs';
+        value: string | AutomationRun;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -6499,6 +6885,7 @@ export interface UsersSelect<T extends boolean = true> {
   lastName?: T;
   avatarUrl?: T;
   lastSeenAt?: T;
+  language?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -6708,6 +7095,13 @@ export interface DerivedMetricDefinitionsSelect<T extends boolean = true> {
   label?: T;
   description?: T;
   unit?: T;
+  source?: T;
+  organisation?: T;
+  formula?: T;
+  category?: T;
+  enabled?: T;
+  usageCount?: T;
+  createdBy?: T;
   frameworkMappings?:
     | T
     | {
@@ -6777,6 +7171,7 @@ export interface DatapointsSelect<T extends boolean = true> {
   enteredBy?: T;
   enteredAt?: T;
   note?: T;
+  lineageSnapshot?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -8047,8 +8442,11 @@ export interface BulkOperationsSelect<T extends boolean = true> {
   progressPercent?: T;
   errorMessage?: T;
   beforeSnapshot?: T;
+  afterSnapshot?: T;
   canUndo?: T;
+  canRedo?: T;
   undoneAt?: T;
+  redoneAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -8150,6 +8548,8 @@ export interface DataQualityRulesSelect<T extends boolean = true> {
   appliesTo?: T;
   ruleConfig?: T;
   status?: T;
+  severity?: T;
+  errorMessage?: T;
   priority?: T;
   action?: T;
   version?: T;
@@ -8831,6 +9231,18 @@ export interface BiApiKeysSelect<T extends boolean = true> {
   createdBy?: T;
   lastUsedAt?: T;
   revokedAt?: T;
+  quotaLimitPerHour?: T;
+  quotaLimitPerDay?: T;
+  quotaResetAt?: T;
+  callsThisHour?: T;
+  callsToday?: T;
+  quotaWarningSentAt?: T;
+  allowedIps?:
+    | T
+    | {
+        ip?: T;
+        id?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }
@@ -8937,6 +9349,22 @@ export interface ScheduledReportsSelect<T extends boolean = true> {
     | T
     | {
         email?: T;
+        unsubscribed?: T;
+        unsubscribedAt?: T;
+        id?: T;
+      };
+  deliveryHistory?:
+    | T
+    | {
+        runAt?: T;
+        sentAt?: T;
+        email?: T;
+        status?: T;
+        error?: T;
+        trackingId?: T;
+        openCount?: T;
+        openedAt?: T;
+        providerMessageId?: T;
         id?: T;
       };
   format?: T;
@@ -9051,6 +9479,120 @@ export interface IotGatewaysSelect<T extends boolean = true> {
   failoverNote?: T;
   preferredFailoverGateway?: T;
   syncIndependent?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "notifications_select".
+ */
+export interface NotificationsSelect<T extends boolean = true> {
+  userId?: T;
+  organisationId?: T;
+  type?: T;
+  title?: T;
+  message?: T;
+  resourceType?: T;
+  resourceId?: T;
+  isRead?: T;
+  readAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "dashboard-layouts_select".
+ */
+export interface DashboardLayoutsSelect<T extends boolean = true> {
+  userId?: T;
+  organisationId?: T;
+  name?: T;
+  isDefault?: T;
+  widgets?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "alert-rules_select".
+ */
+export interface AlertRulesSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  enabled?: T;
+  condition?: T;
+  actions?: T;
+  muted?: T;
+  mutedUntil?: T;
+  triggeredCount?: T;
+  lastTriggeredAt?: T;
+  lastTriggeredMessage?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "slack-integrations_select".
+ */
+export interface SlackIntegrationsSelect<T extends boolean = true> {
+  organisationId?: T;
+  status?: T;
+  teamId?: T;
+  teamName?: T;
+  botToken?: T;
+  botUserId?: T;
+  defaultChannelId?: T;
+  defaultChannelName?: T;
+  channelMappings?:
+    | T
+    | {
+        event?: T;
+        channelId?: T;
+        channelName?: T;
+        id?: T;
+      };
+  enableSlashCommands?: T;
+  enableInteractiveButtons?: T;
+  installedAt?: T;
+  installedBy?: T;
+  lastError?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "automations_select".
+ */
+export interface AutomationsSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  enabled?: T;
+  triggerType?: T;
+  cronExpression?: T;
+  conditions?: T;
+  actions?: T;
+  runCount?: T;
+  lastRunAt?: T;
+  lastRunStatus?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "automation-runs_select".
+ */
+export interface AutomationRunsSelect<T extends boolean = true> {
+  organisation?: T;
+  automation?: T;
+  triggerType?: T;
+  status?: T;
+  matched?: T;
+  actionsRun?: T;
+  actionsSkipped?: T;
+  error?: T;
+  context?: T;
   updatedAt?: T;
   createdAt?: T;
 }

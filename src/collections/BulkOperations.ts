@@ -53,6 +53,7 @@ export const BulkOperations: CollectionConfig = {
         { label: "Assign", value: "assign" },
         { label: "Email Reminder", value: "email-reminder" },
         { label: "Export", value: "export" },
+        { label: "Update", value: "update" },
       ],
     },
     {
@@ -114,12 +115,28 @@ export const BulkOperations: CollectionConfig = {
       },
     },
     {
+      name: "afterSnapshot",
+      type: "json",
+      admin: {
+        description: "Snapshot of items after operation for redo",
+      },
+    },
+    {
       name: "canUndo",
       type: "checkbox",
       defaultValue: true,
     },
     {
+      name: "canRedo",
+      type: "checkbox",
+      defaultValue: false,
+    },
+    {
       name: "undoneAt",
+      type: "date",
+    },
+    {
+      name: "redoneAt",
       type: "date",
     },
   ],

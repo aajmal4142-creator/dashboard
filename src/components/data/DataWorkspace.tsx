@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { BulkCsvUpdateModal } from "@/components/data/BulkCsvUpdateModal";
+import { DatapointLineagePanel } from "@/components/data/DatapointLineagePanel";
 import { DatapointVersionHistory } from "@/components/data/DatapointVersionHistory";
 import { FrameworkChips } from "@/components/data/FrameworkChips";
 import { FrameworkCoveragePanel } from "@/components/data/FrameworkCoveragePanel";
@@ -26,6 +28,7 @@ import {
 } from "@/lib/frameworks";
 import { evidenceLabel, qualityLabel } from "@/lib/ui/displayLabels";
 import { cn } from "@/lib/utils";
+import { SAVE_DATAPOINT_EVENT } from "@/lib/keyboard";
 import { toast } from "sonner";
 
 const IMPORT_COLUMN_LABELS: Record<string, string> = {
@@ -53,6 +56,13 @@ export type DataRowState = {
   provenance?: DatapointProvenance | null;
 };
 
+type RowViolation = {
+  ruleName: string;
+  message: string;
+  severity: "error" | "warning";
+  fieldName: string;
+};
+
 type Teammate = { id: string; email: string; name: string };
 type Mode = "enter" | "spreadsheet";
 type SortKey = "metric" | "value" | "quality" | "evidence" | "owner";
@@ -71,6 +81,7 @@ export function DataWorkspace({
   region,
   year,
   canWrite,
+  canBulkActions = false,
   applicableFrameworks: applicable = [],
   emissionsStandard,
 }: {
@@ -80,6 +91,8 @@ export function DataWorkspace({
   region: string;
   year: number;
   canWrite: boolean;
+  /** Consultant bulk_actions entitlement — enables id-match CSV update. */
+  canBulkActions?: boolean;
   applicableFrameworks?: FrameworkId[];
   emissionsStandard?: string;
 }) {
@@ -139,6 +152,14 @@ export function DataWorkspace({
     label: string;
     metricKey: string;
   } | null>(null);
+  const [lineageTarget, setLineageTarget] = useState<{
+    id: string;
+    label: string;
+  } | null>(null);
+  const [lastFocusedMetric, setLastFocusedMetric] = useState<string | null>(null);
+  const [rowViolations, setRowViolations] = useState<Record<string, RowViolation[]>>({});
+  const [validating, setValidating] = useState(false);
+  const [bulkUpdateOpen, setBulkUpdateOpen] = useState(false);
 
   useEffect(() => {
     void fetch("/api/app/teammates")
@@ -146,6 +167,76 @@ export function DataWorkspace({
       .then((d: { teammates?: Teammate[] }) => setTeammates(d.teammates ?? []))
       .catch(() => undefined);
   }, []);
+
+  const validateRows = useCallback(
+    async (targets?: DataRowState[]) => {
+      const list = (targets ?? rows).filter(
+        (r) => r.quality !== "missing" || r.value != null,
+      );
+      if (list.length === 0) {
+        setRowViolations({});
+        return;
+      }
+      setValidating(true);
+      try {
+        const res = await fetch("/api/app/data/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            list.map((r) => ({
+              id: r.id ?? r.metricKey,
+              metricKey: r.metricKey,
+              value: r.value,
+              quality: r.quality,
+              unit: r.unit,
+              approvalState: r.approvalState,
+              provenance: r.provenance ?? null,
+            })),
+          ),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+          results?: Array<{
+            datapointId?: string | null;
+            violations?: RowViolation[];
+          }>;
+        };
+        if (!res.ok) {
+          setStatusTone("error");
+          setStatus(data.error ?? "Validation failed");
+          return;
+        }
+        setRowViolations((prev) => {
+          const next: Record<string, RowViolation[]> = targets ? { ...prev } : {};
+          if (targets) {
+            for (const r of targets) delete next[r.metricKey];
+          }
+          for (let i = 0; i < list.length; i++) {
+            const key = list[i].metricKey;
+            const result = data.results?.[i];
+            const violations = result?.violations ?? [];
+            if (violations.length > 0) next[key] = violations;
+          }
+          return next;
+        });
+        const failCount = (data.results ?? []).filter(
+          (r) => (r.violations?.length ?? 0) > 0,
+        ).length;
+        setStatusTone(failCount > 0 ? "error" : "ok");
+        setStatus(
+          failCount > 0
+            ? `${failCount} metric${failCount === 1 ? "" : "s"} failed validation rules`
+            : "All checked metrics passed validation rules",
+        );
+      } catch {
+        setStatusTone("error");
+        setStatus("Validation request failed");
+      } finally {
+        setValidating(false);
+      }
+    },
+    [rows],
+  );
 
   const derivedKeys = useMemo(() => new Set(DERIVED_METRICS.map((d) => d.key)), []);
 
@@ -243,9 +334,37 @@ export function DataWorkspace({
         setStatusTone("ok");
         setStatus(`Saved ${label}`);
       }
+      void validateRows([
+        {
+          ...row,
+          id: data.id ?? row.id,
+        },
+      ]);
     },
-    [canWrite, periodLocked, changeReason],
+    [canWrite, periodLocked, changeReason, validateRows],
   );
+
+  useEffect(() => {
+    const onSaveShortcut = () => {
+      const active = document.activeElement;
+      let metricKey: string | null = null;
+      if (active instanceof HTMLElement) {
+        metricKey = active.getAttribute("data-metric-key");
+        if (!metricKey) {
+          const host = active.closest("[data-metric-key]");
+          if (host instanceof HTMLElement) {
+            metricKey = host.getAttribute("data-metric-key");
+          }
+        }
+      }
+      metricKey = metricKey ?? lastFocusedMetric;
+      if (!metricKey) return;
+      const row = rows.find((r) => r.metricKey === metricKey);
+      if (row) void saveRow(row);
+    };
+    window.addEventListener(SAVE_DATAPOINT_EVENT, onSaveShortcut);
+    return () => window.removeEventListener(SAVE_DATAPOINT_EVENT, onSaveShortcut);
+  }, [rows, saveRow, lastFocusedMetric]);
 
   function updateRow(metricKey: string, patch: Partial<DataRowState>) {
     setRows((prev) =>
@@ -483,7 +602,7 @@ export function DataWorkspace({
     <div className="min-h-full bg-canvas">
       <div className="mx-auto w-full max-w-6xl p-4 md:p-6 lg:p-8">
         {/* Header */}
-        <header className="border-b-2 border-accent pb-5">
+        <header className="border-b-2 border-accent pb-5" data-tour="metrics-header">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">
@@ -498,7 +617,7 @@ export function DataWorkspace({
               </p>
             </div>
             {canWrite ? (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2" data-tour="metrics-mode">
                 <Button
                   type="button"
                   size="sm"
@@ -524,6 +643,17 @@ export function DataWorkspace({
                 >
                   Duplicate prior structure
                 </Button>
+                {canBulkActions ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={periodLocked}
+                    onClick={() => setBulkUpdateOpen(true)}
+                  >
+                    Bulk CSV update
+                  </Button>
+                ) : null}
               </div>
             ) : (
               <p className="text-[13px] text-ink-muted">View only</p>
@@ -545,7 +675,9 @@ export function DataWorkspace({
         </header>
 
         <div className="mt-6 space-y-4">
-          <FrameworkCoveragePanel summaries={coverage.byFramework} />
+          <div data-tour="metrics-coverage">
+            <FrameworkCoveragePanel summaries={coverage.byFramework} />
+          </div>
           {emissionsStandard ? (
             <p className="text-[12px] text-ink-muted">
               Applicable emission factors:{" "}
@@ -556,7 +688,10 @@ export function DataWorkspace({
           ) : null}
 
           {mode === "enter" ? (
-            <section className="w-full rounded-[6px] border border-rule bg-surface-1 p-4 md:p-5">
+            <section
+              className="w-full rounded-[6px] border border-rule bg-surface-1 p-4 md:p-5"
+              data-tour="metrics-table"
+            >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <label className="relative min-w-0 flex-1">
                   <span className="sr-only">Search metrics</span>
@@ -580,6 +715,15 @@ export function DataWorkspace({
                   />
                 </label>
                 <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={validating}
+                    onClick={() => void validateRows()}
+                  >
+                    {validating ? "Checking…" : "Check rules"}
+                  </Button>
                   <Button type="button" size="sm" variant="outline" onClick={exportCsv}>
                     Export
                   </Button>
@@ -737,9 +881,11 @@ export function DataWorkspace({
                                 type="text"
                                 inputMode="decimal"
                                 disabled={locked}
+                                data-metric-key={row.metricKey}
                                 className="w-24 rounded-md border border-rule bg-surface-1 px-2 py-1 font-data text-ink tabular-nums disabled:cursor-not-allowed"
                                 value={row.value ?? ""}
                                 aria-label={def.label}
+                                onFocus={() => setLastFocusedMetric(row.metricKey)}
                                 onPaste={(e) => void onPaste(e, row.metricKey)}
                                 onChange={(e) => {
                                   const raw = e.target.value.trim();
@@ -856,22 +1002,55 @@ export function DataWorkspace({
                           </td>
                           <td className="py-2.5 align-top">
                             <ApprovalChip state={row.approvalState} />
+                            {rowViolations[row.metricKey]?.length ? (
+                              <ul className="mt-1.5 space-y-1" role="list">
+                                {rowViolations[row.metricKey].map((v, idx) => (
+                                  <li
+                                    key={`${v.ruleName}-${idx}`}
+                                    className={cn(
+                                      "text-[10px] leading-snug",
+                                      v.severity === "error" ? "text-rust" : "text-amber",
+                                    )}
+                                  >
+                                    <span className="font-semibold uppercase tracking-[0.06em]">
+                                      {v.severity}
+                                    </span>
+                                    {": "}
+                                    {v.message}
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : null}
                           </td>
                           <td className="py-2.5 align-top">
                             {row.id ? (
-                              <button
-                                type="button"
-                                className="text-[11px] text-accent underline-offset-2 hover:underline"
-                                onClick={() =>
-                                  setHistoryTarget({
-                                    id: row.id!,
-                                    label: def.label,
-                                    metricKey: row.metricKey,
-                                  })
-                                }
-                              >
-                                Versions
-                              </button>
+                              <div className="flex flex-col items-start gap-1">
+                                <button
+                                  type="button"
+                                  className="text-[11px] text-accent underline-offset-2 hover:underline"
+                                  onClick={() =>
+                                    setHistoryTarget({
+                                      id: row.id!,
+                                      label: def.label,
+                                      metricKey: row.metricKey,
+                                    })
+                                  }
+                                >
+                                  Versions
+                                </button>
+                                <button
+                                  type="button"
+                                  className="text-[11px] text-accent underline-offset-2 hover:underline"
+                                  onClick={() =>
+                                    setLineageTarget({
+                                      id: row.id!,
+                                      label: def.label,
+                                    })
+                                  }
+                                >
+                                  Lineage
+                                </button>
+                              </div>
                             ) : (
                               <span className="text-[11px] text-ink-muted">—</span>
                             )}
@@ -892,7 +1071,7 @@ export function DataWorkspace({
               </p>
             </section>
           ) : (
-            <>
+            <div data-tour="metrics-table">
               {/* Template */}
               <section
                 id="metrics-template"
@@ -953,6 +1132,11 @@ export function DataWorkspace({
               <section className="mt-4 rounded-[6px] border border-rule bg-surface-1 p-4 md:p-5">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
                   Upload XLSX or CSV
+                </p>
+                <p className="mt-2 max-w-[66ch] text-[13px] text-ink-muted">
+                  Create or refresh rows by metric key. To change existing rows by
+                  datapoint id, use Bulk CSV update
+                  {canBulkActions ? " (header button)" : " (consultant plan)"}.
                 </p>
                 <label className="mt-3 block">
                   <span className="sr-only">Choose file</span>
@@ -1015,7 +1199,7 @@ export function DataWorkspace({
                   </div>
                 ) : null}
               </section>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -1047,6 +1231,31 @@ export function DataWorkspace({
             );
             setStatusTone("ok");
             setStatus(`Restored ${historyTarget.label} from prior version.`);
+          }}
+        />
+      ) : null}
+
+      {lineageTarget ? (
+        <DatapointLineagePanel
+          datapointId={lineageTarget.id}
+          metricLabel={lineageTarget.label}
+          open={Boolean(lineageTarget)}
+          onOpenChange={(open) => {
+            if (!open) setLineageTarget(null);
+          }}
+        />
+      ) : null}
+
+      {canBulkActions ? (
+        <BulkCsvUpdateModal
+          open={bulkUpdateOpen}
+          onOpenChange={setBulkUpdateOpen}
+          canWrite={canWrite}
+          periodLocked={periodLocked}
+          onApplied={() => {
+            setStatusTone("ok");
+            setStatus("Bulk CSV update applied. Reloading…");
+            window.location.reload();
           }}
         />
       ) : null}

@@ -16,6 +16,7 @@ import config from "@/payload.config";
 import { detectReportDataGaps } from "./dataGaps";
 import { buildComplianceDeclaration, buildEsrsDisclosures } from "./esrsNarrative";
 import { buildReportForecastSection } from "./forecastSection";
+import { evaluateOrgCustomMetricsForSnapshot } from "./customMetricsSnapshot";
 import { REPORT_DISCLAIMER, type ReportSnapshot, type ScopeBreakdownRow } from "./types";
 
 function relationId(value: unknown): string | null {
@@ -347,6 +348,23 @@ export async function buildReportSnapshot(opts: {
     scope3EstimateTco2e: composition.estimateTco2e,
   };
 
+  let customMetrics: NonNullable<ReportSnapshot["customMetrics"]> = [];
+  try {
+    customMetrics = await evaluateOrgCustomMetricsForSnapshot(payload, {
+      organisationId: opts.organisationId,
+      datapoints: dps.docs,
+      emissions: {
+        scope1: emissions.scope1,
+        scope2: emissions.scope2,
+        scope3: emissions.scope3,
+        total: emissions.total,
+      },
+    });
+  } catch (err) {
+    console.error("[reports] custom metrics evaluation failed", err);
+    customMetrics = [];
+  }
+
   const esrsDisclosures = buildEsrsDisclosures({
     organisationName: org.name,
     scores: calc.scores,
@@ -466,6 +484,7 @@ export async function buildReportSnapshot(opts: {
     },
     complianceDeclaration,
     forecast,
+    customMetrics: customMetrics.length > 0 ? customMetrics : undefined,
   };
 }
 

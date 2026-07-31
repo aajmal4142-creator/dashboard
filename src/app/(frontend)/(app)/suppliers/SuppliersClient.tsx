@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 
+import { BulkHistoryPanel } from "@/components/bulk/BulkHistoryPanel";
+import { SelectableTable } from "@/components/bulk/SelectableTable";
 import {
   EmptyState,
   PageCard,
@@ -12,6 +14,7 @@ import {
 import { AppField, AppSelectNative } from "@/components/ui/AppField";
 import { Button } from "@/components/ui/button";
 import { Metric } from "@/components/ui/metric";
+import { useBulkOperations } from "@/lib/hooks/useBulkOperations";
 import { requestStatusLabel } from "@/lib/ui/displayLabels";
 
 export type SupplierRow = {
@@ -59,6 +62,7 @@ export function SuppliersClient({
     annualSpend: "",
     emailConsent: false,
   });
+  const { createBulkOp } = useBulkOperations();
 
   function note(message: string, tone: "neutral" | "error" | "ok" = "neutral") {
     setStatusTone(tone);
@@ -216,6 +220,60 @@ export function SuppliersClient({
     );
   }
 
+  async function handleBulkAction(
+    action: string,
+    itemIds: string[],
+    items: Array<{ id: string; [key: string]: unknown }>,
+  ) {
+    if (!canWrite) {
+      note("Viewers cannot run bulk actions.", "error");
+      throw new Error("Forbidden");
+    }
+
+    if (action === "export") {
+      const selected = rows.filter((r) => itemIds.includes(r.id));
+      const header = "name,contactEmail,category,annualSpend,requestStatus";
+      const lines = selected.map((r) =>
+        [r.name, r.contactEmail, r.category, r.annualSpend ?? "", r.requestStatus]
+          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+          .join(","),
+      );
+      const blob = new Blob([[header, ...lines].join("\n")], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "suppliers-export.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+      note(`Exported ${selected.length} suppliers`, "ok");
+      return;
+    }
+
+    if (action === "email-reminder") {
+      note("Sending reminders…");
+      const res = await fetch("/api/app/suppliers/reminders", { method: "POST" });
+      if (!res.ok) {
+        note("Could not send reminders.", "error");
+        throw new Error("Reminder failed");
+      }
+      await createBulkOp(action, "suppliers", itemIds, {}, items);
+      note("Reminders sent", "ok");
+      await refresh();
+      return;
+    }
+
+    const changes = action === "update-status" ? { requestStatus: "pending" } : {};
+    const op = await createBulkOp(action, "suppliers", itemIds, changes, items);
+    if (!op) {
+      note("Bulk operation failed. Check plan entitlements and try again.", "error");
+      throw new Error("Bulk operation failed");
+    }
+    note(`Bulk ${action} completed for ${itemIds.length} suppliers`, "ok");
+    await refresh();
+  }
+
   return (
     <PageFrame
       eyebrow="Supplier chains"
@@ -354,104 +412,132 @@ export function SuppliersClient({
             body="Add a supplier with a contact email, then send them a one-link request. Their reply lands in Scope 3 — they do not need an account."
           />
         ) : (
-          <PageCard title="Suppliers">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-[12px]">
-                <thead>
-                  <tr className="border-b-2 border-rule-strong">
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Name
-                    </th>
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Category
-                    </th>
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Spend
-                    </th>
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Status
-                    </th>
-                    <th className="py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr
-                      key={r.id}
-                      className="border-b border-rule transition-colors last:border-b-0 hover:bg-surface-2"
-                    >
-                      <td className="py-2.5 pr-2 align-top">
-                        <div className="font-medium text-ink">
-                          <Link
-                            href={`/suppliers/${r.id}/tier-emissions`}
-                            className="text-ink underline-offset-2 hover:text-accent hover:underline"
-                          >
-                            {r.name}
-                          </Link>
-                        </div>
-                        <div className="text-[11px] text-ink-muted">{r.contactEmail}</div>
-                      </td>
-                      <td className="py-2.5 pr-2 align-top text-ink-muted">
-                        {r.category}
-                      </td>
-                      <td className="py-2.5 pr-2 align-top font-data text-ink">
-                        {r.annualSpend === null ? "—" : r.annualSpend.toLocaleString()}
-                      </td>
-                      <td className="py-2.5 pr-2 align-top text-ink-muted">
-                        {requestStatusLabel(r.requestStatus)}
-                      </td>
-                      <td className="py-2.5 align-top">
-                        {canWrite ? (
-                          <div className="flex flex-wrap gap-2">
+          <>
+            <PageCard title="Suppliers">
+              <SelectableTable
+                items={rows}
+                resourceType="suppliers"
+                enableBulkActions={canWrite}
+                onOperationComplete={() => void refresh()}
+                onBulkAction={
+                  canWrite
+                    ? (action, itemIds, items) => handleBulkAction(action, itemIds, items)
+                    : undefined
+                }
+                columns={[
+                  {
+                    key: "name",
+                    label: "Name",
+                    render: (_value, item) => {
+                      const r = item as unknown as SupplierRow;
+                      return (
+                        <div>
+                          <div className="font-medium text-ink">
                             <Link
                               href={`/suppliers/${r.id}/tier-emissions`}
-                              className="text-[12px] font-medium text-accent underline-offset-2 hover:underline"
+                              className="text-ink underline-offset-2 hover:text-accent hover:underline"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              Tier 2 estimate
+                              {r.name}
                             </Link>
-                            {r.requestStatus !== "submitted" ? (
-                              <button
-                                type="button"
-                                className="text-[12px] font-medium text-accent underline-offset-2 hover:underline"
-                                onClick={() => void sendRequest(r.id)}
-                              >
-                                {r.requestStatus === "not_sent"
-                                  ? "Send request"
-                                  : "Resend"}
-                              </button>
-                            ) : null}
-                            <button
-                              type="button"
-                              className="text-[12px] text-ink underline-offset-2 hover:underline"
-                              onClick={() => copyChase(r)}
-                            >
-                              Copy chase
-                            </button>
-                            <button
-                              type="button"
-                              className="text-[12px] text-ink-muted hover:text-rust"
-                              onClick={() => void remove(r.id)}
-                            >
-                              Remove
-                            </button>
                           </div>
-                        ) : (
+                          <div className="text-[11px] text-ink-muted">
+                            {r.contactEmail}
+                          </div>
+                        </div>
+                      );
+                    },
+                  },
+                  {
+                    key: "category",
+                    label: "Category",
+                    render: (value) => (
+                      <span className="text-ink-muted">{String(value)}</span>
+                    ),
+                  },
+                  {
+                    key: "annualSpend",
+                    label: "Spend",
+                    render: (value) => (
+                      <span className="font-data text-ink">
+                        {value == null ? "—" : Number(value).toLocaleString()}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "requestStatus",
+                    label: "Status",
+                    render: (value) => (
+                      <span className="text-ink-muted">
+                        {requestStatusLabel(String(value))}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: "id",
+                    label: "Actions",
+                    render: (_value, item) => {
+                      const r = item as unknown as SupplierRow;
+                      if (!canWrite) {
+                        return (
                           <Link
                             href={`/suppliers/${r.id}/tier-emissions`}
                             className="text-[12px] text-accent underline-offset-2 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             Tier 2
                           </Link>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </PageCard>
+                        );
+                      }
+                      return (
+                        <div
+                          className="flex flex-wrap gap-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Link
+                            href={`/suppliers/${r.id}/tier-emissions`}
+                            className="text-[12px] font-medium text-accent underline-offset-2 hover:underline"
+                          >
+                            Tier 2 estimate
+                          </Link>
+                          {r.requestStatus !== "submitted" ? (
+                            <button
+                              type="button"
+                              className="text-[12px] font-medium text-accent underline-offset-2 hover:underline"
+                              onClick={() => void sendRequest(r.id)}
+                            >
+                              {r.requestStatus === "not_sent" ? "Send request" : "Resend"}
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="text-[12px] text-ink underline-offset-2 hover:underline"
+                            onClick={() => copyChase(r)}
+                          >
+                            Copy chase
+                          </button>
+                          <button
+                            type="button"
+                            className="text-[12px] text-ink-muted hover:text-rust"
+                            onClick={() => void remove(r.id)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      );
+                    },
+                  },
+                ]}
+              />
+            </PageCard>
+
+            {canWrite ? (
+              <BulkHistoryPanel
+                resourceType="suppliers"
+                onChanged={() => void refresh()}
+              />
+            ) : null}
+          </>
         )}
       </div>
     </PageFrame>

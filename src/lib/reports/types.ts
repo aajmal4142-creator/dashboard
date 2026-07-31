@@ -75,6 +75,15 @@ export type ReportSnapshot = {
   complianceDeclaration?: string;
   /** Predictive emissions forecast (S6.5) — omitted when history is insufficient. */
   forecast?: ReportForecastSection | null;
+  /** Org-authored custom derived metrics evaluated against this period's data. */
+  customMetrics?: Array<{
+    key: string;
+    label: string;
+    value: number | null;
+    unit?: string | null;
+    quality: "measured" | "estimated" | "missing";
+    error?: string;
+  }>;
 };
 
 export function diffSnapshots(

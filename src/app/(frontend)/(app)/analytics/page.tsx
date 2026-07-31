@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { PageFrame } from "@/components/shell/PageFrame";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -107,7 +108,14 @@ export default function AnalyticsPage() {
           <AlertDescription>
             This analytics suite provides peer benchmarking, scenario modeling,
             decarbonization pathways, trend forecasting, and intensity metrics for
-            strategic decision-making.
+            strategic decision-making. For YoY and dimensional splits, open{" "}
+            <Link
+              href="/analytics/compare"
+              className="font-medium text-accent underline-offset-2 hover:underline"
+            >
+              Comparison tools
+            </Link>
+            .
           </AlertDescription>
         </Alert>
 

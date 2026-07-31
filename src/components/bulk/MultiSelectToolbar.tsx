@@ -12,7 +12,7 @@ import { ChevronDown, Trash2, Mail, Download } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-interface MultiSelectToolbarProps {
+type MultiSelectToolbarProps = {
   selectedCount: number;
   totalCount: number;
   onSelectAll: (checked: boolean) => void;
@@ -20,7 +20,7 @@ interface MultiSelectToolbarProps {
   onBulkAction: (action: string, itemIds: string[]) => Promise<void>;
   selectedIds: string[];
   resourceType: "suppliers" | "datapoints" | "users";
-}
+};
 
 export function MultiSelectToolbar({
   selectedCount,
@@ -53,7 +53,7 @@ export function MultiSelectToolbar({
   };
 
   return (
-    <div className="flex items-center gap-4 px-4 py-3 bg-blue-50 border-b rounded-t-lg">
+    <div className="flex items-center gap-4 border-b border-rule bg-accent-quiet px-4 py-3">
       <Checkbox
         checked={
           selectedCount > 0 && selectedCount < totalCount
@@ -62,13 +62,13 @@ export function MultiSelectToolbar({
         }
         onCheckedChange={onSelectAll}
       />
-      <span className="text-sm font-medium">
+      <span className="text-sm font-medium text-ink">
         {selectedCount > 0
           ? `${selectedCount} selected`
           : `Select items (${totalCount} total)`}
       </span>
 
-      {selectedCount > 0 && (
+      {selectedCount > 0 ? (
         <>
           <div className="flex-1" />
           <DropdownMenu>
@@ -78,22 +78,22 @@ export function MultiSelectToolbar({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {resourceType === "suppliers" && (
+              {resourceType === "suppliers" ? (
                 <>
-                  <DropdownMenuItem onClick={() => handleAction("email-reminder")}>
-                    <Mail className="mr-2 h-4 w-4" /> Send Reminder Email
+                  <DropdownMenuItem onClick={() => void handleAction("email-reminder")}>
+                    <Mail className="mr-2 h-4 w-4" /> Send reminder email
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAction("update-status")}>
-                    Update Status
+                  <DropdownMenuItem onClick={() => void handleAction("update-status")}>
+                    Update status
                   </DropdownMenuItem>
                 </>
-              )}
-              <DropdownMenuItem onClick={() => handleAction("export")}>
+              ) : null}
+              <DropdownMenuItem onClick={() => void handleAction("export")}>
                 <Download className="mr-2 h-4 w-4" /> Export
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => handleAction("delete")}
-                className="text-red-600"
+                onClick={() => void handleAction("delete")}
+                className="text-rust"
               >
                 <Trash2 className="mr-2 h-4 w-4" /> Delete
               </DropdownMenuItem>
@@ -104,7 +104,7 @@ export function MultiSelectToolbar({
             Clear
           </Button>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

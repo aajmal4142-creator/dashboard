@@ -3,6 +3,7 @@ import { getPayload } from "payload";
 
 import { DataWorkspace, type DataRowState } from "@/components/data/DataWorkspace";
 import { getCurrentContext } from "@/lib/auth";
+import { can } from "@/lib/billing";
 import type { Quality } from "@/lib/calc";
 import { DATA_METRICS } from "@/lib/data";
 import { loadOrgEmissionFactors } from "@/lib/factors";
@@ -106,6 +107,7 @@ export default async function DataPage() {
       region={ctx.activeOrg.country || "GB"}
       year={year}
       canWrite={ctx.role !== "viewer" && ctx.role !== null}
+      canBulkActions={can(ctx.activeOrg.plan, "bulk_actions")}
       applicableFrameworks={frameworksApplicable}
       emissionsStandard={emissionsStandard}
     />

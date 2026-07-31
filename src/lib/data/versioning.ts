@@ -41,6 +41,34 @@ export type DatapointFieldDiff = {
   newValue: string | number | null;
 };
 
+export type VersionCompareField = {
+  field: DatapointVersionField;
+  a: string | number | null;
+  b: string | number | null;
+  changed: boolean;
+};
+
+export type VersionCompareResult = {
+  fields: VersionCompareField[];
+  /** Map form for API consumers: `{ value: { a, b, changed }, ... }` */
+  fieldMap: Record<
+    DatapointVersionField,
+    { a: string | number | null; b: string | number | null; changed: boolean }
+  >;
+  changedCount: number;
+  identical: boolean;
+};
+
+/** Prefer post-change snapshot; fall back to pre-change (e.g. delete versions). */
+export function effectiveVersionSnapshot(
+  oldValue: DatapointSnapshot | null | undefined,
+  newValue: DatapointSnapshot | null | undefined,
+): DatapointSnapshot | null {
+  if (newValue) return newValue;
+  if (oldValue) return oldValue;
+  return null;
+}
+
 function relationId(value: unknown): string | null {
   if (!value) return null;
   if (typeof value === "string") return value;
@@ -108,6 +136,36 @@ export function snapshotsEqual(
   b: DatapointSnapshot | null,
 ): boolean {
   return diffDatapointSnapshots(a, b).length === 0;
+}
+
+/**
+ * Side-by-side A/B field comparison of two version snapshots.
+ * Includes unchanged fields so the UI can render a full two-column view.
+ */
+export function compareDatapointSnapshots(
+  snapA: DatapointSnapshot | null,
+  snapB: DatapointSnapshot | null,
+): VersionCompareResult {
+  const fields: VersionCompareField[] = [];
+  const fieldMap = {} as VersionCompareResult["fieldMap"];
+  let changedCount = 0;
+
+  for (const field of DATAPOINT_VERSION_FIELDS) {
+    const a = snapA ? fieldDisplay(snapA[field]) : null;
+    const b = snapB ? fieldDisplay(snapB[field]) : null;
+    const changed = a !== b;
+    if (changed) changedCount += 1;
+    const entry = { field, a, b, changed };
+    fields.push(entry);
+    fieldMap[field] = { a, b, changed };
+  }
+
+  return {
+    fields,
+    fieldMap,
+    changedCount,
+    identical: changedCount === 0,
+  };
 }
 
 /** Build Payload update data to restore a snapshot onto a live datapoint. */

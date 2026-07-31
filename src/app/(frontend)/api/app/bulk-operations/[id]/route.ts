@@ -2,14 +2,28 @@ import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
+import {
+  buildRedoPreview,
+  buildUndoPreview,
+  parseBulkSnapshot,
+} from "@/lib/bulk/snapshot";
 import config from "@/payload.config";
+
+function isOpActor(
+  actor: string | { id: string } | null | undefined,
+  userId: string,
+): boolean {
+  if (!actor) return false;
+  if (typeof actor === "string") return actor === userId;
+  return actor.id === userId;
+}
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const ctx = await getCurrentContext();
-  if (!ctx.user) {
+  if (!ctx.user || !ctx.activeOrg) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -25,12 +39,22 @@ export async function GET(
     return NextResponse.json({ error: "Operation not found" }, { status: 404 });
   }
 
-  const isInitiator =
-    op.actor === ctx.user.id ||
-    (typeof op.actor === "object" && op.actor && op.actor.id === ctx.user.id);
-  if (!isInitiator) {
+  const orgId =
+    typeof op.organisation === "object" && op.organisation
+      ? op.organisation.id
+      : op.organisation;
+  if (orgId !== ctx.activeOrg.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  if (!isOpActor(op.actor, ctx.user.id) && ctx.role !== "owner" && ctx.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const beforeSnapshot = parseBulkSnapshot(op.beforeSnapshot);
+  const afterSnapshot = parseBulkSnapshot(op.afterSnapshot);
+  const canUndo = Boolean(op.canUndo) && !op.undoneAt;
+  const canRedo = Boolean(op.canRedo) && Boolean(op.undoneAt) && !op.redoneAt;
 
   return NextResponse.json({
     operation: {
@@ -42,7 +66,25 @@ export async function GET(
       progressPercent: op.progressPercent,
       errorMessage: op.errorMessage,
       createdAt: op.createdAt,
-      canUndo: op.canUndo && !op.undoneAt,
+      canUndo,
+      canRedo,
+      undoneAt: op.undoneAt ?? null,
+      redoneAt: op.redoneAt ?? null,
+      undoPreview: buildUndoPreview({
+        operationType: op.operationType,
+        resourceType: op.resourceType,
+        beforeSnapshot,
+        afterSnapshot,
+        canUndo: Boolean(op.canUndo),
+        undoneAt: op.undoneAt,
+      }),
+      redoPreview: buildRedoPreview({
+        operationType: op.operationType,
+        resourceType: op.resourceType,
+        beforeSnapshot,
+        afterSnapshot,
+        canRedo,
+      }),
     },
   });
 }
@@ -52,7 +94,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const ctx = await getCurrentContext();
-  if (!ctx.user) {
+  if (!ctx.user || !ctx.activeOrg) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -69,10 +111,15 @@ export async function PATCH(
     return NextResponse.json({ error: "Operation not found" }, { status: 404 });
   }
 
-  const isInitiator =
-    op.actor === ctx.user.id ||
-    (typeof op.actor === "object" && op.actor && op.actor.id === ctx.user.id);
-  if (!isInitiator) {
+  const orgId =
+    typeof op.organisation === "object" && op.organisation
+      ? op.organisation.id
+      : op.organisation;
+  if (orgId !== ctx.activeOrg.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (!isOpActor(op.actor, ctx.user.id) && ctx.role !== "owner" && ctx.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

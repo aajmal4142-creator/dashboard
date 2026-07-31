@@ -2,17 +2,26 @@ import { getPayload, type Payload } from "payload";
 import { NextResponse } from "next/server";
 
 import { writeAuditLog } from "@/lib/audit/write";
+import { incrementApiUsage } from "@/lib/billing/freeTierGates";
+import { notifyOrganisationMembers } from "@/lib/notifications/createNotification";
 import { clientIp } from "@/lib/rate-limit";
 import config from "@/payload.config";
 
 import { extractBiApiKey, hashBiApiKey } from "./apiKey";
-import { checkBiRateLimit, getBiRateLimitHeaders } from "./rateLimit";
+import {
+  isIpAllowed,
+  nextUtcDayResetMs,
+  parseAllowedIps,
+  shouldAlertApproachingQuota,
+} from "./quota";
+import { checkBiQuota } from "./rateLimit";
 
 export type BiAuthContext = {
   payload: Payload;
   organisationId: string;
   keyId: string;
   keyPrefix: string;
+  plan: string;
   rateLimitHeaders: Record<string, string>;
 };
 
@@ -22,15 +31,123 @@ type BiKeyDoc = {
   apiKeyHash?: string | null;
   apiKeyPrefix?: string | null;
   status?: string | null;
+  lastUsedAt?: string | null;
+  quotaLimitPerHour?: number | null;
+  quotaLimitPerDay?: number | null;
+  allowedIps?: { ip?: string | null }[] | null;
+  callsThisHour?: number | null;
+  callsToday?: number | null;
+  quotaResetAt?: string | null;
+  quotaWarningSentAt?: string | null;
 };
 
 function orgIdOf(value: string | { id: string }): string {
   return typeof value === "string" ? value : value.id;
 }
 
+function sameUtcDay(aMs: number, bMs: number): boolean {
+  const a = new Date(aMs);
+  const b = new Date(bMs);
+  return (
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCDate() === b.getUTCDate()
+  );
+}
+
+function sameUtcHour(aMs: number, bMs: number): boolean {
+  return (
+    sameUtcDay(aMs, bMs) && new Date(aMs).getUTCHours() === new Date(bMs).getUTCHours()
+  );
+}
+
+async function resolveOrgPlan(payload: Payload, organisationId: string): Promise<string> {
+  try {
+    const org = await payload.findByID({
+      collection: "organisations",
+      id: organisationId,
+      depth: 0,
+      overrideAccess: true,
+    });
+    const plan = org && typeof org === "object" && "plan" in org ? org.plan : null;
+    return typeof plan === "string" ? plan : "free";
+  } catch {
+    return "free";
+  }
+}
+
+async function stampUsageAndMaybeWarn(
+  payload: Payload,
+  doc: BiKeyDoc,
+  organisationId: string,
+  quota: Extract<Awaited<ReturnType<typeof checkBiQuota>>, { ok: true }>,
+): Promise<void> {
+  const now = Date.now();
+  const prevReset = doc.quotaResetAt ? Date.parse(doc.quotaResetAt) : NaN;
+  const dayRollover = !Number.isFinite(prevReset) || now >= prevReset;
+  const lastUsedMs = doc.lastUsedAt ? Date.parse(doc.lastUsedAt) : NaN;
+  const hourRollover = !Number.isFinite(lastUsedMs) || !sameUtcHour(lastUsedMs, now);
+
+  const callsThisHour =
+    quota.limits.perHour != null
+      ? quota.usedHour
+      : hourRollover
+        ? 1
+        : (doc.callsThisHour ?? 0) + 1;
+  const callsToday =
+    quota.limits.perDay != null
+      ? quota.usedDay
+      : dayRollover
+        ? 1
+        : (doc.callsToday ?? 0) + 1;
+
+  const data: Record<string, unknown> = {
+    lastUsedAt: new Date(now).toISOString(),
+    callsThisHour,
+    callsToday,
+    quotaResetAt: new Date(nextUtcDayResetMs(now)).toISOString(),
+  };
+
+  const warnHour = shouldAlertApproachingQuota(callsThisHour, quota.limits.perHour);
+  const warnDay = shouldAlertApproachingQuota(callsToday, quota.limits.perDay);
+  const lastWarn = doc.quotaWarningSentAt ? Date.parse(doc.quotaWarningSentAt) : NaN;
+  const warnedToday = Number.isFinite(lastWarn) && sameUtcDay(lastWarn, now);
+
+  if ((warnHour || warnDay) && !warnedToday) {
+    data.quotaWarningSentAt = new Date(now).toISOString();
+    const hourPart =
+      quota.limits.perHour != null
+        ? `Hour: ${callsThisHour}/${quota.limits.perHour}. `
+        : "";
+    const dayPart =
+      quota.limits.perDay != null ? `Day: ${callsToday}/${quota.limits.perDay}.` : "";
+    void notifyOrganisationMembers(payload, {
+      organisationId,
+      type: "alert_triggered",
+      title: "BI API quota approaching limit",
+      message:
+        `Key ${doc.apiKeyPrefix ?? doc.id} is near its plan quota. ${hourPart}${dayPart}`.trim(),
+      resourceType: "bi-api-keys",
+      resourceId: doc.id,
+    });
+  }
+
+  await payload.update({
+    collection: "bi-api-keys",
+    id: doc.id,
+    data,
+    overrideAccess: true,
+  });
+
+  void incrementApiUsage(organisationId, 1).catch((err: unknown) => {
+    console.error("[bi] free-tier api usage increment failed", err);
+  });
+}
+
 /**
  * Authenticate a read-only BI request via org API key.
- * Applies rate limiting and writes an audit event (prefix only — never full key).
+ * Applies plan quotas, optional IP whitelist, and writes an audit event
+ * (prefix only — never full key).
  */
 export async function requireBiAuth(
   req: Request,
@@ -73,28 +190,67 @@ export async function requireBiAuth(
     };
   }
 
-  const rate = await checkBiRateLimit(doc.id);
-  const rateLimitHeaders = getBiRateLimitHeaders(rate);
-  if (!rate.ok) {
+  const organisationId = orgIdOf(doc.organisation);
+  const ip = clientIp(req);
+  const allowedIps = parseAllowedIps(doc.allowedIps);
+  if (!isIpAllowed(ip, allowedIps)) {
     await writeAuditLog(payload, {
-      organisationId: orgIdOf(doc.organisation),
-      action: "bi.rate_limited",
+      organisationId,
+      action: "bi.ip_denied",
       entityType: "bi-api-keys",
       entityId: doc.id,
-      after: { resource, apiKeyPrefix: doc.apiKeyPrefix ?? null },
-      ip: clientIp(req),
+      after: { resource, apiKeyPrefix: doc.apiKeyPrefix ?? null, ip },
+      ip,
       userAgent: req.headers.get("user-agent"),
     });
     return {
       ok: false,
       response: NextResponse.json(
-        { error: "Rate limit exceeded. Retry after the period in Retry-After." },
+        { error: "Client IP is not on this key's allowlist." },
+        { status: 403 },
+      ),
+    };
+  }
+
+  const plan = await resolveOrgPlan(payload, organisationId);
+  const quota = await checkBiQuota({
+    keyId: doc.id,
+    plan,
+    overrides: {
+      quotaLimitPerHour: doc.quotaLimitPerHour,
+      quotaLimitPerDay: doc.quotaLimitPerDay,
+    },
+  });
+  const rateLimitHeaders = quota.headers;
+
+  if (!quota.ok) {
+    await writeAuditLog(payload, {
+      organisationId,
+      action: "bi.rate_limited",
+      entityType: "bi-api-keys",
+      entityId: doc.id,
+      after: {
+        resource,
+        apiKeyPrefix: doc.apiKeyPrefix ?? null,
+        window: quota.window,
+      },
+      ip,
+      userAgent: req.headers.get("user-agent"),
+    });
+    return {
+      ok: false,
+      response: NextResponse.json(
+        {
+          error:
+            quota.window === "hour"
+              ? "Hourly API quota exceeded. Retry after the period in Retry-After."
+              : "Daily API quota exceeded. Retry after the period in Retry-After.",
+        },
         { status: 429, headers: rateLimitHeaders },
       ),
     };
   }
 
-  const organisationId = orgIdOf(doc.organisation);
   const keyPrefix = doc.apiKeyPrefix ?? apiKey.slice(0, 12);
 
   await writeAuditLog(payload, {
@@ -103,21 +259,16 @@ export async function requireBiAuth(
     entityType: "bi-api-keys",
     entityId: doc.id,
     after: { resource, apiKeyPrefix: keyPrefix },
-    ip: clientIp(req),
+    ip,
     userAgent: req.headers.get("user-agent"),
   });
 
-  // Fire-and-forget last-used stamp; do not block the response on failure.
-  void payload
-    .update({
-      collection: "bi-api-keys",
-      id: doc.id,
-      data: { lastUsedAt: new Date().toISOString() },
-      overrideAccess: true,
-    })
-    .catch((err: unknown) => {
-      console.error("[bi] lastUsedAt update failed", err);
-    });
+  // Fire-and-forget usage stamp + approaching-limit alert.
+  void stampUsageAndMaybeWarn(payload, doc, organisationId, quota).catch(
+    (err: unknown) => {
+      console.error("[bi] usage stamp failed", err);
+    },
+  );
 
   return {
     ok: true,
@@ -126,6 +277,7 @@ export async function requireBiAuth(
       organisationId,
       keyId: doc.id,
       keyPrefix,
+      plan,
       rateLimitHeaders,
     },
   };

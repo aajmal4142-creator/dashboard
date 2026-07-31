@@ -567,6 +567,10 @@ async function main() {
       label: derived.label,
       description: derived.description,
       unit: derived.unit,
+      source: "system" as const,
+      enabled: true,
+      usageCount: 0,
+      category: "other" as const,
       frameworkMappings: derived.frameworkMappings.map((m) => ({
         ...m,
         validFrom: m.validFrom ?? undefined,

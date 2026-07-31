@@ -319,13 +319,19 @@ export function snapshotToXmlExport(
   return `<?xml version="1.0" encoding="UTF-8"?>\n${root}\n`;
 }
 
-export type MachineExportFormat = "json" | "xml" | "csv";
+export type MachineExportFormat = "json" | "xml" | "csv" | "xlsx";
 
 export function parseMachineExportFormat(raw: string | null): MachineExportFormat | null {
   if (!raw) return "json";
   const normalised = raw.trim().toLowerCase();
-  if (normalised === "json" || normalised === "xml" || normalised === "csv") {
-    return normalised;
+  if (
+    normalised === "json" ||
+    normalised === "xml" ||
+    normalised === "csv" ||
+    normalised === "xlsx" ||
+    normalised === "excel"
+  ) {
+    return normalised === "excel" ? "xlsx" : normalised;
   }
   return null;
 }

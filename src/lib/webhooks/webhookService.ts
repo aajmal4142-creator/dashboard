@@ -1,4 +1,4 @@
-import { getPayload } from "payload";
+import { getPayload, type Where } from "payload";
 import { randomUUID } from "crypto";
 import config from "@/payload.config";
 import { writeAuditLog } from "@/lib/audit/write";
@@ -331,5 +331,77 @@ export async function updateWebhookLastTriggered(webhookId: string): Promise<voi
     id: webhook.id,
     data: { last_triggered_at: new Date().toISOString() },
     overrideAccess: true,
+  });
+}
+
+export type WebhookDeliveryListStatus = "success" | "failed" | "retrying";
+
+export type WebhookDeliveryListRow = {
+  id: string;
+  webhook_id: string;
+  event_type: string;
+  status: WebhookDeliveryListStatus;
+  response_code: number | null;
+  error_message: string | null;
+  attempt_number: number;
+  next_retry_at: string | null;
+  duration_ms: number | null;
+  payload: unknown;
+  createdAt: string;
+  is_dead_letter: boolean;
+};
+
+/**
+ * List outbound delivery attempts for an organisation (includes dead-letter / failed).
+ */
+export async function listWebhookDeliveries(args: {
+  organisationId: string;
+  status?: WebhookDeliveryListStatus;
+  webhookId?: string;
+  deadLetterOnly?: boolean;
+  limit?: number;
+}): Promise<WebhookDeliveryListRow[]> {
+  const payload = await getPayload({ config });
+  const limit = Math.min(Math.max(args.limit ?? 50, 1), 200);
+
+  const and: Where[] = [
+    { organisation: { equals: args.organisationId } },
+    { source: { not_equals: "api" } },
+  ];
+
+  if (args.deadLetterOnly || args.status === "failed") {
+    and.push({ status: { equals: "failed" } });
+  } else if (args.status) {
+    and.push({ status: { equals: args.status } });
+  }
+
+  if (args.webhookId) {
+    and.push({ webhook_id: { equals: args.webhookId } });
+  }
+
+  const result = await payload.find({
+    collection: "webhook-logs",
+    where: { and },
+    sort: "-createdAt",
+    limit,
+    overrideAccess: true,
+  });
+
+  return result.docs.map((doc) => {
+    const status = doc.status as WebhookDeliveryListStatus;
+    return {
+      id: String(doc.id),
+      webhook_id: doc.webhook_id,
+      event_type: doc.event_type,
+      status,
+      response_code: typeof doc.response_code === "number" ? doc.response_code : null,
+      error_message: doc.error_message ?? null,
+      attempt_number: doc.attempt_number,
+      next_retry_at: doc.next_retry_at ? String(doc.next_retry_at) : null,
+      duration_ms: typeof doc.duration_ms === "number" ? doc.duration_ms : null,
+      payload: doc.payload ?? null,
+      createdAt: doc.createdAt,
+      is_dead_letter: status === "failed",
+    };
   });
 }

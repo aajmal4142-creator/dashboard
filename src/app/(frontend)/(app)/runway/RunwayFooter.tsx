@@ -9,6 +9,9 @@ export function RunwayFooter() {
         <Link href="/reports" className="editorial-link">
           Reports
         </Link>
+        <Link href="/dashboards" className="editorial-link">
+          Dashboards
+        </Link>
         <Link href="/guide" className="editorial-link">
           Guided mode
         </Link>

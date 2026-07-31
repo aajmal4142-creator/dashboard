@@ -1,10 +1,10 @@
 export type { ReportSnapshot, ScopeBreakdownRow } from "./types";
 export { REPORT_DISCLAIMER, diffSnapshots, snapshotToCsv } from "./types";
 export {
-  CONFIRMED_APPROVAL_STATE,
   ESG_XML_NS,
   MACHINE_EXPORT_FIELDS,
   MACHINE_EXPORT_SCHEMA,
+  CONFIRMED_APPROVAL_STATE,
   buildMachineExportDocument,
   mapConfirmedDatapoints,
   parseMachineExportFormat,
@@ -16,6 +16,31 @@ export {
   type MachineExportDocument,
   type MachineExportFormat,
 } from "./machineExport";
+export {
+  buildAuditTrailSheetRows,
+  buildBreakdownSheetRows,
+  buildDataGapsSheetRows,
+  buildDatapointsSheetRows,
+  buildEmissionsSheetRows,
+  buildFactorsSheetRows,
+  buildMaterialitySheetRows,
+  buildReportExcelBuffer,
+  buildSummarySheetRows,
+  computeYoyRatio,
+  type ReportExcelInput,
+  type SheetCell,
+  type SheetRows,
+} from "./excelExport";
+export {
+  DEFAULT_PDF_EXPORT_SETTINGS,
+  buildPdfExportQuery,
+  pageFormatToReactSize,
+  parseReportPdfSettings,
+  resolvePdfWatermarkText,
+  type PdfPageFormat,
+  type PdfReactPageSize,
+  type ReportPdfExportSettings,
+} from "./pdfSettings";
 export type { ReportDataGap } from "./dataGaps";
 export { detectReportDataGaps } from "./dataGaps";
 export {
@@ -40,13 +65,30 @@ export {
   generateReportAttachment,
   listReportSchedules,
   MAX_SCHEDULE_RETRIES,
+  unsubscribeFromScheduleToken,
   updateReportSchedule,
   type CreateScheduleInput,
+  type DeliveryHistoryEntry,
   type ReportDeliveryFormat,
   type ScheduleDeliveryStatus,
   type ScheduleFrequency,
+  type ScheduleRecipient,
   type ScheduledReportRow,
 } from "./reportScheduler";
+export {
+  activeRecipientEmails,
+  appendDeliveryHistory,
+  buildDeliveryEntries,
+  markRecipientUnsubscribed,
+  mapDeliveryHistoryRows,
+  recordDeliveryOpen,
+  summarizeDeliveryRun,
+} from "./deliveryHistory";
+export {
+  buildUnsubscribeUrl,
+  createUnsubscribeToken,
+  verifyUnsubscribeToken,
+} from "./unsubscribeToken";
 export {
   buildScheduledReportEmailBody,
   buildScheduledReportSubject,

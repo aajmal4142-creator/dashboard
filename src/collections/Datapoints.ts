@@ -7,6 +7,7 @@ import {
   recordDatapointVersion,
   type DatapointVersionContext,
 } from "@/lib/data/recordVersion";
+import { persistLineageSnapshot } from "@/lib/data/lineage/load";
 import { scheduleOrgDashboardBroadcast } from "@/lib/realtime";
 import { NO_SUPPLIER_KEY, supplierKeyFrom } from "@/lib/suppliers/supplierKey";
 
@@ -122,42 +123,53 @@ export const Datapoints: CollectionConfig = {
     afterChange: [
       async ({ doc, previousDoc, operation, req, context }) => {
         const versionCtx = context as DatapointVersionContext | undefined;
-        if (versionCtx?.skipDatapointVersion) return doc;
-
         const organisationId = orgIdFromDoc(doc as unknown as Record<string, unknown>);
         if (!organisationId) return doc;
 
-        const changedBy =
-          versionCtx?.changedBy ??
-          (req.user?.id ? String(req.user.id) : null) ??
-          actorFromDoc(doc as unknown as Record<string, unknown>);
+        if (!versionCtx?.skipDatapointVersion) {
+          const changedBy =
+            versionCtx?.changedBy ??
+            (req.user?.id ? String(req.user.id) : null) ??
+            actorFromDoc(doc as unknown as Record<string, unknown>);
 
-        const changeType =
-          versionCtx?.changeType ?? (operation === "create" ? "create" : "update");
+          const changeType =
+            versionCtx?.changeType ?? (operation === "create" ? "create" : "update");
 
-        try {
-          await recordDatapointVersion(req.payload, {
-            organisationId,
-            datapointId: String(doc.id),
-            changeType,
-            previousDoc:
-              operation === "create"
-                ? null
-                : ((previousDoc as Record<string, unknown> | undefined) ?? null),
-            nextDoc: doc as unknown as Record<string, unknown>,
-            changedBy,
-            reason: versionCtx?.reason ?? null,
+          try {
+            await recordDatapointVersion(req.payload, {
+              organisationId,
+              datapointId: String(doc.id),
+              changeType,
+              previousDoc:
+                operation === "create"
+                  ? null
+                  : ((previousDoc as Record<string, unknown> | undefined) ?? null),
+              nextDoc: doc as unknown as Record<string, unknown>,
+              changedBy,
+              reason: versionCtx?.reason ?? null,
+            });
+          } catch (err) {
+            console.error("[datapoint-versions] afterChange failed", err);
+          }
+
+          // S6.6: fan-out public KPIs to in-process SSE subscribers (fire-and-forget).
+          scheduleOrgDashboardBroadcast(req.payload, organisationId, {
+            kind: "datapoint",
+            metricKey: typeof doc.metricKey === "string" ? doc.metricKey : undefined,
+            id: String(doc.id),
           });
-        } catch (err) {
-          console.error("[datapoint-versions] afterChange failed", err);
         }
 
-        // S6.6: fan-out public KPIs to in-process SSE subscribers (fire-and-forget).
-        scheduleOrgDashboardBroadcast(req.payload, organisationId, {
-          kind: "datapoint",
-          metricKey: typeof doc.metricKey === "string" ? doc.metricKey : undefined,
-          id: String(doc.id),
-        });
+        if (!versionCtx?.skipLineageSnapshot) {
+          try {
+            await persistLineageSnapshot(req.payload, {
+              organisationId,
+              datapointId: String(doc.id),
+            });
+          } catch (err) {
+            console.error("[datapoint-lineage] snapshot failed", err);
+          }
+        }
 
         return doc;
       },
@@ -332,5 +344,14 @@ export const Datapoints: CollectionConfig = {
     },
     { name: "enteredAt", type: "date" },
     { name: "note", type: "textarea" },
+    {
+      name: "lineageSnapshot",
+      type: "json",
+      admin: {
+        description:
+          "Compact lineage graph snapshot refreshed on write (sources → transforms → result).",
+        readOnly: true,
+      },
+    },
   ],
 };

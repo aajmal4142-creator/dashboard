@@ -34,8 +34,10 @@ export const DataQualityRules: CollectionConfig = {
       type: "select",
       required: true,
       options: [
-        { label: "Range Validation", value: "range" },
-        { label: "Regex Pattern", value: "regex" },
+        { label: "Value range", value: "range" },
+        { label: "Required field", value: "required" },
+        { label: "Pattern match", value: "pattern" },
+        { label: "Regex Pattern (legacy)", value: "regex" },
         { label: "Business Logic", value: "business" },
         { label: "Cross-Field", value: "cross_field" },
         { label: "Uniqueness", value: "uniqueness" },
@@ -68,6 +70,22 @@ export const DataQualityRules: CollectionConfig = {
         { label: "Inactive", value: "inactive" },
         { label: "Testing", value: "testing" },
       ],
+      admin: { description: "Active = enabled. Inactive = disabled." },
+    },
+    {
+      name: "severity",
+      type: "select",
+      defaultValue: "error",
+      options: [
+        { label: "Error (blocks approval)", value: "error" },
+        { label: "Warning", value: "warning" },
+      ],
+      admin: { description: "Error blocks datapoint approval; warning is advisory." },
+    },
+    {
+      name: "errorMessage",
+      type: "text",
+      admin: { description: "Custom message shown when the rule fails" },
     },
     {
       name: "priority",

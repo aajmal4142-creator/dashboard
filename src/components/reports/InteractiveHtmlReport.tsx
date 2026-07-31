@@ -35,6 +35,13 @@ const SCOPE_COLORS: Record<"scope1" | "scope2" | "scope3", string> = {
   scope3: "var(--cobalt)",
 };
 
+const REPORT_SECTIONS = [
+  { id: "html-report-summary", label: "Summary" },
+  { id: "html-report-emissions", label: "Emissions" },
+  { id: "html-report-tables", label: "Tables" },
+  { id: "html-report-methodology", label: "Method" },
+] as const;
+
 const PRINT_STYLES = `
 @media print {
   .html-report-root {
@@ -86,17 +93,181 @@ const PRINT_STYLES = `
   letter-spacing: 0.08em;
   font-size: 10px;
   font-weight: 600;
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.html-report-root .html-report-section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 0 -1rem;
+  padding: 0.5rem 1rem;
+  background: color-mix(in srgb, var(--canvas) 92%, transparent);
+  border-bottom: 1px solid var(--rule);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.html-report-root .html-report-section-nav-track {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.html-report-root .html-report-section-nav-track::-webkit-scrollbar {
+  display: none;
+}
+.html-report-root .html-report-section-chip {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 0.875rem;
+  border-radius: 2px;
+  border: 1px solid var(--rule);
+  background: var(--surface-1);
+  color: var(--ink-muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+}
+.html-report-root .html-report-section-chip[aria-current="true"] {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+  background: var(--surface-2);
+}
+.html-report-root .html-report-touch-select {
+  min-height: 44px;
+  min-width: 9rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 14px;
+}
+.html-report-root .html-report-series-chip {
+  min-height: 44px;
+  padding: 0 0.75rem;
+}
+@media (min-width: 641px) {
+  .html-report-root .html-report-section-nav {
+    display: none;
+  }
 }
 @media (max-width: 640px) {
+  .html-report-root {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
   .html-report-root .html-report-metrics {
     grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+  .html-report-root .html-report-chart-panel {
+    height: 14rem !important;
+  }
+  .html-report-root .html-report-section {
+    scroll-margin-top: 4.5rem;
   }
   .html-report-root .html-report-table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: visible;
+  }
+  .html-report-root table.html-report-table {
+    min-width: 0 !important;
+  }
+  .html-report-root table.html-report-table thead {
+    display: none;
+  }
+  .html-report-root table.html-report-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .html-report-root table.html-report-table tr {
+    display: block;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    background: var(--surface-1);
+    padding: 0.25rem 0;
+  }
+  .html-report-root table.html-report-table tr.html-report-child-row {
+    background: var(--surface-2);
+    margin-left: 0.75rem;
+  }
+  .html-report-root table.html-report-table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    border-bottom: 1px solid var(--rule);
+    padding: 0.625rem 0.75rem;
+    text-align: right;
+  }
+  .html-report-root table.html-report-table td:last-child {
+    border-bottom: 0;
+  }
+  .html-report-root table.html-report-table td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 10px;
+    font-weight: 600;
+    text-align: left;
+    padding-top: 0.15rem;
+  }
+  .html-report-root table.html-report-table td.html-report-empty-cell {
+    display: block;
+    text-align: left;
+  }
+  .html-report-root table.html-report-table td.html-report-empty-cell::before {
+    display: none;
+  }
+  .html-report-root table.html-report-table .html-report-row-toggle {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    text-align: right;
+  }
+  .html-report-root .html-report-mobile-sort {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    margin-bottom: 0.25rem;
+  }
+  .html-report-root .html-report-mobile-sort button {
+    min-height: 44px;
+    padding: 0 0.75rem;
+    border-radius: 2px;
+    border: 1px solid var(--rule);
+    background: var(--surface-1);
+    color: var(--ink-muted);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .html-report-root .html-report-mobile-sort button[aria-pressed="true"] {
+    border-color: var(--rule-strong);
+    color: var(--ink);
+    background: var(--surface-2);
+  }
+}
+@media (min-width: 641px) {
+  .html-report-root .html-report-mobile-sort {
+    display: none;
   }
 }
 `;
+
+function scrollToSection(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 export function InteractiveHtmlReport({
   snapshot,
@@ -129,6 +300,7 @@ export function InteractiveHtmlReport({
   );
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const [activeSection, setActiveSection] = useState<string>(REPORT_SECTIONS[0].id);
 
   const chartData = useMemo(() => {
     const filtered = filterEmissionsByScope(allChartRows, scopeFilter);
@@ -164,6 +336,14 @@ export function InteractiveHtmlReport({
     });
   }
 
+  function goToSection(id: string) {
+    setActiveSection(id);
+    scrollToSection(id);
+  }
+
+  const sortMark = (column: "label" | "value" | "scope" | "quality") =>
+    sortColumn === column ? (sortDirection === "asc" ? " ↑" : " ↓") : "";
+
   return (
     <article
       className={`html-report-root mx-auto max-w-4xl px-4 py-8 text-ink sm:px-6 ${
@@ -171,6 +351,23 @@ export function InteractiveHtmlReport({
       }`}
     >
       <style dangerouslySetInnerHTML={{ __html: PRINT_STYLES }} />
+
+      <nav className="html-report-section-nav no-print" aria-label="Report sections">
+        <div className="html-report-section-nav-track" role="list">
+          {REPORT_SECTIONS.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              role="listitem"
+              className="html-report-section-chip"
+              aria-current={activeSection === section.id ? "true" : undefined}
+              onClick={() => goToSection(section.id)}
+            >
+              {section.label}
+            </button>
+          ))}
+        </div>
+      </nav>
 
       <header className="border-b border-rule-strong pb-4">
         {!embedded ? (
@@ -197,11 +394,11 @@ export function InteractiveHtmlReport({
         ) : null}
       </header>
 
-      <section className="mt-8">
+      <section id="html-report-summary" className="html-report-section mt-8">
         <details className="html-report-expand-force surface-print-reset group" open>
-          <summary className="cursor-pointer list-none">
+          <summary className="cursor-pointer list-none py-1">
             <span className="label-caps text-accent">01 — Executive summary</span>
-            <h2 className="font-display mt-1 text-2xl">Key metrics</h2>
+            <h2 className="font-display mt-1 text-xl sm:text-2xl">Key metrics</h2>
           </summary>
           <div className="html-report-metrics mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div className="surface-1 surface-print-reset rounded-[6px] border border-rule p-3">
@@ -249,19 +446,40 @@ export function InteractiveHtmlReport({
               <li key={line}>{line}</li>
             ))}
           </ul>
+          {snapshot.customMetrics && snapshot.customMetrics.length > 0 ? (
+            <div className="mt-6 border-t border-rule pt-4">
+              <p className="label-caps text-ink-muted">Custom metrics</p>
+              <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                {snapshot.customMetrics.map((m) => (
+                  <li
+                    key={m.key}
+                    className="flex items-baseline justify-between gap-2 border-b border-rule pb-2 text-sm"
+                  >
+                    <span className="text-ink">{m.label}</span>
+                    <span className="font-data tabular-nums text-ink">
+                      {m.value == null ? "—" : `${m.value}${m.unit ? ` ${m.unit}` : ""}`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </details>
       </section>
 
-      <section className="mt-10 html-report-chart">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+      <section
+        id="html-report-emissions"
+        className="html-report-section mt-10 html-report-chart"
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
           <div>
             <p className="label-caps text-accent">02 — Emissions</p>
-            <h2 className="font-display mt-1 text-2xl">Scope breakdown</h2>
+            <h2 className="font-display mt-1 text-xl sm:text-2xl">Scope breakdown</h2>
           </div>
-          <label className="no-print flex items-center gap-2 text-xs text-ink-muted">
+          <label className="no-print flex flex-col gap-1 text-xs text-ink-muted sm:flex-row sm:items-center sm:gap-2">
             <span>Show</span>
             <select
-              className="rounded-[4px] border border-rule bg-surface-1 px-2 py-1 text-ink"
+              className="html-report-touch-select rounded-[4px] border border-rule bg-surface-1 text-ink"
               value={scopeFilter}
               onChange={(e) => setScopeFilter(e.target.value as ScopeFilter)}
             >
@@ -272,7 +490,7 @@ export function InteractiveHtmlReport({
             </select>
           </label>
         </div>
-        <div className="surface-1 surface-print-reset mt-4 h-72 rounded-[6px] border border-rule p-2 sm:p-4">
+        <div className="html-report-chart-panel surface-1 surface-print-reset mt-4 h-72 rounded-[6px] border border-rule p-2 sm:p-4">
           {chartData.length === 0 ? (
             <p className="p-4 text-sm text-ink-muted">
               No series visible. Click a legend item to restore, or change the scope
@@ -308,7 +526,7 @@ export function InteractiveHtmlReport({
                   }}
                   axisLine={false}
                   tickLine={false}
-                  width={56}
+                  width={48}
                 />
                 <Tooltip
                   contentStyle={{
@@ -362,14 +580,14 @@ export function InteractiveHtmlReport({
             </ResponsiveContainer>
           )}
         </div>
-        <ul className="no-print mt-3 flex flex-wrap gap-3 text-xs">
+        <ul className="no-print mt-3 flex flex-wrap gap-2 text-xs sm:gap-3">
           {allChartRows.map((row) => {
             const on = !hiddenSeries.has(row.key);
             return (
               <li key={row.key}>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-1.5 rounded-[2px] border border-rule px-2 py-1 text-ink"
+                  className="html-report-series-chip inline-flex items-center gap-1.5 rounded-[2px] border border-rule text-ink"
                   style={{ opacity: on ? 1 : 0.45 }}
                   onClick={() => toggleSeries(row.key)}
                   aria-pressed={on}
@@ -387,54 +605,58 @@ export function InteractiveHtmlReport({
         </ul>
       </section>
 
-      <section className="mt-10">
+      <section id="html-report-tables" className="html-report-section mt-10">
         <details className="html-report-expand-force" open>
-          <summary className="cursor-pointer list-none">
+          <summary className="cursor-pointer list-none py-1">
             <p className="label-caps text-accent">03 — Detailed tables</p>
-            <h2 className="font-display mt-1 text-2xl">Sortable breakdown</h2>
+            <h2 className="font-display mt-1 text-xl sm:text-2xl">Sortable breakdown</h2>
           </summary>
+          <div
+            className="html-report-mobile-sort no-print"
+            role="group"
+            aria-label="Sort table"
+          >
+            {(
+              [
+                ["label", "Line"],
+                ["scope", "Scope"],
+                ["value", "Value"],
+                ["quality", "Quality"],
+              ] as const
+            ).map(([column, label]) => (
+              <button
+                key={column}
+                type="button"
+                aria-pressed={sortColumn === column}
+                onClick={() => onSort(column)}
+              >
+                {label}
+                {sortMark(column)}
+              </button>
+            ))}
+          </div>
           <div className="html-report-table-wrap mt-4">
             <table className="html-report-table min-w-[520px] text-sm">
               <thead>
                 <tr>
                   <th>
                     <button type="button" onClick={() => onSort("label")}>
-                      Line
-                      {sortColumn === "label"
-                        ? sortDirection === "asc"
-                          ? " ↑"
-                          : " ↓"
-                        : ""}
+                      Line{sortMark("label")}
                     </button>
                   </th>
                   <th>
                     <button type="button" onClick={() => onSort("scope")}>
-                      Scope
-                      {sortColumn === "scope"
-                        ? sortDirection === "asc"
-                          ? " ↑"
-                          : " ↓"
-                        : ""}
+                      Scope{sortMark("scope")}
                     </button>
                   </th>
                   <th>
                     <button type="button" onClick={() => onSort("value")}>
-                      Value
-                      {sortColumn === "value"
-                        ? sortDirection === "asc"
-                          ? " ↑"
-                          : " ↓"
-                        : ""}
+                      Value{sortMark("value")}
                     </button>
                   </th>
                   <th>
                     <button type="button" onClick={() => onSort("quality")}>
-                      Quality
-                      {sortColumn === "quality"
-                        ? sortDirection === "asc"
-                          ? " ↑"
-                          : " ↓"
-                        : ""}
+                      Quality{sortMark("quality")}
                     </button>
                   </th>
                 </tr>
@@ -446,11 +668,11 @@ export function InteractiveHtmlReport({
                   return (
                     <Fragment key={row.id}>
                       <tr>
-                        <td>
+                        <td data-label="Line">
                           {hasChildren ? (
                             <button
                               type="button"
-                              className="text-left text-ink underline-offset-2 hover:underline"
+                              className="html-report-row-toggle text-left text-ink underline-offset-2 hover:underline sm:text-left"
                               onClick={() => toggleExpand(row.id)}
                               aria-expanded={isOpen}
                             >
@@ -464,17 +686,40 @@ export function InteractiveHtmlReport({
                             <p className="mt-1 text-xs text-ink-muted">{row.detail}</p>
                           ) : null}
                         </td>
-                        <td className="font-data text-ink-muted">{row.scope}</td>
-                        <td className="font-data">{formatTco2e(row.value)}</td>
-                        <td className="font-data text-ink-muted">{row.quality ?? "—"}</td>
+                        <td data-label="Scope" className="font-data text-ink-muted">
+                          {row.scope}
+                        </td>
+                        <td data-label="Value" className="font-data">
+                          {formatTco2e(row.value)}
+                        </td>
+                        <td data-label="Quality" className="font-data text-ink-muted">
+                          {row.quality ?? "—"}
+                        </td>
                       </tr>
                       {hasChildren && isOpen
                         ? row.children.map((child) => (
-                            <tr key={child.id} className="bg-surface-2/40">
-                              <td className="pl-6 text-ink-muted">{child.label}</td>
-                              <td className="font-data text-ink-muted">{child.scope}</td>
-                              <td className="font-data text-ink-muted">—</td>
-                              <td className="font-data text-ink-muted">—</td>
+                            <tr
+                              key={child.id}
+                              className="html-report-child-row bg-surface-2/40"
+                            >
+                              <td
+                                data-label="Line"
+                                className="pl-6 text-ink-muted sm:pl-6"
+                              >
+                                {child.label}
+                              </td>
+                              <td data-label="Scope" className="font-data text-ink-muted">
+                                {child.scope}
+                              </td>
+                              <td data-label="Value" className="font-data text-ink-muted">
+                                —
+                              </td>
+                              <td
+                                data-label="Quality"
+                                className="font-data text-ink-muted"
+                              >
+                                —
+                              </td>
                             </tr>
                           ))
                         : null}
@@ -483,7 +728,11 @@ export function InteractiveHtmlReport({
                 })}
                 {tableRows.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-4 text-ink-muted">
+                    <td
+                      colSpan={4}
+                      className="html-report-empty-cell py-4 text-ink-muted"
+                      data-label=""
+                    >
                       No rows for this scope filter.
                     </td>
                   </tr>
@@ -494,11 +743,13 @@ export function InteractiveHtmlReport({
         </details>
       </section>
 
-      <section className="mt-10">
+      <section id="html-report-methodology" className="html-report-section mt-10">
         <details className="html-report-expand-force" open>
-          <summary className="cursor-pointer list-none">
+          <summary className="cursor-pointer list-none py-1">
             <p className="label-caps text-accent">04 — Methodology</p>
-            <h2 className="font-display mt-1 text-2xl">Assumptions and sources</h2>
+            <h2 className="font-display mt-1 text-xl sm:text-2xl">
+              Assumptions and sources
+            </h2>
           </summary>
           <div className="mt-4 space-y-3 text-sm text-ink-muted">
             {snapshot.emissionsStandard ? (

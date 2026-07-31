@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Activity,
   BarChart3,
+  Bell,
   BookOpen,
   Building2,
   ClipboardCheck,
@@ -11,7 +12,10 @@ import {
   Database,
   FileText,
   Gauge,
+  GitCompare,
+  History,
   Inbox,
+  LayoutDashboard,
   Leaf,
   ListChecks,
   Network,
@@ -21,13 +25,15 @@ import {
   Truck,
   Users,
   Wallet,
+  Workflow,
 } from "lucide-react";
 
-import { METRICS_HREF, METRICS_LABEL } from "@/lib/metrics";
+import { METRICS_HREF } from "@/lib/metrics";
 
 export type NavItem = {
   href: string;
-  label: string;
+  /** i18n key under nav.items.* */
+  labelKey: string;
   icon: LucideIcon;
   exact?: boolean;
   badgeKey?: "requests" | "questionnaires";
@@ -35,7 +41,8 @@ export type NavItem = {
 
 export type NavGroup = {
   id: string;
-  label: string;
+  /** i18n key under nav.groups.* */
+  labelKey: string;
   items: NavItem[];
 };
 
@@ -44,81 +51,123 @@ export function buildNavGroups(opts: {
   onboarded: boolean;
 }): NavGroup[] {
   const work: NavItem[] = [
-    { href: "/", label: "Runway", icon: Gauge, exact: true },
-    { href: METRICS_HREF, label: METRICS_LABEL, icon: ClipboardList },
-    { href: "/suppliers", label: "Suppliers", icon: Truck },
-    { href: "/suppliers/engagement", label: "Engagement", icon: ClipboardList },
-    { href: "/suppliers/risk-dashboard", label: "Supplier risk", icon: ShieldCheck },
-    { href: "/suppliers/supply-chain", label: "Supply chain", icon: Network },
-    { href: "/scope3/category-1", label: "Cat 1 tiers", icon: Truck },
-    { href: "/spend", label: "Spend", icon: Wallet },
-    { href: "/materiality", label: "Materiality", icon: Target },
-    { href: "/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/reports", label: "Reports", icon: FileText },
-    { href: "/compliance/calendar", label: "Reg calendar", icon: ClipboardList },
-    { href: "/tcfd", label: "TCFD", icon: ClipboardCheck },
-    { href: "/issb", label: "ISSB", icon: BookOpen },
-    { href: "/compliance/sbti-tracking", label: "SBTi", icon: Crosshair },
-    { href: "/compliance/iso-14064", label: "ISO 14064", icon: ClipboardCheck },
+    { href: "/", labelKey: "nav.items.runway", icon: Gauge, exact: true },
+    { href: "/dashboards", labelKey: "nav.items.dashboards", icon: LayoutDashboard },
+    { href: "/alerts", labelKey: "nav.items.alerts", icon: Bell },
+    { href: "/automations", labelKey: "nav.items.automations", icon: Workflow },
+    { href: METRICS_HREF, labelKey: "nav.items.metrics", icon: ClipboardList },
+    { href: "/suppliers", labelKey: "nav.items.suppliers", icon: Truck },
+    {
+      href: "/suppliers/engagement",
+      labelKey: "nav.items.engagement",
+      icon: ClipboardList,
+    },
+    {
+      href: "/suppliers/risk-dashboard",
+      labelKey: "nav.items.supplierRisk",
+      icon: ShieldCheck,
+    },
+    {
+      href: "/suppliers/supply-chain",
+      labelKey: "nav.items.supplyChain",
+      icon: Network,
+    },
+    { href: "/scope3/category-1", labelKey: "nav.items.cat1Tiers", icon: Truck },
+    { href: "/spend", labelKey: "nav.items.spend", icon: Wallet },
+    { href: "/materiality", labelKey: "nav.items.materiality", icon: Target },
+    { href: "/analytics", labelKey: "nav.items.analytics", icon: BarChart3 },
+    { href: "/analytics/compare", labelKey: "nav.items.compare", icon: GitCompare },
+    { href: "/reports", labelKey: "nav.items.reports", icon: FileText },
+    {
+      href: "/compliance/calendar",
+      labelKey: "nav.items.regCalendar",
+      icon: ClipboardList,
+    },
+    { href: "/tcfd", labelKey: "nav.items.tcfd", icon: ClipboardCheck },
+    { href: "/issb", labelKey: "nav.items.issb", icon: BookOpen },
+    { href: "/compliance/sbti-tracking", labelKey: "nav.items.sbti", icon: Crosshair },
+    {
+      href: "/compliance/iso-14064",
+      labelKey: "nav.items.iso14064",
+      icon: ClipboardCheck,
+    },
     {
       href: "/compliance/green-taxonomy",
-      label: "Green Taxonomy",
+      labelKey: "nav.items.greenTaxonomy",
       icon: Leaf,
     },
-    { href: "/compliance-templates", label: "Templates", icon: ListChecks },
-    { href: "/integrations/accounting", label: "Accounting", icon: Wallet },
-    { href: "/iot", label: "IoT", icon: Activity },
-    { href: "/integrations/iot/gateways", label: "IoT gateways", icon: Network },
-    { href: "/database", label: "Database", icon: Database },
+    {
+      href: "/compliance-templates",
+      labelKey: "nav.items.templates",
+      icon: ListChecks,
+    },
+    {
+      href: "/integrations/accounting",
+      labelKey: "nav.items.accounting",
+      icon: Wallet,
+    },
+    { href: "/integrations/slack", labelKey: "nav.items.slack", icon: Bell },
+    { href: "/iot", labelKey: "nav.items.iot", icon: Activity },
+    {
+      href: "/integrations/iot/gateways",
+      labelKey: "nav.items.iotGateways",
+      icon: Network,
+    },
+    { href: "/database", labelKey: "nav.items.database", icon: Database },
   ];
 
   const collaborate: NavItem[] = [
     {
       href: "/requests",
-      label: "Requests",
+      labelKey: "nav.items.requests",
       icon: Inbox,
       badgeKey: "requests",
     },
     {
       href: "/questionnaires",
-      label: "Questionnaires",
+      labelKey: "nav.items.questionnaires",
       icon: ClipboardList,
       badgeKey: "questionnaires",
     },
   ];
   if (opts.orgType === "consultancy") {
-    collaborate.push({ href: "/consultant", label: "Clients", icon: Users });
+    collaborate.push({
+      href: "/consultant",
+      labelKey: "nav.items.clients",
+      icon: Users,
+    });
   }
 
   const assure: NavItem[] = [
-    { href: "/guide", label: "Guide", icon: BookOpen },
-    { href: "/assurance", label: "Assurance", icon: ClipboardCheck },
+    { href: "/guide", labelKey: "nav.items.guide", icon: BookOpen },
+    { href: "/assurance", labelKey: "nav.items.assurance", icon: ClipboardCheck },
     {
       href: "/assurance-partners",
-      label: "Partners",
+      labelKey: "nav.items.partners",
       icon: Building2,
     },
-    { href: "/audit", label: "Audit", icon: ShieldCheck },
-    { href: "/benchmarks", label: "Benchmarks", icon: BarChart3 },
+    { href: "/activity", labelKey: "nav.items.activity", icon: History },
+    { href: "/audit", labelKey: "nav.items.audit", icon: ShieldCheck },
+    { href: "/benchmarks", labelKey: "nav.items.benchmarks", icon: BarChart3 },
   ];
 
   const account: NavItem[] = [
-    { href: "/settings", label: "Settings", icon: Settings },
-    { href: "/billing", label: "Billing", icon: CreditCard },
+    { href: "/settings", labelKey: "nav.items.settings", icon: Settings },
+    { href: "/billing", labelKey: "nav.items.billing", icon: CreditCard },
   ];
   if (!opts.onboarded) {
     account.push({
       href: "/onboarding",
-      label: "Baseline",
+      labelKey: "nav.items.baseline",
       icon: ListChecks,
     });
   }
 
   return [
-    { id: "work", label: "Work", items: work },
-    { id: "collaborate", label: "Collaborate", items: collaborate },
-    { id: "assure", label: "Assure", items: assure },
-    { id: "account", label: "Account", items: account },
+    { id: "work", labelKey: "nav.groups.work", items: work },
+    { id: "collaborate", labelKey: "nav.groups.collaborate", items: collaborate },
+    { id: "assure", labelKey: "nav.groups.assure", items: assure },
+    { id: "account", labelKey: "nav.groups.account", items: account },
   ];
 }
 

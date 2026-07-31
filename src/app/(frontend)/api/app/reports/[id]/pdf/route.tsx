@@ -6,12 +6,18 @@ import { getCurrentContext } from "@/lib/auth";
 import { can, resolveEffectivePlan } from "@/lib/billing";
 import { ReportPdfDocument } from "@/lib/reports/ReportPdfDocument";
 import type { ReportSnapshot } from "@/lib/reports";
+import { pageFormatToReactSize, parseReportPdfSettings } from "@/lib/reports/pdfSettings";
 import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function GET(_req: Request, ctx: Ctx) {
+/**
+ * GET /api/app/reports/[id]/pdf
+ * Query: ?pageSize=a4|letter&watermark=CONFIDENTIAL&includeCharts=0|1
+ * Plan entitlement `unwatermarked_pdf` removes the ClearESG draft watermark.
+ */
+export async function GET(req: Request, ctx: Ctx) {
   const auth = await getCurrentContext();
   if (!auth.activeOrg) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -56,6 +62,7 @@ export async function GET(_req: Request, ctx: Ctx) {
     return NextResponse.json({ error: "Report has no snapshot" }, { status: 409 });
   }
 
+  const pdfSettings = parseReportPdfSettings(new URL(req.url).searchParams);
   const watermarked = !can(
     resolveEffectivePlan({
       plan: auth.activeOrg.plan,
@@ -64,7 +71,13 @@ export async function GET(_req: Request, ctx: Ctx) {
     "unwatermarked_pdf",
   );
   const buffer = await renderToBuffer(
-    <ReportPdfDocument snapshot={snapshot} watermarked={watermarked} />,
+    <ReportPdfDocument
+      snapshot={snapshot}
+      watermarked={watermarked}
+      watermarkLabel={pdfSettings.watermark}
+      pageSize={pageFormatToReactSize(pdfSettings.pageFormat)}
+      includeCharts={pdfSettings.includeCharts}
+    />,
   );
   const disposition = report.status === "draft" ? "attachment" : "inline";
   return new NextResponse(new Uint8Array(buffer), {

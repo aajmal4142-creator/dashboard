@@ -265,6 +265,8 @@ export function ReportsClient({
       eyebrow="Reports"
       title="Publish"
       help="Generate regenerable CSRD/ESRS drafts, approve, then publish a locked final. Published versions are immutable. ClearESG is not an assurance provider."
+      dataTour="reports-header"
+      actionsDataTour="reports-actions"
       actions={
         canPublish ? (
           <div className="flex flex-wrap gap-2">
@@ -403,274 +405,295 @@ export function ReportsClient({
         ) : null}
 
         {drafts.length > 0 ? (
-          <PageCard title="Drafts (regenerable)">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-[12px]">
-                <thead>
-                  <tr className="border-b-2 border-rule-strong">
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Version
-                    </th>
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Framework
-                    </th>
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Factor standard
-                    </th>
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Gaps
-                    </th>
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Approval
-                    </th>
-                    <th className="py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {drafts.map((r) => (
-                    <tr
-                      key={r.id}
-                      className="border-b border-rule transition-colors last:border-b-0 hover:bg-surface-2"
-                    >
-                      <td className="py-2.5 pr-2 font-data text-ink">v{r.version}</td>
-                      <td className="py-2.5 pr-2 text-ink-muted">
-                        {frameworkLabel(r.framework)}
-                      </td>
-                      <td className="py-2.5 pr-2 font-data text-ink-muted">
-                        {r.emissionsStandard ?? "—"}
-                      </td>
-                      <td className="py-2.5 pr-2 font-data text-ink">
-                        {r.dataGapCount ?? "—"}
-                      </td>
-                      <td className="py-2.5 pr-2 text-ink-muted">
-                        {r.approvedAt ? "Approved" : "Pending"}
-                      </td>
-                      <td className="py-2.5">
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          <a
-                            className="text-ink underline-offset-2 hover:underline"
-                            href={`/api/app/reports/${r.id}/pdf`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            PDF
-                          </a>
-                          <button
-                            type="button"
-                            className="text-accent underline-offset-2 hover:underline"
-                            onClick={() =>
-                              setExportFor({
-                                id: r.id,
-                                label: `Draft ${frameworkLabel(r.framework)} v${r.version}`,
-                              })
-                            }
-                          >
-                            Export PDF · HTML · Embed
-                          </button>
-                          <button
-                            type="button"
-                            className="text-ink underline-offset-2 hover:underline"
-                            onClick={() =>
-                              setScheduleFor({
-                                id: r.id,
-                                label: `Draft ${frameworkLabel(r.framework)} v${r.version}`,
-                              })
-                            }
-                          >
-                            Schedule deliveries
-                          </button>
-                          {canPublish ? (
-                            <>
-                              <button
-                                type="button"
-                                className="text-accent underline-offset-2 hover:underline"
-                                disabled={busy}
-                                onClick={() => void regenerateDraft(r.id)}
-                              >
-                                Regenerate
-                              </button>
-                              {!r.approvedAt ? (
+          <div data-tour="reports-drafts">
+            <PageCard title="Drafts (regenerable)">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-left text-[12px]">
+                  <thead>
+                    <tr className="border-b-2 border-rule-strong">
+                      <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        Version
+                      </th>
+                      <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        Framework
+                      </th>
+                      <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        Factor standard
+                      </th>
+                      <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        Gaps
+                      </th>
+                      <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        Approval
+                      </th>
+                      <th className="py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {drafts.map((r) => (
+                      <tr
+                        key={r.id}
+                        className="border-b border-rule transition-colors last:border-b-0 hover:bg-surface-2"
+                      >
+                        <td className="py-2.5 pr-2 font-data text-ink">v{r.version}</td>
+                        <td className="py-2.5 pr-2 text-ink-muted">
+                          {frameworkLabel(r.framework)}
+                        </td>
+                        <td className="py-2.5 pr-2 font-data text-ink-muted">
+                          {r.emissionsStandard ?? "—"}
+                        </td>
+                        <td className="py-2.5 pr-2 font-data text-ink">
+                          {r.dataGapCount ?? "—"}
+                        </td>
+                        <td className="py-2.5 pr-2 text-ink-muted">
+                          {r.approvedAt ? "Approved" : "Pending"}
+                        </td>
+                        <td className="py-2.5">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            <a
+                              className="text-ink underline-offset-2 hover:underline"
+                              href={`/api/app/reports/${r.id}/pdf`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              PDF
+                            </a>
+                            <button
+                              type="button"
+                              className="text-accent underline-offset-2 hover:underline"
+                              onClick={() =>
+                                setExportFor({
+                                  id: r.id,
+                                  label: `Draft ${frameworkLabel(r.framework)} v${r.version}`,
+                                })
+                              }
+                            >
+                              Export PDF · HTML · Embed
+                            </button>
+                            <button
+                              type="button"
+                              className="text-ink underline-offset-2 hover:underline"
+                              onClick={() =>
+                                setScheduleFor({
+                                  id: r.id,
+                                  label: `Draft ${frameworkLabel(r.framework)} v${r.version}`,
+                                })
+                              }
+                            >
+                              Schedule deliveries
+                            </button>
+                            {canPublish ? (
+                              <>
                                 <button
                                   type="button"
-                                  className="text-ink underline-offset-2 hover:underline"
+                                  className="text-accent underline-offset-2 hover:underline"
                                   disabled={busy}
-                                  onClick={() => void approveDraft(r.id)}
+                                  onClick={() => void regenerateDraft(r.id)}
                                 >
-                                  Approve
+                                  Regenerate
                                 </button>
-                              ) : null}
-                            </>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </PageCard>
-        ) : null}
+                                {!r.approvedAt ? (
+                                  <button
+                                    type="button"
+                                    className="text-ink underline-offset-2 hover:underline"
+                                    disabled={busy}
+                                    onClick={() => void approveDraft(r.id)}
+                                  >
+                                    Approve
+                                  </button>
+                                ) : null}
+                              </>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </PageCard>
+          </div>
+        ) : (
+          <div data-tour="reports-drafts" className="sr-only" aria-hidden>
+            Drafts appear here after you generate one.
+          </div>
+        )}
 
         {published.length === 0 && drafts.length === 0 ? (
           <EmptyState
             title="No reports yet"
             body="Generate a CSRD draft to review the ESRS PDF, then publish a locked final when ready."
           />
-        ) : published.length === 0 ? null : (
-          <PageCard title="Published versions (immutable)">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-[12px]">
-                <thead>
-                  <tr className="border-b-2 border-rule-strong">
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Version
-                    </th>
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Framework
-                    </th>
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Factor standard
-                    </th>
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Score
-                    </th>
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Gaps
-                    </th>
-                    <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Views
-                    </th>
-                    <th className="py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {published.map((r) => (
-                    <tr
-                      key={r.id}
-                      className="border-b border-rule transition-colors last:border-b-0 hover:bg-surface-2"
-                    >
-                      <td className="py-2.5 pr-2 font-data text-ink">v{r.version}</td>
-                      <td className="py-2.5 pr-2 text-ink-muted">
-                        {frameworkLabel(r.framework)}
-                      </td>
-                      <td className="py-2.5 pr-2 font-data text-ink-muted">
-                        {r.emissionsStandard ?? "—"}
-                      </td>
-                      <td className="py-2.5 pr-2 font-data text-ink">
-                        {r.scores?.overall ?? "—"}
-                      </td>
-                      <td className="py-2.5 pr-2 font-data text-ink-muted">
-                        {r.dataGapCount ?? "—"}
-                      </td>
-                      <td className="py-2.5 pr-2 font-data text-ink-muted">
-                        {r.viewCount}
-                      </td>
-                      <td className="py-2.5">
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          {r.shareToken ? (
-                            <a
-                              className="font-medium text-accent underline-offset-2 hover:underline"
-                              href={`/r/${r.shareToken}`}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              Open live report
-                            </a>
-                          ) : null}
-                          {r.assuranceToken ? (
+        ) : published.length === 0 ? (
+          <div data-tour="reports-published" className="sr-only" aria-hidden>
+            Published versions appear here after you publish.
+          </div>
+        ) : (
+          <div data-tour="reports-published">
+            <PageCard title="Published versions (immutable)">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-left text-[12px]">
+                  <thead>
+                    <tr className="border-b-2 border-rule-strong">
+                      <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        Version
+                      </th>
+                      <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        Framework
+                      </th>
+                      <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        Factor standard
+                      </th>
+                      <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        Score
+                      </th>
+                      <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        Gaps
+                      </th>
+                      <th className="py-2.5 pr-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        Views
+                      </th>
+                      <th className="py-2.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {published.map((r) => (
+                      <tr
+                        key={r.id}
+                        className="border-b border-rule transition-colors last:border-b-0 hover:bg-surface-2"
+                      >
+                        <td className="py-2.5 pr-2 font-data text-ink">v{r.version}</td>
+                        <td className="py-2.5 pr-2 text-ink-muted">
+                          {frameworkLabel(r.framework)}
+                        </td>
+                        <td className="py-2.5 pr-2 font-data text-ink-muted">
+                          {r.emissionsStandard ?? "—"}
+                        </td>
+                        <td className="py-2.5 pr-2 font-data text-ink">
+                          {r.scores?.overall ?? "—"}
+                        </td>
+                        <td className="py-2.5 pr-2 font-data text-ink-muted">
+                          {r.dataGapCount ?? "—"}
+                        </td>
+                        <td className="py-2.5 pr-2 font-data text-ink-muted">
+                          {r.viewCount}
+                        </td>
+                        <td className="py-2.5">
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                            {r.shareToken ? (
+                              <a
+                                className="font-medium text-accent underline-offset-2 hover:underline"
+                                href={`/r/${r.shareToken}`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Open live report
+                              </a>
+                            ) : null}
+                            {r.assuranceToken ? (
+                              <a
+                                className="text-ink underline-offset-2 hover:underline"
+                                href={`/a/${r.assuranceToken}`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Assurance Room
+                              </a>
+                            ) : null}
                             <a
                               className="text-ink underline-offset-2 hover:underline"
-                              href={`/a/${r.assuranceToken}`}
+                              href={`/api/app/reports/${r.id}/pdf`}
                               target="_blank"
                               rel="noreferrer"
                             >
-                              Assurance Room
+                              PDF
                             </a>
-                          ) : null}
-                          <a
-                            className="text-ink underline-offset-2 hover:underline"
-                            href={`/api/app/reports/${r.id}/pdf`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            PDF
-                          </a>
-                          <button
-                            type="button"
-                            className="text-accent underline-offset-2 hover:underline"
-                            onClick={() =>
-                              setShareFor({
-                                id: r.id,
-                                label: `Published ${frameworkLabel(r.framework)} v${r.version}`,
-                              })
-                            }
-                          >
-                            Share report
-                          </button>
-                          <button
-                            type="button"
-                            className="text-accent underline-offset-2 hover:underline"
-                            onClick={() =>
-                              setExportFor({
-                                id: r.id,
-                                label: `Published ${frameworkLabel(r.framework)} v${r.version}`,
-                              })
-                            }
-                          >
-                            Export PDF · HTML
-                          </button>
-                          <button
-                            type="button"
-                            className="text-accent underline-offset-2 hover:underline"
-                            onClick={() =>
-                              setScheduleFor({
-                                id: r.id,
-                                label: `Published ${frameworkLabel(r.framework)} v${r.version}`,
-                              })
-                            }
-                          >
-                            Schedule deliveries
-                          </button>
-                          <span className="text-[11px] text-ink-muted">
-                            <a
-                              className="underline-offset-2 hover:underline"
-                              href={`/api/app/reports/${r.id}/export?format=json`}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              type="button"
+                              className="text-accent underline-offset-2 hover:underline"
+                              onClick={() =>
+                                setShareFor({
+                                  id: r.id,
+                                  label: `Published ${frameworkLabel(r.framework)} v${r.version}`,
+                                })
+                              }
                             >
-                              JSON
-                            </a>
-                            <span aria-hidden="true"> · </span>
-                            <a
-                              className="underline-offset-2 hover:underline"
-                              href={`/api/app/reports/${r.id}/export?format=xml`}
-                              target="_blank"
-                              rel="noreferrer"
+                              Share report
+                            </button>
+                            <button
+                              type="button"
+                              className="text-accent underline-offset-2 hover:underline"
+                              onClick={() =>
+                                setExportFor({
+                                  id: r.id,
+                                  label: `Published ${frameworkLabel(r.framework)} v${r.version}`,
+                                })
+                              }
                             >
-                              XML
-                            </a>
-                            <span aria-hidden="true"> · </span>
-                            <a
-                              className="underline-offset-2 hover:underline"
-                              href={`/api/app/reports/${r.id}/export?format=csv`}
-                              target="_blank"
-                              rel="noreferrer"
+                              Export PDF · HTML
+                            </button>
+                            <button
+                              type="button"
+                              className="text-accent underline-offset-2 hover:underline"
+                              onClick={() =>
+                                setScheduleFor({
+                                  id: r.id,
+                                  label: `Published ${frameworkLabel(r.framework)} v${r.version}`,
+                                })
+                              }
                             >
-                              CSV
-                            </a>
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </PageCard>
+                              Schedule deliveries
+                            </button>
+                            <span className="text-[11px] text-ink-muted">
+                              <a
+                                className="underline-offset-2 hover:underline"
+                                href={`/api/app/reports/${r.id}/export?format=json`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                JSON
+                              </a>
+                              <span aria-hidden="true"> · </span>
+                              <a
+                                className="underline-offset-2 hover:underline"
+                                href={`/api/app/reports/${r.id}/export?format=xml`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                XML
+                              </a>
+                              <span aria-hidden="true"> · </span>
+                              <a
+                                className="underline-offset-2 hover:underline"
+                                href={`/api/app/reports/${r.id}/export?format=csv`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                CSV
+                              </a>
+                              <span aria-hidden="true"> · </span>
+                              <a
+                                className="underline-offset-2 hover:underline"
+                                href={`/api/app/reports/${r.id}/export?format=xlsx`}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Excel
+                              </a>
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </PageCard>
+          </div>
         )}
       </div>
 

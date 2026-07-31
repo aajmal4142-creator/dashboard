@@ -16,6 +16,7 @@ export type ScheduledReportEmailInput = {
   periodLabel: string;
   reportDate: Date;
   liveReportUrl: string | null;
+  unsubscribeUrl: string | null;
   attachment: SendEmailAttachment;
 };
 
@@ -34,11 +35,14 @@ export function buildScheduledReportEmailBody(input: {
   framework: string;
   periodLabel: string;
   liveReportUrl: string | null;
+  unsubscribeUrl: string | null;
+  openTrackingUrl?: string | null;
 }): { html: string; text: string } {
   const framework = frameworkLabel(input.framework);
   const linkLine = input.liveReportUrl
     ? `Live report: ${input.liveReportUrl}`
     : "Live report link is unavailable for this version.";
+  const unsubLine = input.unsubscribeUrl ? `Unsubscribe: ${input.unsubscribeUrl}` : null;
 
   const text = [
     `${input.orgName}`,
@@ -49,11 +53,22 @@ export function buildScheduledReportEmailBody(input: {
     "",
     "—",
     "This message was sent by a ClearESG scheduled delivery.",
+    ...(unsubLine ? [unsubLine] : []),
   ].join("\n");
 
   const linkHtml = input.liveReportUrl
     ? `<p><a href="${escapeHtml(input.liveReportUrl)}">Open live report</a></p>`
     : `<p>Live report link is unavailable for this version.</p>`;
+
+  const unsubHtml = input.unsubscribeUrl
+    ? `<p style="margin: 12px 0 0; font-size: 12px; color: #6b6560;">
+    <a href="${escapeHtml(input.unsubscribeUrl)}" style="color: #6b6560;">Unsubscribe from this schedule</a>
+  </p>`
+    : "";
+
+  const pixelHtml = input.openTrackingUrl
+    ? `<img src="${escapeHtml(input.openTrackingUrl)}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0;" />`
+    : "";
 
   const html = `
 <div style="font-family: Georgia, 'Times New Roman', serif; color: #1a1814; line-height: 1.5;">
@@ -65,6 +80,8 @@ export function buildScheduledReportEmailBody(input: {
   <p style="margin: 0; font-size: 12px; color: #6b6560;">
     This message was sent by a ClearESG scheduled delivery.
   </p>
+  ${unsubHtml}
+  ${pixelHtml}
 </div>
 `.trim();
 
@@ -72,7 +89,7 @@ export function buildScheduledReportEmailBody(input: {
 }
 
 export async function sendScheduledReportEmail(
-  input: ScheduledReportEmailInput,
+  input: ScheduledReportEmailInput & { openTrackingUrl?: string | null },
 ): Promise<SendEmailResult> {
   const subject = buildScheduledReportSubject({
     orgName: input.orgName,
@@ -84,6 +101,8 @@ export async function sendScheduledReportEmail(
     framework: input.framework,
     periodLabel: input.periodLabel,
     liveReportUrl: input.liveReportUrl,
+    unsubscribeUrl: input.unsubscribeUrl,
+    openTrackingUrl: input.openTrackingUrl ?? null,
   });
 
   return sendTransactionalEmail({

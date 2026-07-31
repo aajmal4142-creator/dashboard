@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getCurrentContext } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit/write";
 import { requirePermission } from "@/lib/policy/protect";
+import { datapointDocToRecord, validateDatapoint } from "@/lib/data/validationEngine";
 import config from "@/payload.config";
 
 /** Admin/owner approve or reject a datapoint. §15.1.2 */
@@ -17,6 +18,8 @@ export async function POST(req: Request) {
     datapointId?: string;
     approvalState?: "approved" | "rejected" | "pending";
     reason?: string;
+    /** When true, skip custom validation rules (admin override). */
+    skipValidation?: boolean;
   };
   if (!body.datapointId || !body.approvalState) {
     return NextResponse.json(
@@ -57,6 +60,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  if (body.approvalState === "approved" && body.skipValidation !== true) {
+    const validation = await validateDatapoint(
+      ctx.activeOrg.id,
+      datapointDocToRecord(dp),
+    );
+    if (!validation.canApprove) {
+      return NextResponse.json(
+        {
+          error: "Datapoint failed validation rules",
+          valid: false,
+          canApprove: false,
+          errors: validation.errors,
+          warnings: validation.warnings,
+          violations: validation.violations,
+        },
+        { status: 422 },
+      );
+    }
+  }
+
   const before = {
     approvalState: dp.approvalState,
     approvalReason: dp.approvalReason,
@@ -84,6 +107,81 @@ export async function POST(req: Request) {
       approvalReason: updated.approvalReason,
     },
   });
+
+  if (body.approvalState === "approved") {
+    const { createNotification, notifyOrganisationMembers } =
+      await import("@/lib/notifications");
+    const actorName =
+      [ctx.user.firstName, ctx.user.lastName].filter(Boolean).join(" ").trim() ||
+      ctx.user.email;
+    const metricLabel =
+      typeof dp.metricKey === "string" && dp.metricKey.trim()
+        ? dp.metricKey.trim()
+        : "datapoint";
+    const title = "Datapoint approved";
+    const message = `${actorName} approved '${metricLabel}'`;
+    const recipientIds = new Set<string>();
+    const assigned =
+      typeof dp.assignedTo === "string"
+        ? dp.assignedTo
+        : dp.assignedTo && typeof dp.assignedTo === "object"
+          ? dp.assignedTo.id
+          : null;
+    const entered =
+      typeof dp.enteredBy === "string"
+        ? dp.enteredBy
+        : dp.enteredBy && typeof dp.enteredBy === "object"
+          ? dp.enteredBy.id
+          : null;
+    if (assigned) recipientIds.add(assigned);
+    if (entered) recipientIds.add(entered);
+    recipientIds.delete(ctx.user.id);
+
+    if (recipientIds.size > 0) {
+      for (const userId of recipientIds) {
+        await createNotification(payload, {
+          organisationId: ctx.activeOrg.id,
+          userId,
+          type: "datapoint_approved",
+          title,
+          message,
+          resourceType: "datapoint",
+          resourceId: String(dp.id),
+        });
+      }
+    } else {
+      await notifyOrganisationMembers(payload, {
+        organisationId: ctx.activeOrg.id,
+        excludeUserIds: [ctx.user.id],
+        type: "datapoint_approved",
+        title,
+        message,
+        resourceType: "datapoint",
+        resourceId: String(dp.id),
+      });
+    }
+
+    const { buildDatapointApprovedEvent, runAutomationsForEvent } =
+      await import("@/lib/automations");
+    const numericValue =
+      typeof updated.value === "number"
+        ? updated.value
+        : typeof dp.value === "number"
+          ? dp.value
+          : null;
+    await runAutomationsForEvent(
+      payload,
+      buildDatapointApprovedEvent({
+        organisationId: ctx.activeOrg.id,
+        datapointId: String(dp.id),
+        metricKey: metricLabel,
+        value: numericValue,
+        approvalState: "approved",
+        actorName,
+      }),
+      { actorId: ctx.user.id },
+    );
+  }
 
   return NextResponse.json({
     ok: true,

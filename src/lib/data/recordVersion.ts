@@ -5,16 +5,21 @@ import { DATAPOINT_VERSIONS_SLUG } from "@/collections/DatapointVersions";
 
 import {
   auditActionForChange,
+  compareDatapointSnapshots,
   diffDatapointSnapshots,
+  effectiveVersionSnapshot,
   restoreDataFromSnapshot,
   snapshotDatapoint,
   snapshotsEqual,
   type DatapointSnapshot,
   type DatapointVersionChangeType,
+  type VersionCompareResult,
 } from "./versioning";
 
 export type DatapointVersionContext = {
   skipDatapointVersion?: boolean;
+  /** Skip afterChange lineage snapshot persistence (avoids recursion). */
+  skipLineageSnapshot?: boolean;
   changeType?: DatapointVersionChangeType;
   reason?: string | null;
   changedBy?: string | null;
@@ -125,6 +130,32 @@ export async function recordDatapointVersion(
   return { id: created.id, versionNumber };
 }
 
+function mapVersionDoc(doc: {
+  id: string | number;
+  versionNumber?: number | null;
+  changeType?: string | null;
+  oldValue?: unknown;
+  newValue?: unknown;
+  changedBy?: unknown;
+  changedAt?: unknown;
+  createdAt?: unknown;
+  reason?: unknown;
+}): DatapointVersionRow {
+  const oldValue = (doc.oldValue as DatapointSnapshot | null) ?? null;
+  const newValue = (doc.newValue as DatapointSnapshot | null) ?? null;
+  return {
+    id: String(doc.id),
+    versionNumber: Number(doc.versionNumber),
+    changeType: doc.changeType as DatapointVersionChangeType,
+    oldValue,
+    newValue,
+    changedBy: typeof doc.changedBy === "string" ? doc.changedBy : null,
+    changedAt: String(doc.changedAt ?? doc.createdAt),
+    reason: typeof doc.reason === "string" ? doc.reason : null,
+    diffs: diffDatapointSnapshots(oldValue, newValue),
+  };
+}
+
 export async function listDatapointVersions(
   payload: Payload,
   args: { organisationId: string; datapointId: string; limit?: number },
@@ -143,21 +174,126 @@ export async function listDatapointVersions(
     overrideAccess: true,
   });
 
-  return result.docs.map((doc) => {
-    const oldValue = (doc.oldValue as DatapointSnapshot | null) ?? null;
-    const newValue = (doc.newValue as DatapointSnapshot | null) ?? null;
-    return {
-      id: String(doc.id),
-      versionNumber: Number(doc.versionNumber),
-      changeType: doc.changeType as DatapointVersionChangeType,
-      oldValue,
-      newValue,
-      changedBy: typeof doc.changedBy === "string" ? doc.changedBy : null,
-      changedAt: String(doc.changedAt ?? doc.createdAt),
-      reason: typeof doc.reason === "string" ? doc.reason : null,
-      diffs: diffDatapointSnapshots(oldValue, newValue),
-    };
+  return result.docs.map((doc) => mapVersionDoc(doc));
+}
+
+export async function getDatapointVersionByNumber(
+  payload: Payload,
+  args: {
+    organisationId: string;
+    datapointId: string;
+    versionNumber: number;
+  },
+): Promise<DatapointVersionRow | null> {
+  const result = await payload.find({
+    collection: DATAPOINT_VERSIONS_SLUG,
+    where: {
+      and: [
+        { organisation: { equals: args.organisationId } },
+        { datapointId: { equals: args.datapointId } },
+        { versionNumber: { equals: args.versionNumber } },
+      ],
+    },
+    limit: 1,
+    depth: 0,
+    overrideAccess: true,
   });
+  const doc = result.docs[0];
+  if (!doc) return null;
+  return mapVersionDoc(doc);
+}
+
+export type DatapointVersionComparePayload = {
+  datapointId: string;
+  v1: number;
+  v2: number;
+  versionA: {
+    id: string;
+    versionNumber: number;
+    changeType: DatapointVersionChangeType;
+    changedBy: string | null;
+    changedAt: string;
+    reason: string | null;
+    snapshot: DatapointSnapshot | null;
+  };
+  versionB: {
+    id: string;
+    versionNumber: number;
+    changeType: DatapointVersionChangeType;
+    changedBy: string | null;
+    changedAt: string;
+    reason: string | null;
+    snapshot: DatapointSnapshot | null;
+  };
+  fields: VersionCompareResult["fieldMap"];
+  diffs: VersionCompareResult["fields"];
+  changedCount: number;
+  identical: boolean;
+};
+
+/**
+ * Compare two version snapshots by version number (A = v1, B = v2).
+ */
+export async function compareDatapointVersions(
+  payload: Payload,
+  args: {
+    organisationId: string;
+    datapointId: string;
+    v1: number;
+    v2: number;
+  },
+): Promise<DatapointVersionComparePayload> {
+  const [versionA, versionB] = await Promise.all([
+    getDatapointVersionByNumber(payload, {
+      organisationId: args.organisationId,
+      datapointId: args.datapointId,
+      versionNumber: args.v1,
+    }),
+    getDatapointVersionByNumber(payload, {
+      organisationId: args.organisationId,
+      datapointId: args.datapointId,
+      versionNumber: args.v2,
+    }),
+  ]);
+
+  if (!versionA) {
+    throw new Error(`Version ${args.v1} not found for this datapoint.`);
+  }
+  if (!versionB) {
+    throw new Error(`Version ${args.v2} not found for this datapoint.`);
+  }
+
+  const snapA = effectiveVersionSnapshot(versionA.oldValue, versionA.newValue);
+  const snapB = effectiveVersionSnapshot(versionB.oldValue, versionB.newValue);
+  const compared = compareDatapointSnapshots(snapA, snapB);
+
+  return {
+    datapointId: args.datapointId,
+    v1: args.v1,
+    v2: args.v2,
+    versionA: {
+      id: versionA.id,
+      versionNumber: versionA.versionNumber,
+      changeType: versionA.changeType,
+      changedBy: versionA.changedBy,
+      changedAt: versionA.changedAt,
+      reason: versionA.reason,
+      snapshot: snapA,
+    },
+    versionB: {
+      id: versionB.id,
+      versionNumber: versionB.versionNumber,
+      changeType: versionB.changeType,
+      changedBy: versionB.changedBy,
+      changedAt: versionB.changedAt,
+      reason: versionB.reason,
+      snapshot: snapB,
+    },
+    fields: compared.fieldMap,
+    diffs: compared.fields.filter((f) => f.changed),
+    changedCount: compared.changedCount,
+    identical: compared.identical,
+  };
 }
 
 /**

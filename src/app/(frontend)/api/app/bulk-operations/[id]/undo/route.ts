@@ -1,9 +1,25 @@
 import { getPayload } from "payload";
 import { NextResponse } from "next/server";
-import type { CollectionSlug } from "payload";
 
 import { getCurrentContext } from "@/lib/auth";
+import {
+  BillingDeniedError,
+  billingDeniedResponse,
+  can,
+  normalizePlan,
+} from "@/lib/billing";
+import { applySnapshotPlan, planUndoApply } from "@/lib/bulk/execute";
+import { buildUndoPreview, parseBulkSnapshot } from "@/lib/bulk/snapshot";
 import config from "@/payload.config";
+
+function isOpActor(
+  actor: string | { id: string } | null | undefined,
+  userId: string,
+): boolean {
+  if (!actor) return false;
+  if (typeof actor === "string") return actor === userId;
+  return actor.id === userId;
+}
 
 export async function POST(
   _req: Request,
@@ -12,6 +28,15 @@ export async function POST(
   const ctx = await getCurrentContext();
   if (!ctx.user || !ctx.activeOrg) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!can(ctx.activeOrg.plan, "bulk_actions")) {
+    return NextResponse.json(
+      billingDeniedResponse(
+        new BillingDeniedError(normalizePlan(ctx.activeOrg.plan), "bulk_actions"),
+      ),
+      { status: 402 },
+    );
   }
 
   const { id } = await params;
@@ -26,10 +51,15 @@ export async function POST(
     return NextResponse.json({ error: "Operation not found" }, { status: 404 });
   }
 
-  const isInitiator =
-    op.actor === ctx.user.id ||
-    (typeof op.actor === "object" && op.actor && op.actor.id === ctx.user.id);
-  if (!isInitiator) {
+  const orgId =
+    typeof op.organisation === "object" && op.organisation
+      ? op.organisation.id
+      : op.organisation;
+  if (orgId !== ctx.activeOrg.id) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (!isOpActor(op.actor, ctx.user.id) && ctx.role !== "owner" && ctx.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -37,42 +67,41 @@ export async function POST(
     return NextResponse.json({ error: "Cannot undo this operation" }, { status: 400 });
   }
 
-  if (!op.beforeSnapshot || !Array.isArray(op.beforeSnapshot)) {
+  const beforeSnapshot = parseBulkSnapshot(op.beforeSnapshot);
+  if (!beforeSnapshot) {
     return NextResponse.json(
       { error: "No snapshot available for undo" },
       { status: 400 },
     );
   }
 
-  try {
-    const beforeSnapshot = op.beforeSnapshot as Array<{
-      id: string;
-      data: Record<string, unknown>;
-    }>;
-    const collection = op.resourceType as CollectionSlug;
+  const preview = buildUndoPreview({
+    operationType: op.operationType,
+    resourceType: op.resourceType,
+    beforeSnapshot,
+    afterSnapshot: parseBulkSnapshot(op.afterSnapshot),
+    canUndo: true,
+    undoneAt: op.undoneAt,
+  });
 
-    await Promise.all(
-      beforeSnapshot.map(async (item) => {
-        return payload.update({
-          collection,
-          id: item.id,
-          // Snapshot restore: shape varies by resourceType
-          data: item.data as { [key: string]: never },
-        });
-      }),
-    );
+  try {
+    const plan = planUndoApply(op.operationType, beforeSnapshot);
+    await applySnapshotPlan(payload, op.resourceType, plan);
 
     const undoRecord = await payload.update({
       collection: "bulk-operations",
       id,
       data: {
         canUndo: false,
+        canRedo: true,
         undoneAt: new Date().toISOString(),
+        redoneAt: null,
       },
     });
 
     return NextResponse.json({
       message: "Bulk operation undone successfully",
+      preview,
       operation: undoRecord,
     });
   } catch (error) {

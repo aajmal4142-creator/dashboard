@@ -73,5 +73,74 @@ export const BiApiKeys: CollectionConfig = {
       type: "date",
       admin: { description: "When the key was revoked" },
     },
+    {
+      name: "quotaLimitPerHour",
+      type: "number",
+      min: 0,
+      admin: {
+        description:
+          "Optional per-key hour override. Empty uses plan default (free 10 / pro 500 / consultant unlimited).",
+      },
+    },
+    {
+      name: "quotaLimitPerDay",
+      type: "number",
+      min: 0,
+      admin: {
+        description:
+          "Optional per-key day override. Empty uses plan default (free 100 / pro 10_000 / consultant unlimited).",
+      },
+    },
+    {
+      name: "quotaResetAt",
+      type: "date",
+      admin: {
+        description: "Next UTC day boundary when daily usage counters reset for display",
+        readOnly: true,
+      },
+    },
+    {
+      name: "callsThisHour",
+      type: "number",
+      defaultValue: 0,
+      min: 0,
+      admin: {
+        description: "Approximate calls in the current UTC hour (settings display)",
+        readOnly: true,
+      },
+    },
+    {
+      name: "callsToday",
+      type: "number",
+      defaultValue: 0,
+      min: 0,
+      admin: {
+        description: "Approximate calls since last UTC day reset (settings display)",
+        readOnly: true,
+      },
+    },
+    {
+      name: "quotaWarningSentAt",
+      type: "date",
+      admin: {
+        description: "When the approaching-limit notification was last sent",
+        readOnly: true,
+      },
+    },
+    {
+      name: "allowedIps",
+      type: "array",
+      admin: {
+        description: "Optional IP whitelist. Empty = all IPs allowed.",
+      },
+      fields: [
+        {
+          name: "ip",
+          type: "text",
+          required: true,
+          admin: { description: "Client IP (exact match)" },
+        },
+      ],
+    },
   ],
 };

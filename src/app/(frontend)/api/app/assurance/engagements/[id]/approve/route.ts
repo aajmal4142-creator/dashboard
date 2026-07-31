@@ -55,6 +55,21 @@ export async function POST(req: Request, ctx: Ctx) {
       },
     });
 
+    const { notifyOrganisationMembers } = await import("@/lib/notifications");
+    const scopeLabel =
+      engagement.scope === "all"
+        ? "all scopes"
+        : String(engagement.scope ?? "engagement");
+    await notifyOrganisationMembers(payload, {
+      organisationId: auth.activeOrg.id,
+      excludeUserIds: [auth.user.id],
+      type: "audit_complete",
+      title: "Audit complete",
+      message: `Audit of ${scopeLabel} data complete`,
+      resourceType: "audit",
+      resourceId: String(id),
+    });
+
     return NextResponse.json({ engagement: updated });
   } catch (error) {
     console.error("Error approving engagement:", error);

@@ -18,6 +18,10 @@ type PageFrameProps = {
   wide?: boolean;
   /** Sticky context: period label + last saved */
   context?: { period?: string; lastSaved?: string; status?: string };
+  /** Optional `[data-tour]` on the page header (guided tours). */
+  dataTour?: string;
+  /** Optional `[data-tour]` on the actions cluster. */
+  actionsDataTour?: string;
 };
 
 /**
@@ -34,6 +38,8 @@ export function PageFrame({
   actions,
   wide = true,
   context,
+  dataTour,
+  actionsDataTour,
 }: PageFrameProps) {
   return (
     <Assemble layer="structure" className={cn("min-h-full bg-canvas", className)}>
@@ -58,7 +64,7 @@ export function PageFrame({
           </div>
         ) : null}
 
-        <header className="border-b-2 border-accent pb-5">
+        <header className="border-b-2 border-accent pb-5" data-tour={dataTour}>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-accent">
@@ -74,7 +80,12 @@ export function PageFrame({
               ) : null}
             </div>
             {actions ? (
-              <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
+              <div
+                className="flex shrink-0 flex-wrap items-center gap-2"
+                data-tour={actionsDataTour}
+              >
+                {actions}
+              </div>
             ) : null}
           </div>
         </header>

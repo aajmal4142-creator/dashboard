@@ -13,6 +13,7 @@ import {
   serializeBrandCookie,
   type OrgBranding,
 } from "@/lib/branding";
+import { resolveLocale, type Locale } from "@/lib/i18n";
 import { devBypassAllowed } from "@/lib/launch/gates";
 import config from "@/payload.config";
 
@@ -23,6 +24,7 @@ export type AuthContext = {
     email: string;
     firstName: string | null;
     lastName: string | null;
+    language: Locale;
   };
   memberships: Array<{
     id: string;
@@ -179,6 +181,7 @@ export const getCurrentContext = cache(async (): Promise<AuthContext> => {
         email: userDoc.email,
         firstName: userDoc.firstName ?? null,
         lastName: userDoc.lastName ?? null,
+        language: resolveLocale(userDoc.language),
       },
       memberships,
       activeOrg,
@@ -324,6 +327,7 @@ export const getCurrentContext = cache(async (): Promise<AuthContext> => {
       email,
       firstName: clerkUser.firstName,
       lastName: clerkUser.lastName,
+      language: resolveLocale(userDoc.language),
     },
     memberships,
     activeOrg,

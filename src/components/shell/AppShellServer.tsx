@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/shell/AppShell";
+import { I18nProvider } from "@/components/i18n/I18nProvider";
 import { getCurrentContext } from "@/lib/auth";
 import { flattenHierarchyForSwitcher, getHierarchyTree } from "@/lib/consolidation";
 import config from "@/payload.config";
@@ -79,17 +80,19 @@ export async function AppShellServer({
   }
 
   return (
-    <AppShell
-      orgs={orgs}
-      activeOrgId={ctx.activeOrg?.id ?? null}
-      activeOrgName={ctx.activeOrg?.name ?? null}
-      logoUrl={logoUrl ?? ctx.activeOrg?.brand.branding.logoUrl ?? null}
-      role={ctx.role}
-      orgType={ctx.activeOrg?.type ?? null}
-      onboarded={Boolean(ctx.activeOrg?.onboardedAt)}
-      badges={badges}
-    >
-      {children}
-    </AppShell>
+    <I18nProvider locale={ctx.user.language}>
+      <AppShell
+        orgs={orgs}
+        activeOrgId={ctx.activeOrg?.id ?? null}
+        activeOrgName={ctx.activeOrg?.name ?? null}
+        logoUrl={logoUrl ?? ctx.activeOrg?.brand.branding.logoUrl ?? null}
+        role={ctx.role}
+        orgType={ctx.activeOrg?.type ?? null}
+        onboarded={Boolean(ctx.activeOrg?.onboardedAt)}
+        badges={badges}
+      >
+        {children}
+      </AppShell>
+    </I18nProvider>
   );
 }

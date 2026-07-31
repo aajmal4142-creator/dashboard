@@ -1,7 +1,15 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
-type LimitResult = { ok: true } | { ok: false; retryAfterSec: number };
+export type LimitResult =
+  | { ok: true; remaining: number; limit: number; resetAtMs: number }
+  | {
+      ok: false;
+      remaining: 0;
+      limit: number;
+      resetAtMs: number;
+      retryAfterSec: number;
+    };
 
 type Bucket = { timestamps: number[] };
 const memoryBuckets = new Map<string, Bucket>();
@@ -18,14 +26,24 @@ function memoryLimit(
   if (bucket.timestamps.length >= max) {
     const oldest = bucket.timestamps[0] ?? now;
     memoryBuckets.set(key, bucket);
-    return { ok: false, retryAfterSec: Math.ceil((oldest + windowMs - now) / 1000) };
+    const resetAtMs = oldest + windowMs;
+    return {
+      ok: false,
+      remaining: 0,
+      limit: max,
+      resetAtMs,
+      retryAfterSec: Math.ceil((resetAtMs - now) / 1000),
+    };
   }
   bucket.timestamps.push(now);
   memoryBuckets.set(key, bucket);
-  return { ok: true };
+  return {
+    ok: true,
+    remaining: Math.max(0, max - bucket.timestamps.length),
+    limit: max,
+    resetAtMs: now + windowMs,
+  };
 }
-
-let upstash: Ratelimit | null = null;
 
 function getUpstash(
   max: number,
@@ -34,7 +52,6 @@ function getUpstash(
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return null;
-  // One limiter instance per max/window pair is ideal; for simplicity recreate is ok for low traffic.
   return new Ratelimit({
     redis: new Redis({ url, token }),
     limiter: Ratelimit.slidingWindow(max, window),
@@ -60,11 +77,24 @@ export async function rateLimit(
   try {
     const limiter = getUpstash(opts.max, window);
     if (limiter) {
-      upstash = limiter;
-      const res = await upstash.limit(key);
-      if (res.success) return { ok: true };
-      const retryAfterSec = Math.max(1, Math.ceil((res.reset - Date.now()) / 1000));
-      return { ok: false, retryAfterSec };
+      const res = await limiter.limit(key);
+      const resetAtMs = res.reset;
+      if (res.success) {
+        return {
+          ok: true,
+          remaining: Math.max(0, res.remaining),
+          limit: opts.max,
+          resetAtMs,
+        };
+      }
+      const retryAfterSec = Math.max(1, Math.ceil((resetAtMs - Date.now()) / 1000));
+      return {
+        ok: false,
+        remaining: 0,
+        limit: opts.max,
+        resetAtMs,
+        retryAfterSec,
+      };
     }
   } catch (err) {
     console.error("Upstash rate limit failed; falling back to memory", err);

@@ -434,6 +434,18 @@ export async function POST(req: Request) {
       organisationId: ctx.activeOrg!.id,
     });
 
+    const { notifyOrganisationMembers } = await import("@/lib/notifications");
+    const frameworkLabel = String(framework).toUpperCase();
+    await notifyOrganisationMembers(payload, {
+      organisationId: ctx.activeOrg!.id,
+      excludeUserIds: [ctx.user.id],
+      type: "report_ready",
+      title: "Report ready",
+      message: `${frameworkLabel} report ready for download`,
+      resourceType: "report",
+      resourceId: String(report.id),
+    });
+
     const origin = new URL(req.url).origin;
     return NextResponse.json({
       ok: true,

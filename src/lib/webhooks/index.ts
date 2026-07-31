@@ -8,12 +8,37 @@ export {
   rotateSecret,
   logWebhookAttempt,
   updateWebhookLastTriggered,
+  listWebhookDeliveries,
   type WebhookRegistration,
   type WebhookLog,
   type WebhookRetryPolicy,
   type WebhookAuthentication,
   type RegisterWebhookOptions,
+  type WebhookDeliveryListRow,
+  type WebhookDeliveryListStatus,
 } from "./webhookService";
+
+export {
+  deliverToWebhook,
+  triggerWebhooks,
+  sendTestWebhookDelivery,
+  replayFailedDelivery,
+  type WebhookEvent,
+} from "./webhookQueue";
+
+export {
+  DEFAULT_WEBHOOK_MAX_RETRIES,
+  DEFAULT_WEBHOOK_RETRY_DELAY_MS,
+  DEFAULT_WEBHOOK_TIMEOUT_MS,
+  resolveRetryPolicy,
+  computeRetryBackoffMs,
+  totalAttemptsFromPolicy,
+  shouldRetryAfterAttempt,
+  computeNextRetryAtIso,
+  isDeadLetterStatus,
+  buildRetryDelaySchedule,
+  type WebhookRetryPolicyResolved,
+} from "./retrySchedule";
 
 export {
   REPORT_GENERATED_EVENT,

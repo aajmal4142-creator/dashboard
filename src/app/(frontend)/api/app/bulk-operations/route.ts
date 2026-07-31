@@ -3,6 +3,18 @@ import { NextResponse } from "next/server";
 import type { Where } from "payload";
 
 import { getCurrentContext } from "@/lib/auth";
+import {
+  BillingDeniedError,
+  billingDeniedResponse,
+  can,
+  normalizePlan,
+} from "@/lib/billing";
+import {
+  captureBeforeSnapshot,
+  executeBulkMutation,
+  resolveClientSnapshot,
+} from "@/lib/bulk/execute";
+import { operationSupportsUndo } from "@/lib/bulk/snapshot";
 import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 
@@ -43,7 +55,9 @@ export async function GET(req: Request) {
           ? { id: op.actor.id, email: op.actor.email }
           : null,
       createdAt: op.createdAt,
-      canUndo: op.canUndo && !op.undoneAt,
+      canUndo: Boolean(op.canUndo) && !op.undoneAt,
+      canRedo: Boolean(op.canRedo) && Boolean(op.undoneAt) && !op.redoneAt,
+      undoneAt: op.undoneAt ?? null,
     })),
   });
 }
@@ -52,6 +66,15 @@ export async function POST(req: Request) {
   const ctx = await getCurrentContext();
   if (!ctx.activeOrg || !ctx.user) {
     return NextResponse.json({ error: "No active organisation" }, { status: 403 });
+  }
+
+  if (!can(ctx.activeOrg.plan, "bulk_actions")) {
+    return NextResponse.json(
+      billingDeniedResponse(
+        new BillingDeniedError(normalizePlan(ctx.activeOrg.plan), "bulk_actions"),
+      ),
+      { status: 402 },
+    );
   }
 
   const allowed = await requirePermission(
@@ -81,9 +104,38 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "itemIds array cannot be empty" }, { status: 400 });
   }
 
+  const ids = itemIds.map((id: unknown) => String(id));
   const payload = await getPayload({ config });
 
   try {
+    const serverSnapshot = await captureBeforeSnapshot(
+      payload,
+      resourceType,
+      ids,
+      ctx.activeOrg.id,
+    );
+    const resolvedBefore = resolveClientSnapshot(beforeSnapshot, serverSnapshot);
+
+    if (operationSupportsUndo(operationType) && resolvedBefore.length === 0) {
+      return NextResponse.json(
+        { error: "Could not capture beforeSnapshot for selected items" },
+        { status: 400 },
+      );
+    }
+
+    const mutation = await executeBulkMutation(payload, {
+      operationType,
+      resourceType,
+      itemIds: ids,
+      organisationId: ctx.activeOrg.id,
+      changes,
+      beforeSnapshot: resolvedBefore,
+    });
+
+    const supportsUndo =
+      operationSupportsUndo(operationType) && resolvedBefore.length > 0;
+    const failed = Boolean(mutation.errorMessage);
+
     const bulkOp = await payload.create({
       collection: "bulk-operations",
       data: {
@@ -91,15 +143,25 @@ export async function POST(req: Request) {
         actor: ctx.user.id,
         operationType,
         resourceType,
-        itemIds,
-        itemCount: itemIds.length,
+        itemIds: ids,
+        itemCount: ids.length,
         changes,
-        beforeSnapshot,
-        status: "pending",
-        progressPercent: 0,
-        canUndo: true,
+        beforeSnapshot: resolvedBefore,
+        afterSnapshot: mutation.afterSnapshot,
+        status: failed ? "failed" : "completed",
+        progressPercent: failed ? 0 : 100,
+        errorMessage: mutation.errorMessage ?? undefined,
+        canUndo: supportsUndo && !failed,
+        canRedo: false,
       },
     });
+
+    if (failed) {
+      return NextResponse.json(
+        { error: mutation.errorMessage, operation: bulkOp },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({ operation: bulkOp }, { status: 201 });
   } catch (error) {

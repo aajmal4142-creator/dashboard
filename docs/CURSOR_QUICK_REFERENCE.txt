@@ -1,0 +1,362 @@
+================================================================================
+CURSOR: QUICK REFERENCE CHECKLIST FOR BUILDING FEATURES
+================================================================================
+
+USE THIS BEFORE STARTING EACH FEATURE!
+
+================================================================================
+BEFORE CODING
+================================================================================
+
+[ ] 1. READ the detailed SPRINT*.md file for your feature
+[ ] 2. Understand all requirements (don't miss edge cases)
+[ ] 3. Identify all database changes needed
+[ ] 4. List all API endpoints to create
+[ ] 5. Plan UI components
+[ ] 6. Understand testing requirements
+
+[ ] 7. QUESTION: Will this affect other features? (check dependencies)
+[ ] 8. QUESTION: Do I need migrations? (database schema changes)
+[ ] 9. QUESTION: Are there permissions/ABAC checks needed?
+[ ] 10. QUESTION: Will this impact performance?
+
+================================================================================
+WHILE CODING
+================================================================================
+
+DATABASE:
+[ ] Create/modify collection schema (if needed)
+[ ] Add indexes for performance
+[ ] Add constraints for data integrity
+[ ] Create migration file if schema changes
+[ ] Run migration on test database first
+
+API:
+[ ] Create all endpoints listed in requirement
+[ ] Add ABAC/permission checks
+[ ] Add validation on input
+[ ] Handle errors gracefully (400, 403, 404, 500)
+[ ] Add rate limiting if needed
+[ ] Document endpoints (JSDoc comments)
+[ ] Test with Postman/Thunder Client before frontend
+
+UI:
+[ ] Create components listed in requirements
+[ ] Make responsive (desktop, tablet, mobile)
+[ ] Use existing design system (Tailwind)
+[ ] Add loading states
+[ ] Add error states
+[ ] Add empty states
+[ ] Make accessible (ARIA labels, keyboard nav)
+
+TESTING:
+[ ] Write unit tests for business logic
+[ ] Write integration tests for APIs
+[ ] Write E2E tests for user workflows
+[ ] Test edge cases mentioned in requirements
+[ ] Test error scenarios
+[ ] Test performance (response time, database queries)
+
+PERFORMANCE:
+[ ] Check API response time (<200ms)
+[ ] Check database query performance
+[ ] Avoid N+1 queries
+[ ] Cache where appropriate
+[ ] Compress images/data
+
+================================================================================
+AFTER BUILDING FEATURE
+================================================================================
+
+VERIFICATION:
+[ ] Feature works exactly as specified (no shortcuts)
+[ ] All requirements completed
+[ ] All edge cases handled
+[ ] All tests passing (>80% coverage)
+[ ] TypeScript strict mode passing
+[ ] No ESLint errors
+[ ] No console errors/warnings
+
+QUALITY:
+[ ] Code is clean and maintainable
+[ ] Functions are small (<50 lines)
+[ ] No dead code
+[ ] Comments only for "why", not "what"
+[ ] Follow project conventions
+[ ] Refactor if needed (but don't over-engineer)
+
+DOCUMENTATION:
+[ ] Updated README if needed
+[ ] Added JSDoc to functions
+[ ] Added comments to complex logic
+[ ] Documented new API endpoints
+[ ] Documented database changes
+
+TESTING AGAIN:
+[ ] Manual testing on real browser
+[ ] Test on mobile (responsive check)
+[ ] Test error scenarios
+[ ] Test with real data (not just happy path)
+[ ] Performance testing (load test if applicable)
+
+SECURITY:
+[ ] Input validation (no SQL injection, XSS)
+[ ] ABAC checks (permissions verified)
+[ ] No sensitive data in logs
+[ ] No secrets in code (use env vars)
+[ ] API tokens encrypted
+[ ] CORS configured correctly
+
+================================================================================
+COMMON MISTAKES TO AVOID
+================================================================================
+
+❌ DON'T:
+- Skip testing (test later is too late)
+- Hard-code values (use database/config)
+- Ignore edge cases (they always bite you)
+- Forget ABAC checks (security risk)
+- Use hardcoded IDs (use references)
+- Leave console.log in code
+- Commit broken tests
+- Ignore TypeScript errors
+- Make assumptions (ask if unclear)
+
+✅ DO:
+- Test as you code
+- Follow requirements exactly
+- Think about edge cases
+- Add permission checks
+- Use database relationships
+- Remove debugging code
+- Pass all tests before commit
+- Fix all TS errors
+- Ask questions early
+
+================================================================================
+CURSOR WORKFLOW FOR EACH FEATURE
+================================================================================
+
+1. READ REQUIREMENT (15 min)
+   Read SPRINT*.md file → Understand completely
+
+2. PLAN DATABASE (10 min)
+   Schema changes → Migrations → Index strategy
+
+3. PLAN API (10 min)
+   List endpoints → Input validation → Response format
+
+4. PLAN UI (10 min)
+   Components → State management → Navigation
+
+5. IMPLEMENT DATABASE (30-60 min)
+   Collections → Migrations → Seed data for testing
+
+6. IMPLEMENT API (1-2 hours)
+   Endpoints → Validation → Error handling → Tests
+
+7. IMPLEMENT UI (1-3 hours)
+   Components → Styling → State → Integration with API
+
+8. TEST & REFINE (1-2 hours)
+   Manual testing → Automated tests → Performance → Edge cases
+
+9. DOCUMENT & CLEANUP (30 min)
+   Remove console.log → Add comments → Update README
+
+10. FINAL REVIEW (30 min)
+    Checklist complete? → Ready for merge/release
+
+================================================================================
+TESTING CHECKLIST (CRITICAL)
+================================================================================
+
+UNIT TESTS:
+[ ] Test each function independently
+[ ] Test with valid inputs
+[ ] Test with invalid inputs
+[ ] Test edge cases (0, -1, null, empty string)
+[ ] Test error scenarios
+[ ] Mock dependencies
+[ ] >80% code coverage
+
+INTEGRATION TESTS:
+[ ] Test API endpoint → Database → API response
+[ ] Test with real database (not mocks)
+[ ] Test permissions/ABAC
+[ ] Test data validation
+[ ] Test error handling
+
+E2E TESTS:
+[ ] Test complete user workflow
+[ ] Test on browser (Chrome, Firefox, Safari)
+[ ] Test error scenarios
+[ ] Test navigation between features
+[ ] Test on mobile/tablet
+
+PERFORMANCE TESTS:
+[ ] API response time <200ms
+[ ] Database query performance (<100ms)
+[ ] No memory leaks (check browser memory)
+[ ] Load testing (simulate multiple users if applicable)
+
+================================================================================
+DATABASE COMMON PATTERNS
+================================================================================
+
+REFERENCES:
+```typescript
+userId: {
+  type: 'relationship',
+  relationTo: 'users',
+  required: true
+}
+```
+
+ARRAYS:
+```typescript
+tags: {
+  type: 'array',
+  fields: [{
+    type: 'text'
+  }]
+}
+```
+
+JSON:
+```typescript
+metadata: {
+  type: 'json',
+  defaultValue: {}
+}
+```
+
+ENUM:
+```typescript
+status: {
+  type: 'select',
+  options: ['active', 'inactive', 'deleted']
+}
+```
+
+DATE:
+```typescript
+createdAt: {
+  type: 'date',
+  defaultValue: new Date()
+}
+```
+
+================================================================================
+API COMMON PATTERNS
+================================================================================
+
+ERROR RESPONSE:
+```typescript
+res.status(400).json({ error: 'Invalid input', details: {...} })
+```
+
+SUCCESS RESPONSE:
+```typescript
+res.status(200).json({ success: true, data: {...} })
+```
+
+ABAC CHECK:
+```typescript
+const allowed = await requirePermission(
+  userId, orgId, 'create', 'datapoint', resourceId, 'organisation'
+)
+if (!allowed) return res.status(403).json({ error: 'Forbidden' })
+```
+
+VALIDATION:
+```typescript
+if (!value || value < 0) {
+  return res.status(400).json({ error: 'Value must be positive' })
+}
+```
+
+================================================================================
+UI COMMON PATTERNS
+================================================================================
+
+LOADING STATE:
+```jsx
+{loading ? <Spinner /> : <Content />}
+```
+
+ERROR STATE:
+```jsx
+{error ? <ErrorAlert message={error} /> : <Content />}
+```
+
+EMPTY STATE:
+```jsx
+{items.length === 0 ? <EmptyState /> : <ItemsList />}
+```
+
+FORM SUBMISSION:
+```jsx
+const handleSubmit = async (e) => {
+  e.preventDefault()
+  setLoading(true)
+  try {
+    await api.post('/endpoint', data)
+    setSuccess('Done!')
+  } catch (err) {
+    setError(err.message)
+  } finally {
+    setLoading(false)
+  }
+}
+```
+
+================================================================================
+PERFORMANCE QUICK WINS
+================================================================================
+
+[ ] Use indexes on frequently queried fields
+[ ] Cache data where appropriate (Redis)
+[ ] Paginate large result sets
+[ ] Use select() to fetch only needed fields
+[ ] Avoid N+1 queries (use populate/joins)
+[ ] Compress images before upload
+[ ] Use pagination limits (default 50, max 1000)
+[ ] Add response time logging
+[ ] Monitor slow queries
+[ ] Optimize API response size (<1MB)
+
+================================================================================
+BEFORE YOU SAY "DONE"
+================================================================================
+
+[ ] Feature works (test manually)
+[ ] Tests pass (run npm test)
+[ ] TypeScript passes (run tsc --noEmit)
+[ ] ESLint passes (run npm run lint)
+[ ] No console errors/warnings
+[ ] Performance acceptable
+[ ] Security checked (ABAC, validation, secrets)
+[ ] Documentation updated
+[ ] README updated if needed
+[ ] Code reviewed (or self-review checklist)
+[ ] Ready to merge
+
+================================================================================
+WHEN STUCK
+================================================================================
+
+1. Re-read the requirement (you probably missed something)
+2. Check edge cases in the requirement
+3. Ask: "What could go wrong here?"
+4. Write a test first (helps clarify what you're building)
+5. If stuck >30 min, reach out (don't guess)
+6. Check similar features for patterns
+7. Google the exact error message
+8. Read StackOverflow (top answer usually right)
+
+================================================================================
+
+Remember: Quality > Speed. Take time to do it right the first time!
+
+Questions? Re-read the SPRINT*.md file or ask for clarification.

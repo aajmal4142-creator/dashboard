@@ -25,6 +25,100 @@ export type DatapointWriteResult = {
   approvalReset: boolean;
 };
 
+export type DatapointUpdateByIdInput = {
+  organisationId: string;
+  datapointId: string;
+  value: number | null;
+  quality: Quality;
+  unit?: string | null;
+  source?: DatapointWriteInput["source"];
+  actorId: string;
+  reason?: string | null;
+};
+
+/**
+ * Update an existing datapoint by id (org-scoped). Used by bulk CSV update.
+ * Editing an approved row resets approvalState → pending + AuditLog.
+ */
+export async function writeDatapointById(
+  payload: Payload,
+  input: DatapointUpdateByIdInput,
+): Promise<DatapointWriteResult> {
+  const prev = await payload.findByID({
+    collection: "datapoints",
+    id: input.datapointId,
+    depth: 0,
+    overrideAccess: true,
+  });
+
+  const orgId =
+    typeof prev.organisation === "object" && prev.organisation
+      ? String(prev.organisation.id)
+      : String(prev.organisation);
+  if (orgId !== input.organisationId) {
+    throw new Error("Datapoint not found in this organisation");
+  }
+
+  const wasApproved = prev.approvalState === "approved";
+  const data: Record<string, unknown> = {
+    value: input.value,
+    quality: input.quality,
+    unit: input.unit ?? undefined,
+    source: input.source ?? "import",
+    enteredBy: input.actorId,
+    enteredAt: new Date().toISOString(),
+  };
+
+  if (wasApproved) {
+    data.approvalState = "pending";
+    data.approvalReason = "Value changed after approval — re-validation required.";
+  }
+
+  const versionContext: DatapointVersionContext = {
+    changedBy: input.actorId,
+    reason: input.reason ?? null,
+  };
+
+  const updated = await (
+    payload.update as (args: {
+      collection: "datapoints";
+      id: string;
+      data: Record<string, unknown>;
+      overrideAccess: true;
+      context: DatapointVersionContext;
+    }) => Promise<{ id: string }>
+  )({
+    collection: "datapoints",
+    id: input.datapointId,
+    data,
+    overrideAccess: true,
+    context: versionContext,
+  });
+
+  if (wasApproved) {
+    await writeAuditLog(payload, {
+      organisationId: input.organisationId,
+      actorId: input.actorId,
+      action: "datapoint.approval_reset",
+      entityType: "datapoints",
+      entityId: prev.id,
+      before: {
+        approvalState: "approved",
+        value: prev.value,
+        quality: prev.quality,
+      },
+      after: {
+        approvalState: "pending",
+        value: input.value,
+        quality: input.quality,
+        reason: "edited after approval",
+      },
+    });
+  }
+
+  return { id: updated.id, approvalReset: wasApproved };
+}
+
 /**
  * Central Datapoint write path — grid, paste commit, and Excel commit.
  * Editing an approved row resets approvalState → pending + AuditLog.

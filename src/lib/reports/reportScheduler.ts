@@ -10,6 +10,18 @@ import {
   type ReportDeliveryFormat,
 } from "@/lib/reports/generateReportAttachment";
 import {
+  activeRecipientEmails,
+  appendDeliveryHistory,
+  buildDeliveryEntries,
+  mapDeliveryHistoryRows,
+  markRecipientUnsubscribed,
+  normalizeScheduleRecipients,
+  summarizeDeliveryRun,
+  type DeliveryHistoryEntry,
+  type DeliveryRecipientStatus,
+  type ScheduleRecipient,
+} from "@/lib/reports/deliveryHistory";
+import {
   computeNextRunAt,
   computeRetryAt,
   isClaimActive,
@@ -22,6 +34,12 @@ import {
 } from "@/lib/reports/scheduleMath";
 import { sendScheduledReportEmail } from "@/lib/reports/scheduledReportEmail";
 import type { ReportSnapshot } from "@/lib/reports/types";
+import {
+  buildUnsubscribeUrl,
+  createUnsubscribeToken,
+  unsubscribeSigningSecret,
+  verifyUnsubscribeToken,
+} from "@/lib/reports/unsubscribeToken";
 import { SCHEDULED_REPORTS_SLUG } from "@/collections/ScheduledReports";
 import config from "@/payload.config";
 
@@ -65,6 +83,7 @@ export type ScheduledReportRow = {
   dayOfWeek: number | null;
   dayOfMonth: number | null;
   recipients: string[];
+  recipientDetails: ScheduleRecipient[];
   format: ReportDeliveryFormat;
   status: ScheduleDeliveryStatus;
   nextRunAt: string;
@@ -72,6 +91,7 @@ export type ScheduledReportRow = {
   lastStatus: "success" | "failed" | "skipped" | null;
   lastError: string | null;
   retryCount: number;
+  deliveryHistory: DeliveryHistoryEntry[];
 };
 
 export type ExecuteDueResult = {
@@ -116,6 +136,32 @@ function toSpec(input: {
   };
 }
 
+function recipientsToPayload(rows: ScheduleRecipient[]) {
+  return rows.map((r) => ({
+    email: r.email,
+    unsubscribed: r.unsubscribed,
+    unsubscribedAt: r.unsubscribedAt ?? undefined,
+  }));
+}
+
+function mergeRecipientList(
+  existing: ScheduleRecipient[],
+  emails: string[],
+): ScheduleRecipient[] {
+  const prior = new Map(existing.map((r) => [r.email, r]));
+  const normalized = normalizeRecipients(emails);
+  return normalized.map((email) => {
+    const prev = prior.get(email);
+    return (
+      prev ?? {
+        email,
+        unsubscribed: false,
+        unsubscribedAt: null,
+      }
+    );
+  });
+}
+
 function mapDoc(doc: {
   id: string | number;
   organisation: unknown;
@@ -127,7 +173,12 @@ function mapDoc(doc: {
     dayOfWeek?: number | null;
     dayOfMonth?: number | null;
   };
-  recipients?: Array<{ email: string; id?: string | null }> | null;
+  recipients?: Array<{
+    email: string;
+    unsubscribed?: boolean | null;
+    unsubscribedAt?: string | null;
+    id?: string | null;
+  }> | null;
   format: ReportDeliveryFormat;
   status: ScheduleDeliveryStatus;
   nextRunAt: string;
@@ -135,7 +186,9 @@ function mapDoc(doc: {
   lastStatus?: "success" | "failed" | "skipped" | null;
   lastError?: string | null;
   retryCount?: number | null;
+  deliveryHistory?: unknown;
 }): ScheduledReportRow {
+  const recipientDetails = normalizeScheduleRecipients(doc.recipients ?? []);
   return {
     id: String(doc.id),
     reportId: relId(doc.report),
@@ -145,7 +198,8 @@ function mapDoc(doc: {
     timezone: doc.schedule.timezone,
     dayOfWeek: doc.schedule.dayOfWeek ?? null,
     dayOfMonth: doc.schedule.dayOfMonth ?? null,
-    recipients: (doc.recipients ?? []).map((r) => r.email),
+    recipients: recipientDetails.map((r) => r.email),
+    recipientDetails,
     format: doc.format,
     status: doc.status,
     nextRunAt: String(doc.nextRunAt),
@@ -153,6 +207,7 @@ function mapDoc(doc: {
     lastStatus: doc.lastStatus ?? null,
     lastError: doc.lastError ?? null,
     retryCount: doc.retryCount ?? 0,
+    deliveryHistory: mapDeliveryHistoryRows(doc.deliveryHistory),
   };
 }
 
@@ -160,10 +215,30 @@ async function getPayloadClient(): Promise<Payload> {
   return getPayload({ config });
 }
 
+function appBaseUrl(): string {
+  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+}
+
+function unsubscribeUrlFor(scheduleId: string, email: string): string | null {
+  const secret = unsubscribeSigningSecret();
+  if (!secret) return null;
+  try {
+    const token = createUnsubscribeToken({ scheduleId, email }, secret);
+    return buildUnsubscribeUrl({ baseUrl: appBaseUrl(), token });
+  } catch {
+    return null;
+  }
+}
+
 export async function createReportSchedule(
   input: CreateScheduleInput,
 ): Promise<ScheduledReportRow> {
-  const recipients = normalizeRecipients(input.recipients);
+  const emails = normalizeRecipients(input.recipients);
+  const recipientDetails = emails.map((email) => ({
+    email,
+    unsubscribed: false,
+    unsubscribedAt: null as string | null,
+  }));
   const spec = toSpec(input);
   validateScheduleSpec(spec);
   const nextRunAt = computeNextRunAt(spec);
@@ -181,11 +256,12 @@ export async function createReportSchedule(
         dayOfWeek: input.dayOfWeek ?? undefined,
         dayOfMonth: input.dayOfMonth ?? undefined,
       },
-      recipients: recipients.map((email) => ({ email })),
+      recipients: recipientsToPayload(recipientDetails),
       format: input.format,
       status: input.status ?? "active",
       nextRunAt: nextRunAt.toISOString(),
       retryCount: 0,
+      deliveryHistory: [],
     },
     overrideAccess: true,
   });
@@ -227,9 +303,10 @@ export async function updateReportSchedule(
     input.dayOfMonth === null
       ? undefined
       : (input.dayOfMonth ?? existing.schedule.dayOfMonth ?? undefined);
-  const recipients = input.recipients
-    ? normalizeRecipients(input.recipients)
-    : (existing.recipients ?? []).map((r) => r.email);
+  const existingRecipients = normalizeScheduleRecipients(existing.recipients ?? []);
+  const recipientDetails = input.recipients
+    ? mergeRecipientList(existingRecipients, input.recipients)
+    : existingRecipients;
   const format = input.format ?? existing.format;
   const status = input.status ?? existing.status;
 
@@ -258,7 +335,7 @@ export async function updateReportSchedule(
         dayOfWeek,
         dayOfMonth,
       },
-      recipients: recipients.map((email) => ({ email })),
+      recipients: recipientsToPayload(recipientDetails),
       format,
       status,
       nextRunAt: nextRunAt.toISOString(),
@@ -333,8 +410,52 @@ export async function deleteSchedule(scheduleId: string): Promise<void> {
   });
 }
 
-function appBaseUrl(): string {
-  return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
+/**
+ * Opt a recipient out of a schedule via signed unsubscribe token.
+ */
+export async function unsubscribeFromScheduleToken(
+  token: string,
+): Promise<{ email: string; scheduleId: string }> {
+  const secret = unsubscribeSigningSecret();
+  if (!secret) {
+    throw new Error("Unsubscribe is not configured");
+  }
+  const payloadData = verifyUnsubscribeToken(token, secret);
+  if (!payloadData) {
+    throw new Error("Invalid or expired unsubscribe link");
+  }
+
+  const payload = await getPayloadClient();
+  let existing;
+  try {
+    existing = await payload.findByID({
+      collection: SCHEDULED_REPORTS_SLUG,
+      id: payloadData.scheduleId,
+      depth: 0,
+      overrideAccess: true,
+    });
+  } catch {
+    throw new Error("Schedule not found");
+  }
+
+  const recipients = markRecipientUnsubscribed(
+    normalizeScheduleRecipients(existing.recipients ?? []),
+    payloadData.email,
+  );
+
+  await payload.update({
+    collection: SCHEDULED_REPORTS_SLUG,
+    id: payloadData.scheduleId,
+    data: {
+      recipients: recipientsToPayload(recipients),
+    },
+    overrideAccess: true,
+  });
+
+  return {
+    email: payloadData.email,
+    scheduleId: payloadData.scheduleId,
+  };
 }
 
 /**
@@ -417,6 +538,14 @@ export async function executeDueScheduledReports(options?: {
       overrideAccess: true,
     });
 
+    const perRecipient: Array<{
+      email: string;
+      status: DeliveryRecipientStatus;
+      error?: string | null;
+      trackingId?: string | null;
+      providerMessageId?: string | null;
+    }> = [];
+
     try {
       const report = await payload.findByID({
         collection: "reports",
@@ -438,12 +567,63 @@ export async function executeDueScheduledReports(options?: {
         ? `${appBaseUrl()}/r/${report.shareToken}`
         : null;
 
-      const recipients = (doc.recipients ?? []).map((r) => r.email);
-      if (recipients.length === 0) {
-        throw new Error("Schedule has no recipients");
+      const recipientDetails = normalizeScheduleRecipients(doc.recipients ?? []);
+      const activeEmails = activeRecipientEmails(recipientDetails);
+      const unsubscribedEmails = recipientDetails
+        .filter((r) => r.unsubscribed)
+        .map((r) => r.email);
+
+      for (const email of unsubscribedEmails) {
+        perRecipient.push({
+          email,
+          status: "skipped",
+          error: "unsubscribed",
+        });
       }
 
-      for (const to of recipients) {
+      if (activeEmails.length === 0) {
+        const historyEntries = buildDeliveryEntries({
+          runAt: dueRunAt,
+          sentAt: now.toISOString(),
+          results: perRecipient,
+        });
+        const deliveryHistory = appendDeliveryHistory(
+          mapDeliveryHistoryRows(doc.deliveryHistory),
+          historyEntries,
+        );
+        const spec = toSpec(doc.schedule);
+        const nextRunAt = computeNextRunAt(
+          spec,
+          new Date(new Date(dueRunAt).getTime() + 1000),
+        );
+        await payload.update({
+          collection: SCHEDULED_REPORTS_SLUG,
+          id: scheduleId,
+          data: {
+            lastRunAt: now.toISOString(),
+            lastStatus: "skipped",
+            lastError: "All recipients unsubscribed",
+            retryCount: 0,
+            lastDeliveredForRunAt: dueRunAt,
+            nextRunAt: nextRunAt.toISOString(),
+            claimedAt: null,
+            claimedRunAt: null,
+            deliveryHistory,
+          },
+          overrideAccess: true,
+        });
+        skipped += 1;
+        results.push({
+          scheduleId,
+          outcome: "skipped",
+          error: "all recipients unsubscribed",
+        });
+        continue;
+      }
+
+      for (const to of activeEmails) {
+        const trackingId = crypto.randomUUID();
+        const openTrackingUrl = `${appBaseUrl()}/api/r/open/${trackingId}`;
         const result = await sendEmail({
           to,
           orgName: snapshot.organisationName,
@@ -451,11 +631,42 @@ export async function executeDueScheduledReports(options?: {
           periodLabel: snapshot.periodLabel,
           reportDate: now,
           liveReportUrl,
+          unsubscribeUrl: unsubscribeUrlFor(scheduleId, to),
+          openTrackingUrl,
           attachment,
         });
         if (result.delivery === "failed") {
-          throw new Error(result.error ?? "Email delivery failed");
+          perRecipient.push({
+            email: to,
+            status: "failed",
+            error: result.error ?? "Email delivery failed",
+            trackingId,
+            providerMessageId: result.id ?? null,
+          });
+        } else {
+          perRecipient.push({
+            email: to,
+            status: "sent",
+            trackingId,
+            providerMessageId: result.id ?? null,
+          });
         }
+      }
+
+      const historyEntries = buildDeliveryEntries({
+        runAt: dueRunAt,
+        sentAt: now.toISOString(),
+        results: perRecipient,
+      });
+      const deliveryHistory = appendDeliveryHistory(
+        mapDeliveryHistoryRows(doc.deliveryHistory),
+        historyEntries,
+      );
+      const runSummary = summarizeDeliveryRun(perRecipient);
+
+      if (runSummary === "failed") {
+        const failedRow = perRecipient.find((r) => r.status === "failed");
+        throw new Error(failedRow?.error ?? "Email delivery failed");
       }
 
       const spec = toSpec(doc.schedule);
@@ -469,13 +680,14 @@ export async function executeDueScheduledReports(options?: {
         id: scheduleId,
         data: {
           lastRunAt: now.toISOString(),
-          lastStatus: "success",
+          lastStatus: runSummary,
           lastError: null,
           retryCount: 0,
           lastDeliveredForRunAt: dueRunAt,
           nextRunAt: nextRunAt.toISOString(),
           claimedAt: null,
           claimedRunAt: null,
+          deliveryHistory,
         },
         overrideAccess: true,
       });
@@ -486,6 +698,18 @@ export async function executeDueScheduledReports(options?: {
       const message = err instanceof Error ? err.message : "Scheduled send failed";
       const nextRetry = (doc.retryCount ?? 0) + 1;
       const spec = toSpec(doc.schedule);
+
+      const deliveryHistory = appendDeliveryHistory(
+        mapDeliveryHistoryRows(doc.deliveryHistory),
+        buildDeliveryEntries({
+          runAt: dueRunAt,
+          sentAt: now.toISOString(),
+          results:
+            perRecipient.length > 0
+              ? perRecipient
+              : [{ email: "_schedule", status: "failed", error: message }],
+        }),
+      );
 
       if (nextRetry >= MAX_SCHEDULE_RETRIES) {
         const nextRunAt = computeNextRunAt(
@@ -503,6 +727,7 @@ export async function executeDueScheduledReports(options?: {
             nextRunAt: nextRunAt.toISOString(),
             claimedAt: null,
             claimedRunAt: null,
+            deliveryHistory,
           },
           overrideAccess: true,
         });
@@ -518,6 +743,7 @@ export async function executeDueScheduledReports(options?: {
             nextRunAt: computeRetryAt(nextRetry, now).toISOString(),
             claimedAt: null,
             claimedRunAt: null,
+            deliveryHistory,
           },
           overrideAccess: true,
         });
@@ -561,5 +787,13 @@ export {
   type ScheduleFrequency,
   type ScheduleSpec,
 } from "./scheduleMath";
+
+export {
+  activeRecipientEmails,
+  appendDeliveryHistory,
+  summarizeDeliveryRun,
+  type DeliveryHistoryEntry,
+  type ScheduleRecipient,
+} from "./deliveryHistory";
 
 export { generateReportAttachment } from "./generateReportAttachment";

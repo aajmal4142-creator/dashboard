@@ -115,6 +115,20 @@ export default function IntegrationsPage() {
       </div>
 
       <div className="panel p-6">
+        <h2 className="text-lg font-semibold text-ink">Slack</h2>
+        <p className="mt-2 mb-4 text-sm text-ink-muted">
+          Install the ClearESG bot, pick a default channel, and post alert thresholds into
+          Slack. Requires SLACK_CLIENT_ID / SECRET / SIGNING_SECRET.
+        </p>
+        <Link
+          href="/integrations/slack"
+          className="inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover"
+        >
+          Configure Slack
+        </Link>
+      </div>
+
+      <div className="panel p-6">
         <h2 className="text-lg font-semibold text-ink">Accounting Software</h2>
         <p className="mt-2 mb-4 text-sm text-ink-muted">
           Connect QuickBooks, Xero, or Wave for automated spend-based emissions (sandbox
