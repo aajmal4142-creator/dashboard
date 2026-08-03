@@ -1,0 +1,157 @@
+# ClearESG — Competitive Planning Sheet
+
+**Corrected audit (2026-08-03).** The earlier “14 partial + 15 buildable = 29” was incomplete. This sheet is the full remaining non-AI / non-pay inventory.
+
+**AI later:** [`AI_FEATURES_BACKLOG.md`](AI_FEATURES_BACKLOG.md) (8 features — do not implement in this wave).
+
+**References:** [`PLATFORM_FUNCTIONALITY_GUIDE.md`](PLATFORM_FUNCTIONALITY_GUIDE.md) · [`COMPETITORS_DIRECTORY.md`](COMPETITORS_DIRECTORY.md) · July docs are historical.
+
+---
+
+## Count summary (corrected)
+
+| Bucket                                                | Count  | This wave          |
+| ----------------------------------------------------- | ------ | ------------------ |
+| Partial — gaps #1–#91                                 | **21** | Yes                |
+| Partial — extras outside spreadsheet                  | **14** | Yes                |
+| Buildable — gaps #1–#91                               | **6**  | Yes                |
+| Buildable — extras outside spreadsheet                | **10** | Yes                |
+| **Total remaining (non-AI, non-pay)**                 | **51** | **Yes**            |
+| Already SHIPPED (of 91)                               | 50     | Done               |
+| Duplicates in 91                                      | 5      | Ignore             |
+| AI related                                            | 8      | Later → AI backlog |
+| Pay-plan (EcoVadis, ecoinvent, SF/SAP/NetSuite, Big4) | 6      | No                 |
+| Not possible (moats)                                  | 5      | No                 |
+
+---
+
+## EcoVadis decision
+
+**No EcoVadis integration.** Too costly. Use Supplier Scorecard (P09), Carbon Network, Open Supply Hub (Y07), public-registry enrichment (Y08).
+
+---
+
+## Table A — Partial from gaps #1–#91 (21)
+
+| ID  | Gap# | Feature                            | Current anchor                  | What to finish                                                      | Wave | Effort |
+| --- | ---- | ---------------------------------- | ------------------------------- | ------------------------------------------------------------------- | ---- | ------ |
+| P01 | 2    | IoT protocol depth                 | `/iot`, `lib/iot/`              | Modbus and/or OPC-UA and/or utility APIs; `utility.ts` still throws | 3    | L      |
+| P02 | 3    | DB / warehouse connector depth     | `/database`                     | Keep SQL/BQ; add Snowflake/Databricks path (see also Y10)           | 3    | L      |
+| P03 | 11   | Product footprints depth           | `/analytics/product-footprints` | Richer SKU UX; user + registry factors only (no paid LCA)           | 3    | M      |
+| P04 | 15   | Industry benchmarking depth        | `/benchmarks`                   | Stronger cohort UX; honour benchmark consent decision               | 2    | M      |
+| P05 | 18   | CSRD / ESRS reporting depth        | `/reports`, frameworks          | ESRS Set 1 narrative + gap → Metrics → Publish                      | 1    | L      |
+| P06 | 21   | Carbon Trust / certification depth | `/carbon-trust/auditor`         | Auditor pipeline + evidence handoff                                 | 3    | M      |
+| P07 | 25   | SFDR PAI depth                     | `/compliance/sfdr`              | Usable PAI pack export beyond checklist                             | 2    | M      |
+| P08 | 31   | Supplier document repository       | `SupplierDocuments`             | Attach/store UX + virus-scan placeholder → real path                | 1    | M      |
+| P09 | 35   | Supplier ESG Scorecard             | Risk + engagement               | Formal score + PDF from risk/questionnaire/carbon quality           | 1    | M      |
+| P10 | 41   | Assurance evidence / audit packs   | `/assurance`                    | Deeper ZIP/PDF (lineage, factors, gaps, checklist)                  | 1    | M      |
+| P11 | 43   | CSRD/ESRS PDF automation           | Reports PDF                     | Filing-oriented framework PDF from snapshot (light theme)           | 2    | M      |
+| P12 | 48   | Stakeholder-specific report views  | `assembleAudiencePack`          | Board vs ops vs auditor views                                       | 2    | M      |
+| P13 | 51   | Compliance gap analysis reports    | Framework coverage              | Exportable gap report                                               | 2    | S      |
+| P14 | 66   | Warehouse connectors (beyond BQ)   | Database connectors             | Snowflake / Databricks (pairs with Y10)                             | 3    | L      |
+| P15 | 69   | Power BI / Tableau depth           | BI REST + keys                  | Documented connector recipes via existing BI API                    | 3    | S      |
+| P16 | 75   | White-label / portal branding      | Settings portal                 | Stronger `/s/*` and `/s/q/*` chrome                                 | 3    | S      |
+| P17 | 83   | Multi-language                     | `lib/i18n` en+hi                | Add ≥1 locale (fr or de) + Settings                                 | 3    | M      |
+| P18 | 84   | Annual billing + discount UX       | Billing `switch-cycle`          | Primary billing UI for annual + discount                            | 4    | S      |
+| P19 | 86   | Usage-based pricing depth          | `/billing/usage`                | True metered add-on plans                                           | 4    | M      |
+| P20 | 89   | Volume discounts UX                | `volumeDiscountCalculator`      | Surface in main billing UX                                          | 4    | S      |
+| P21 | 90   | Dunning orchestration              | `dunningService`                | Full failed-payment campaign (not only `past_due`)                  | 4    | M      |
+
+---
+
+## Table B — Buildable from gaps #1–#91 (6)
+
+| ID  | Gap# | Feature                   | What to finish                                         | Wave | Effort |
+| --- | ---- | ------------------------- | ------------------------------------------------------ | ---- | ------ |
+| B01 | 6/73 | Native mobile app         | Field meters/evidence; prefer B02 first if scope large | 4    | L      |
+| B02 | 74   | Offline-first data entry  | Queue + sync / PWA                                     | 4    | L      |
+| B03 | 68   | Zapier / Make.com         | Published recipes + docs on webhooks                   | 4    | S      |
+| B04 | 85   | Multi-year contracts      | Billing contract fields/flows                          | 4    | S      |
+| B05 | 88   | Trial extensions & upsell | Extend trial + upsell workflows                        | 4    | S      |
+| B06 | 91   | Revenue recognition notes | ASC 606 / IFRS 15 checklist (not full ERP)             | 4    | S      |
+
+---
+
+## Table C — Extra PARTIAL outside spreadsheet (14)
+
+| ID  | Feature                                | Current anchor                 | What to finish                                                       | Wave | Effort |
+| --- | -------------------------------------- | ------------------------------ | -------------------------------------------------------------------- | ---- | ------ |
+| X01 | CBAM filing pack depth                 | `/compliance/cbam`             | Official reporting export, defaults tables, declarant workflow       | 2    | L      |
+| X02 | Residual / offsets claim depth         | `/compliance/residual`         | Registry serials, project fields, disclosure guards (no marketplace) | 2    | M      |
+| X03 | Restatements → applied inventory       | `/compliance/ghg/restatements` | As-of published figures / applied recalc path                        | 2    | L      |
+| X04 | Double materiality depth               | `/materiality`                 | Stakeholder surveys, IRO register, ESRS crosswalk                    | 1    | L      |
+| X05 | BRSR depth (India)                     | `/frameworks/brsr`             | Fill empty metricKeys; SEBI-style export pack                        | 1    | M      |
+| X06 | Assurance L vs R engagement depth      | `lib/assurance/pathways`       | Sampling, materiality, opinion letter, checkpoint binding            | 1    | M      |
+| X07 | Multi-org consolidation depth          | Org hierarchy + consolidation  | IC eliminations, FX, statutory vs management pack                    | 3    | L      |
+| X08 | Employee engagement depth              | `/engagement`                  | Surveys, verified commute at scale (no HRIS BSP required)            | 3    | M      |
+| X09 | Procurement tradeoffs depth            | `/procurement/tradeoffs`       | Vendor lists / RFP-lite (no paid ERP required)                       | 3    | M      |
+| X10 | Cascade ↔ MACC ↔ reduction closed loop | analytics routes               | One plan object; facility progress from meters                       | 2    | M      |
+| X11 | Public embed hardening                 | `/public/reports/embed`        | Domain allowlist, theme, CSP docs                                    | 3    | S      |
+| X12 | Realtime SSE multi-instance            | `lib/realtime`                 | Redis/pub-sub fan-out (beyond in-process hub)                        | 3    | M      |
+| X13 | California SB 253/261 filing pack      | `/compliance/california`       | Exportable pack beyond coverage checklist                            | 2    | M      |
+| X14 | Taxonomy / ISSB mapping stubs          | `mappings.ts`, ISSB questions  | Replace counsel placeholders with real mappings                      | 2    | M      |
+
+---
+
+## Table D — Extra BUILDABLE outside spreadsheet (10)
+
+| ID  | Feature                           | What to finish                                                       | Wave | Effort | Note                     |
+| --- | --------------------------------- | -------------------------------------------------------------------- | ---- | ------ | ------------------------ |
+| Y01 | Scope 3 — all 15 GHG categories   | Category matrix + inclusion/exclusion; fill Cat 2/3/8/10–14 surfaces | 1    | L      | **Largest product hole** |
+| Y02 | CSRD XBRL / iXBRL tagging         | ESRS taxonomy tagging / ESEF-style package (beyond JSON/XML)         | 2    | L      |                          |
+| Y03 | Consultant multi-client billing   | Per-client invoices / seats / usage rollup                           | 4    | M      | Differentiator           |
+| Y04 | India GST / HSN → Scope 3         | GST/HSN mapper into spend path                                       | 1    | M      | India wedge              |
+| Y05 | Razorpay + INR billing            | India payments                                                       | 4    | M      | **Open decision §11**    |
+| Y06 | DPDP / India privacy workflows    | DSR/retention product flows                                          | 4    | M      | **Open decision §11**    |
+| Y07 | Open Supply Hub OS ID             | OS ID on supplier/facility + map link                                | 1    | S      | Free                     |
+| Y08 | Public-registry risk enrichment   | SBTi / enforcement flags into risk (documented; no invented scores)  | 1    | M      | Free                     |
+| Y09 | PCAF financed emissions           | In-house Cat 15-style module                                         | 4    | L      |                          |
+| Y10 | Snowflake / Databricks connectors | Warehouse ingest (pairs with P14)                                    | 3    | L      |                          |
+
+---
+
+## Implementation waves (51 items)
+
+### Wave 1 — Mid-market + India beachhead
+
+Y01 Scope 3×15 · P05 ESRS depth · P09 Scorecard · P08 Doc repo · P10 Evidence packs · X04 Materiality depth · X05 BRSR · X06 Assurance depth · Y04 GST/HSN · Y07 OS Hub · Y08 Registry enrichment
+
+### Wave 2 — Compliance packs & disclosure
+
+P07 SFDR · X01 CBAM · X13 California · X02 Residual · X03 Restatements · P11 Framework PDF · P13 Gap reports · P12 Stakeholder views · Y02 XBRL · X10 Cascade/MACC loop · X14 Mapping stubs · P04 Benchmarks
+
+### Wave 3 — Ops & platform depth
+
+P01 IoT · P03 Product footprints · P02/P14/Y10 Warehouses · P15 BI docs · P16 White-label · P17 i18n · P06 Carbon Trust · X07 Consolidation · X08 Engagement · X09 Procurement · X11 Embed · X12 SSE fan-out
+
+### Wave 4 — Commercial + mobile + FI
+
+P18–P21 Billing polish · B03–B06 Billing buildables · B02 Offline · B01 Mobile · Y03 Consultant billing · Y09 PCAF · Y05 Razorpay* · Y06 DPDP*
+
+\*Y05/Y06 only after open decisions (INR/Razorpay, DPDP/Atlas region).
+
+---
+
+## AI — later only
+
+**Do not implement AI in this wave.** All 8 features: [`AI_FEATURES_BACKLOG.md`](AI_FEATURES_BACKLOG.md).
+
+---
+
+## Out of scope
+
+| Bucket       | Count | Items                                                                                                                                                                       |
+| ------------ | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pay-plan     | 6     | EcoVadis API/CDN; ecoinvent/SimaPro; Salesforce; SAP S/4; NetSuite; Big4 audit APIs                                                                                         |
+| Not possible | 5     | Become EcoVadis network; Sustainalytics-scale ratings; act as accredited certifier; replace SAP/Salesforce as SoR; Watershed-scale assured factor library without a license |
+
+---
+
+## Differentiator bets (while shipping the 51)
+
+- Assurance Room + `/a/[token]`
+- ABAC policy evaluator
+- Honest quality (`missing`, never silent zero)
+- India BRSR + GST path + consultancy multi-client
+- Carbon Network + Supplier Scorecard (EcoVadis substitute)
+- Transparent pricing + Trust center
