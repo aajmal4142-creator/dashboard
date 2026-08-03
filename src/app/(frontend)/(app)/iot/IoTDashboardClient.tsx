@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { protocolIngestMode, protocolSupportLabel } from "@/lib/iot/protocolSupport";
 import { cn } from "@/lib/utils";
 
 type DeviceRow = {
@@ -424,16 +425,29 @@ export function IoTDashboardClient({ canManage }: { canManage: boolean }) {
                 onChange={(e) => setDeviceType(e.target.value)}
                 disabled={pending}
               >
-                <option value="http">HTTP / REST</option>
-                <option value="mqtt">MQTT</option>
-                <option value="smart_meter">Smart meter</option>
-                <option value="utility_energy">Utility energy</option>
-                <option value="utility_gas">Utility gas</option>
-                <option value="utility_water">Utility water</option>
-                <option value="modbus">Modbus</option>
-                <option value="opc_ua">OPC-UA</option>
+                <option value="http">HTTP / REST (native)</option>
+                <option value="mqtt">MQTT (native)</option>
+                <option value="smart_meter">Smart meter (via HTTP)</option>
+                <option value="utility_energy">Utility energy (not live)</option>
+                <option value="utility_gas">Utility gas (not live)</option>
+                <option value="utility_water">Utility water (not live)</option>
+                <option value="modbus">Modbus (edge gateway push)</option>
+                <option value="opc_ua">OPC-UA (edge gateway push)</option>
               </select>
             </label>
+            <p className="text-xs text-ink-muted" role="note">
+              {protocolSupportLabel(deviceType)}
+              {(() => {
+                const mode = protocolIngestMode(deviceType);
+                if (mode.mode === "native") {
+                  return " — push JSON to /api/app/iot/ingest with the device API key.";
+                }
+                if (mode.mode === "gateway_push") {
+                  return ` — ${mode.reason}`;
+                }
+                return ` — ${mode.reason}`;
+              })()}
+            </p>
             <Button
               type="button"
               size="sm"

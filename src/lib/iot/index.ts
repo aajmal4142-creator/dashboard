@@ -59,4 +59,11 @@ export type {
 
 export { mqttMessageToIngestPayload } from "./mqttAdapter";
 
+export {
+  protocolIngestMode,
+  protocolSupportLabel,
+  isNativeIngestDeviceType,
+} from "./protocolSupport";
+export type { IotProtocolMode } from "./protocolSupport";
+
 export { ingestIotReading, type IotIngestResult } from "./ingestService";

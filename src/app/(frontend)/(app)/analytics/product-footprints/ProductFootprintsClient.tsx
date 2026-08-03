@@ -930,6 +930,51 @@ export function ProductFootprintsClient(props: {
                       inputMode="decimal"
                       className="font-[family-name:var(--font-mono)]"
                     />
+                    <div className={idx === 0 ? "pt-6" : undefined}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!row.material.trim() || pending}
+                        onClick={() => {
+                          void (async () => {
+                            try {
+                              const res = await fetch(
+                                `/api/app/analytics/product-footprints/suggest-factor?material=${encodeURIComponent(row.material.trim())}`,
+                              );
+                              const body = (await res.json()) as {
+                                found?: boolean;
+                                factor?: number;
+                                factorKey?: string;
+                                message?: string;
+                                error?: string;
+                              };
+                              if (!res.ok || !body.found || body.factor == null) {
+                                setError(
+                                  body.message ??
+                                    body.error ??
+                                    "No registry factor matched. Enter manually.",
+                                );
+                                return;
+                              }
+                              setForm((f) => {
+                                const next = [...f.billOfMaterials];
+                                next[idx] = {
+                                  ...next[idx],
+                                  supplierEmissionFactor: String(body.factor),
+                                };
+                                return { ...f, billOfMaterials: next };
+                              });
+                              setError(null);
+                            } catch {
+                              setError("Could not suggest factor from registry.");
+                            }
+                          })();
+                        }}
+                      >
+                        Suggest
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>

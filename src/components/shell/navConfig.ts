@@ -143,6 +143,7 @@ export function buildNavGroups(opts: {
     { href: "/issb", labelKey: "nav.items.issb", icon: BookOpen },
     { href: "/frameworks/brsr", labelKey: "nav.items.brsr", icon: ClipboardList },
     { href: "/frameworks/secr", labelKey: "nav.items.secr", icon: ClipboardList },
+    { href: "/frameworks/csrd", labelKey: "nav.items.csrd", icon: ClipboardList },
     { href: "/compliance/sbti-tracking", labelKey: "nav.items.sbti", icon: Crosshair },
     {
       href: "/compliance/iso-14064",

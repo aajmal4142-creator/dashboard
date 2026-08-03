@@ -49,6 +49,7 @@ export const en: MessageTree = {
       issb: "ISSB",
       brsr: "BRSR",
       secr: "SECR",
+      csrd: "CSRD / ESRS",
       sbti: "SBTi",
       iso14064: "ISO 14064",
       greenTaxonomy: "Green Taxonomy",

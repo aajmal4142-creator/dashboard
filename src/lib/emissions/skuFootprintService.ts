@@ -7,6 +7,7 @@ import {
   type SkuCalcInput,
   type SkuFootprintResult,
 } from "@/lib/calc/skuFootprint";
+import { loadOrgEmissionFactors } from "@/lib/factors/loadEmissionFactors";
 
 type BomMaterial = NonNullable<ProductLevelFootprinting["billOfMaterials"]>[number];
 type EmissionsSource = NonNullable<ProductLevelFootprinting["emissionsSources"]>[number];
@@ -165,4 +166,50 @@ export async function updateSKUFootprint(skuId: string): Promise<SkuFootprintRes
   });
 
   return result;
+}
+
+/**
+ * Resolve a BOM material emissions factor from the org/global registry.
+ * Matches factor key case-insensitively against material name / slug.
+ * Returns null when no factor exists — never invent a value.
+ */
+export async function resolveBomFactorFromRegistry(
+  organisationId: string,
+  materialKey: string,
+): Promise<{ factor: number; source: "industry" | "custom"; factorKey: string } | null> {
+  const needle = materialKey.trim().toLowerCase().replace(/\s+/g, "_");
+  if (!needle) return null;
+
+  const payload = await getPayload({ config });
+  const org = await payload.findByID({
+    collection: "organisations",
+    id: organisationId,
+    depth: 0,
+    overrideAccess: true,
+  });
+  const { factors } = await loadOrgEmissionFactors(payload, {
+    id: organisationId,
+    settings: org?.settings ?? null,
+  });
+
+  const hit = factors.find((f) => {
+    const key = f.key.trim().toLowerCase();
+    return (
+      key === needle ||
+      key.includes(needle) ||
+      needle.includes(key) ||
+      key.replace(/_/g, "") === needle.replace(/_/g, "")
+    );
+  });
+  if (!hit || !Number.isFinite(hit.value) || hit.value < 0) return null;
+
+  const isCustom =
+    hit.source.toLowerCase().includes("custom") ||
+    hit.source.toLowerCase() === "organisation";
+
+  return {
+    factor: hit.value,
+    source: isCustom ? "custom" : "industry",
+    factorKey: hit.key,
+  };
 }

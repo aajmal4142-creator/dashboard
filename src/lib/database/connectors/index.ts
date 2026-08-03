@@ -1,11 +1,13 @@
 import { createBigQueryConnector } from "./bigquery";
 import { createMysqlConnector } from "./mysql";
 import { createPostgresConnector } from "./postgres";
+import { createSnowflakeConnector } from "./snowflake";
 import type {
   BigQueryCredentials,
   ConnectorCredentials,
   DatabaseConnector,
   DatabaseEngine,
+  SnowflakeCredentials,
   SqlCredentials,
 } from "../types";
 
@@ -20,6 +22,8 @@ export function createConnector(
       return createMysqlConnector(credentials as SqlCredentials);
     case "bigquery":
       return createBigQueryConnector(credentials as BigQueryCredentials);
+    case "snowflake":
+      return createSnowflakeConnector(credentials as SnowflakeCredentials);
     default: {
       const _exhaustive: never = engine;
       throw new Error(`Unsupported database engine: ${String(_exhaustive)}`);
@@ -30,3 +34,4 @@ export function createConnector(
 export { createPostgresConnector } from "./postgres";
 export { createMysqlConnector } from "./mysql";
 export { createBigQueryConnector } from "./bigquery";
+export { createSnowflakeConnector } from "./snowflake";

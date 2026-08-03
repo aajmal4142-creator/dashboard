@@ -1,4 +1,4 @@
-export type DatabaseEngine = "postgresql" | "mysql" | "bigquery";
+export type DatabaseEngine = "postgresql" | "mysql" | "bigquery" | "snowflake";
 
 export type SyncFrequency = "manual" | "hourly" | "daily" | "weekly";
 
@@ -20,7 +20,19 @@ export type BigQueryCredentials = {
   serviceAccountJson: string;
 };
 
-export type ConnectorCredentials = SqlCredentials | BigQueryCredentials;
+export type SnowflakeCredentials = {
+  account: string;
+  warehouse: string;
+  database: string;
+  schema: string;
+  user: string;
+  /** Password or personal access token */
+  passwordOrToken: string;
+  role?: string;
+};
+
+export type ConnectorCredentials =
+  SqlCredentials | BigQueryCredentials | SnowflakeCredentials;
 
 export type DiscoveredColumn = {
   name: string;
@@ -90,6 +102,13 @@ export function isBigQueryCredentials(
   engine: DatabaseEngine,
 ): creds is BigQueryCredentials {
   return engine === "bigquery";
+}
+
+export function isSnowflakeCredentials(
+  creds: ConnectorCredentials,
+  engine: DatabaseEngine,
+): creds is SnowflakeCredentials {
+  return engine === "snowflake";
 }
 
 export function calculateNextSyncAt(

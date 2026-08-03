@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type Engine = "postgresql" | "mysql" | "bigquery";
+type Engine = "postgresql" | "mysql" | "bigquery" | "snowflake";
 type WizardStep = "connect" | "map" | "schedule" | "history";
 
 type PeriodOption = { id: string; label: string; status: string };
@@ -114,6 +114,9 @@ export function DatabaseWizardClient({
   const [projectId, setProjectId] = useState("");
   const [datasetId, setDatasetId] = useState("");
   const [serviceAccountJson, setServiceAccountJson] = useState("");
+  const [sfAccount, setSfAccount] = useState("");
+  const [sfWarehouse, setSfWarehouse] = useState("");
+  const [sfRole, setSfRole] = useState("");
 
   // Mapping form
   const [sourceTable, setSourceTable] = useState("");
@@ -164,6 +167,8 @@ export function DatabaseWizardClient({
     } else if (next === "mysql") {
       setPort("3306");
       setSchema("");
+    } else if (next === "snowflake") {
+      setSchema("PUBLIC");
     }
   }
 
@@ -174,6 +179,18 @@ export function DatabaseWizardClient({
         projectId,
         datasetId,
         serviceAccountJson,
+      };
+    }
+    if (engine === "snowflake") {
+      return {
+        engine,
+        account: sfAccount,
+        warehouse: sfWarehouse,
+        database,
+        schema: schema || "PUBLIC",
+        user,
+        passwordOrToken: password,
+        role: sfRole || undefined,
       };
     }
     return {
@@ -521,6 +538,7 @@ export function DatabaseWizardClient({
                 <option value="postgresql">PostgreSQL</option>
                 <option value="mysql">MySQL</option>
                 <option value="bigquery">Google BigQuery</option>
+                <option value="snowflake">Snowflake</option>
               </select>
             </label>
             <label className="block text-sm">
@@ -565,6 +583,77 @@ export function DatabaseWizardClient({
                   onChange={(e) => setServiceAccountJson(e.target.value)}
                   placeholder='{"type":"service_account",...}'
                   autoComplete="off"
+                />
+              </label>
+            </div>
+          ) : engine === "snowflake" ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block text-sm">
+                <span className="text-ink-muted">Account</span>
+                <input
+                  className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 font-mono text-ink"
+                  value={sfAccount}
+                  disabled={!canManage || pending}
+                  onChange={(e) => setSfAccount(e.target.value)}
+                  placeholder="xy12345.us-east-1"
+                  autoComplete="off"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-ink-muted">Warehouse</span>
+                <input
+                  className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 font-mono text-ink"
+                  value={sfWarehouse}
+                  disabled={!canManage || pending}
+                  onChange={(e) => setSfWarehouse(e.target.value)}
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-ink-muted">Database</span>
+                <input
+                  className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 font-mono text-ink"
+                  value={database}
+                  disabled={!canManage || pending}
+                  onChange={(e) => setDatabase(e.target.value)}
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-ink-muted">Schema</span>
+                <input
+                  className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 font-mono text-ink"
+                  value={schema}
+                  disabled={!canManage || pending}
+                  onChange={(e) => setSchema(e.target.value)}
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-ink-muted">User</span>
+                <input
+                  className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 text-ink"
+                  value={user}
+                  disabled={!canManage || pending}
+                  onChange={(e) => setUser(e.target.value)}
+                  autoComplete="off"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-ink-muted">Password or token</span>
+                <input
+                  type="password"
+                  className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 text-ink"
+                  value={password}
+                  disabled={!canManage || pending}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="new-password"
+                />
+              </label>
+              <label className="block text-sm sm:col-span-2">
+                <span className="text-ink-muted">Role (optional)</span>
+                <input
+                  className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 font-mono text-ink"
+                  value={sfRole}
+                  disabled={!canManage || pending}
+                  onChange={(e) => setSfRole(e.target.value)}
                 />
               </label>
             </div>

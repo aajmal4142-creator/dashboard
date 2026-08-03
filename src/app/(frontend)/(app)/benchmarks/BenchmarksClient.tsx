@@ -141,14 +141,37 @@ export function BenchmarksClient({
   role?: MembershipRole | null;
 }) {
   const [data, setData] = useState(initial);
+  const [metricKey, setMetricKey] = useState(
+    initial.available ? initial.metricKey : "electricity_kwh",
+  );
   const [status, setStatus] = useState<string | null>(null);
   const [statusTone, setStatusTone] = useState<"neutral" | "error" | "ok">("neutral");
   const canRecompute = role === "owner" || role === "admin";
   const showRecompute = canRecompute || role === null;
 
+  const BENCHMARK_METRICS = [
+    { key: "electricity_kwh", label: "Electricity (kWh)" },
+    { key: "scope1_tco2e", label: "Scope 1 (tCO₂e)" },
+    { key: "scope2_tco2e", label: "Scope 2 (tCO₂e)" },
+    { key: "total_tco2e", label: "Total (tCO₂e)" },
+  ] as const;
+
   const [optOut, setOptOut] = useState(
     "benchmarkOptOut" in initial ? Boolean(initial.benchmarkOptOut) : false,
   );
+
+  async function loadMetric(nextKey: string) {
+    setStatusTone("neutral");
+    setStatus("Loading comparison…");
+    const get = await fetch(
+      `/api/app/benchmarks?metricKey=${encodeURIComponent(nextKey)}`,
+    );
+    const next = (await get.json()) as BenchmarkPayload;
+    setMetricKey(nextKey);
+    setData(next);
+    setStatusTone(next.available ? "ok" : "neutral");
+    setStatus(next.available ? `Showing ${nextKey}` : null);
+  }
 
   async function toggleOptOut() {
     const next = !optOut;
@@ -189,14 +212,16 @@ export function BenchmarksClient({
       );
       return;
     }
-    const get = await fetch("/api/app/benchmarks?metricKey=electricity_kwh");
+    const get = await fetch(
+      `/api/app/benchmarks?metricKey=${encodeURIComponent(metricKey)}`,
+    );
     const next = (await get.json()) as BenchmarkPayload;
     setData(next);
     setStatusTone("ok");
     setStatus(
       body.written && body.written > 0
         ? `Updated ${body.written} cohort(s)`
-        : "No new cohorts yet — more organisations need published electricity data",
+        : "No new cohorts yet — more organisations need published data",
     );
   }
 
@@ -259,6 +284,23 @@ export function BenchmarksClient({
     >
       <div className="space-y-4">
         {status ? <StatusLine tone={statusTone}>{status}</StatusLine> : null}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="text-[12px] text-ink-muted">
+            Metric
+            <select
+              className="ml-2 rounded-[4px] border border-rule bg-surface-1 px-2 py-1.5 font-mono text-[13px] text-ink"
+              value={metricKey}
+              onChange={(e) => void loadMetric(e.target.value)}
+            >
+              {BENCHMARK_METRICS.map((m) => (
+                <option key={m.key} value={m.key}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
 
         {!data.available ? (
           <EmptyState title="No cohort available" body={emptyBenchmarkBody(data)} />
