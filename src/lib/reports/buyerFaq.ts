@@ -3,7 +3,7 @@
 export const BUYER_FAQ = [
   {
     q: "How did you calculate Scope 2?",
-    a: "Location-based electricity × grid emission factor from the versioned factor registry for the reporting year and region.",
+    a: "ClearESG always dual-reports Scope 2 per the GHG Protocol. Location-based = electricity × grid emission factor from the versioned registry for the reporting year and region. Market-based = contractual instruments (RECs, GOs, supplier-specific rates) for matched kWh, with unmatched kWh × residual-mix factor when the registry has one; otherwise the unmatched portion is marked missing — never silently zeroed or substituted with the location grid factor.",
   },
   {
     q: "Where is the evidence?",

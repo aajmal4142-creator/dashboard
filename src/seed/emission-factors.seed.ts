@@ -201,6 +201,61 @@ export const emissionFactors: EmissionFactorSeed[] = [
     attributionText:
       "Contains public sector information licensed under the Open Government Licence v3.0. Source: DESNZ / DEFRA conversion factors 2024.",
   },
+  // residual_mix — market-based Scope 2 unmatched kWh (GHG Protocol Scope 2 Guidance).
+  // Demo / seed value: higher than location grid because claimed renewables are removed.
+  // Source: illustrative residual proxy for seed; replace with AIB/supplier residual for filings.
+  {
+    key: "residual_mix",
+    label: "UK residual mix electricity (seed proxy)",
+    value: 0.35,
+    unit: "kgCO2e/kWh",
+    scope: "2",
+    source: "DEFRA",
+    standard: "DEFRA",
+    sourceUrl: DEFRA_URL,
+    publicationYear: 2024,
+    region: "GB",
+    validFrom: "2024-01-01",
+    uncertaintyPct: 20,
+    licence: "OGL v3.0 / seed proxy — not a published residual-mix table",
+    attributionText:
+      "Seed residual-mix factor for market-based Scope 2 unmatched kWh. Illustrative GB proxy (~0.35 kgCO2e/kWh); not a licensed AIB residual-mix figure. Replace before assurance filings.",
+  },
+  {
+    key: "residual_mix",
+    label: "Residual mix electricity (DEFRA GLOBAL seed proxy)",
+    value: 0.4,
+    unit: "kgCO2e/kWh",
+    scope: "2",
+    source: "DEFRA",
+    standard: "DEFRA",
+    sourceUrl: DEFRA_URL,
+    publicationYear: 2024,
+    region: "GLOBAL",
+    validFrom: "2024-01-01",
+    uncertaintyPct: 25,
+    licence: "OGL v3.0 / seed proxy — not a published residual-mix table",
+    attributionText:
+      "Seed GLOBAL residual-mix fallback for DEFRA-standard inventories when a regional residual is absent. Illustrative only.",
+  },
+  {
+    key: "district_heat",
+    label: "District heat and steam",
+    value: 0.17965,
+    unit: "kgCO2e/kWh",
+    scope: "2",
+    source: "DEFRA",
+    standard: "DEFRA",
+    sourceUrl: DEFRA_URL,
+    publicationYear: 2024,
+    region: "GB",
+    validFrom: "2024-01-01",
+    validUntil: "2024-12-31",
+    uncertaintyPct: 10,
+    licence: "OGL v3.0",
+    attributionText:
+      "Contains public sector information licensed under the Open Government Licence v3.0. Source: DESNZ / DEFRA Greenhouse gas reporting: conversion factors 2024 — Heat and steam > District heat and steam.",
+  },
 
   // —— GHG Protocol Corporate Standard (2004) — GLOBAL core ——
   {
@@ -305,6 +360,41 @@ export const emissionFactors: EmissionFactorSeed[] = [
     attributionText:
       "Seed Scope 3 business-travel average under GHG Protocol Corporate Standard (2004).",
   },
+  // residual_mix — GLOBAL seed for GHG Protocol 2004 inventories (demo Non-paid value).
+  {
+    key: "residual_mix",
+    label: "Residual mix electricity (GHG Protocol 2004 seed)",
+    value: 0.55,
+    unit: "kgCO2e/kWh",
+    scope: "2",
+    source: "GHGProtocol",
+    standard: "GHGProtocol2004",
+    sourceUrl: GHG_2004_URL,
+    publicationYear: 2004,
+    region: "GLOBAL",
+    validFrom: "2004-01-01",
+    uncertaintyPct: 25,
+    licence: "GHG Protocol — free use with attribution / seed proxy",
+    attributionText:
+      "Seed residual-mix factor for market-based Scope 2 unmatched kWh under GHG Protocol Corporate Standard (2004). Illustrative GLOBAL proxy; prefer published residual-mix / supplier-specific rates for filings.",
+  },
+  {
+    key: "district_heat",
+    label: "District heat and steam (GHG Protocol 2004 seed)",
+    value: 0.2,
+    unit: "kgCO2e/kWh",
+    scope: "2",
+    source: "GHGProtocol",
+    standard: "GHGProtocol2004",
+    sourceUrl: GHG_2004_URL,
+    publicationYear: 2004,
+    region: "GLOBAL",
+    validFrom: "2004-01-01",
+    uncertaintyPct: 25,
+    licence: "GHG Protocol — free use with attribution / seed proxy",
+    attributionText:
+      "Illustrative GLOBAL district heat / steam / cooling factor for GHG Protocol Corporate Standard (2004) seed inventories. Prefer regional published heat-network factors for filings.",
+  },
 
   // —— IPCC (GLOBAL core) ——
   {
@@ -408,10 +498,315 @@ export const emissionFactors: EmissionFactorSeed[] = [
     licence: "IPCC — free use with attribution",
     attributionText: "Seed Scope 3 business-travel average for IPCC-aligned inventories.",
   },
+  // residual_mix — GLOBAL seed for IPCC-aligned inventories (demo Non-paid value).
+  {
+    key: "residual_mix",
+    label: "Residual mix electricity (IPCC seed)",
+    value: 0.52,
+    unit: "kgCO2e/kWh",
+    scope: "2",
+    source: "IPCC",
+    standard: "IPCC",
+    sourceUrl: IPCC_URL,
+    publicationYear: 2006,
+    region: "GLOBAL",
+    validFrom: "2006-01-01",
+    uncertaintyPct: 25,
+    licence: "IPCC — free use with attribution / seed proxy",
+    attributionText:
+      "Seed residual-mix factor for market-based Scope 2 unmatched kWh (IPCC-aligned). Illustrative GLOBAL proxy; replace with national residual-mix publications for filings.",
+  },
+  {
+    key: "district_heat",
+    label: "District heat and steam (IPCC seed)",
+    value: 0.19,
+    unit: "kgCO2e/kWh",
+    scope: "2",
+    source: "IPCC",
+    standard: "IPCC",
+    sourceUrl: IPCC_URL,
+    publicationYear: 2006,
+    region: "GLOBAL",
+    validFrom: "2006-01-01",
+    uncertaintyPct: 25,
+    licence: "IPCC — free use with attribution / seed proxy",
+    attributionText:
+      "Illustrative GLOBAL district heat / steam / cooling factor for IPCC-aligned seed inventories. Prefer national heat-network factors for filings.",
+  },
+
+  // —— Scope 3 Cat 6 / 7 calc-engine factors (kgCO2e per activity unit) ——
+  ...scope3TravelCommuteCalcFactors(),
+
+  // —— Scope 3 Cat 4 / 9 freight calc-engine factors (kgCO2e/tkm) ——
+  ...scope3FreightCalcFactors(),
 
   // —— Scope 3 activity keys (registry-backed; formerly hardcoded DEFRA/IPCC) ——
   ...scope3ActivityFactors(),
 ];
+
+/**
+ * Mode-split Cat 6 travel + Cat 7 commute factors for lib/calc (tco2eFrom = qty × kg / 1000).
+ * Distinct from scope3_* activity-path rows (tCO2e/mile style for Scope3Activities).
+ */
+function scope3TravelCommuteCalcFactors(): EmissionFactorSeed[] {
+  type ModeRow = {
+    key: string;
+    label: string;
+    unit: string;
+    defra: number;
+    ghg: number;
+    ipcc: number;
+    uncertaintyPct: number;
+  };
+
+  const modes: ModeRow[] = [
+    {
+      key: "business_travel_air_short",
+      label: "Business travel — air short haul",
+      unit: "kgCO2e/km",
+      defra: 0.255,
+      ghg: 0.24,
+      ipcc: 0.25,
+      uncertaintyPct: 15,
+    },
+    {
+      key: "business_travel_air_long",
+      label: "Business travel — air long haul",
+      unit: "kgCO2e/km",
+      defra: 0.148,
+      ghg: 0.14,
+      ipcc: 0.145,
+      uncertaintyPct: 15,
+    },
+    {
+      key: "business_travel_rail",
+      label: "Business travel — rail",
+      unit: "kgCO2e/km",
+      defra: 0.035,
+      ghg: 0.04,
+      ipcc: 0.038,
+      uncertaintyPct: 20,
+    },
+    {
+      key: "business_travel_car",
+      label: "Business travel — car",
+      unit: "kgCO2e/km",
+      defra: 0.171,
+      ghg: 0.17,
+      ipcc: 0.17,
+      uncertaintyPct: 15,
+    },
+    {
+      key: "business_travel_hotel",
+      label: "Business travel — hotel night",
+      unit: "kgCO2e/night",
+      defra: 13.9,
+      ghg: 14,
+      ipcc: 14,
+      uncertaintyPct: 25,
+    },
+    {
+      key: "employee_commute_car",
+      label: "Employee commute — car",
+      unit: "kgCO2e/km",
+      defra: 0.171,
+      ghg: 0.17,
+      ipcc: 0.17,
+      uncertaintyPct: 20,
+    },
+    {
+      key: "employee_commute_public",
+      label: "Employee commute — public transport",
+      unit: "kgCO2e/km",
+      defra: 0.048,
+      ghg: 0.05,
+      ipcc: 0.05,
+      uncertaintyPct: 25,
+    },
+    {
+      key: "employee_commute_bicycle",
+      label: "Employee commute — bicycle",
+      unit: "kgCO2e/km",
+      defra: 0,
+      ghg: 0,
+      ipcc: 0,
+      uncertaintyPct: 5,
+    },
+  ];
+
+  const out: EmissionFactorSeed[] = [];
+
+  for (const mode of modes) {
+    out.push({
+      key: mode.key,
+      label: `${mode.label} (DEFRA)`,
+      value: mode.defra,
+      unit: mode.unit,
+      scope: "3",
+      source: "DEFRA",
+      standard: "DEFRA",
+      sourceUrl: DEFRA_URL,
+      publicationYear: 2024,
+      region: "GB",
+      validFrom: "2024-01-01",
+      validUntil: "2024-12-31",
+      uncertaintyPct: mode.uncertaintyPct,
+      licence: "OGL v3.0",
+      attributionText:
+        "Contains public sector information licensed under the Open Government Licence v3.0. Seed mode-split Scope 3 factor derived from DESNZ / DEFRA conversion factors 2024.",
+    });
+    out.push({
+      key: mode.key,
+      label: `${mode.label} (GHG Protocol 2004)`,
+      value: mode.ghg,
+      unit: mode.unit,
+      scope: "3",
+      source: "GHGProtocol",
+      standard: "GHGProtocol2004",
+      sourceUrl: GHG_2004_URL,
+      publicationYear: 2004,
+      region: "GLOBAL",
+      validFrom: "2004-01-01",
+      uncertaintyPct: mode.uncertaintyPct + 5,
+      licence: "GHG Protocol — free use with attribution",
+      attributionText:
+        "Seed Scope 3 mode-split travel/commute factor under GHG Protocol Corporate Standard (2004).",
+    });
+    out.push({
+      key: mode.key,
+      label: `${mode.label} (IPCC)`,
+      value: mode.ipcc,
+      unit: mode.unit,
+      scope: "3",
+      source: "IPCC",
+      standard: "IPCC",
+      sourceUrl: IPCC_URL,
+      publicationYear: 2006,
+      region: "GLOBAL",
+      validFrom: "2006-01-01",
+      uncertaintyPct: mode.uncertaintyPct + 5,
+      licence: "IPCC — free use with attribution",
+      attributionText:
+        "Seed Scope 3 mode-split travel/commute factor for IPCC-aligned corporate inventories.",
+    });
+  }
+
+  return out;
+}
+
+/**
+ * Mode-split Cat 4 / Cat 9 freight factors for lib/calc (tco2eFrom = tkm × kg / 1000).
+ * Same mode keys serve upstream and downstream; category is encoded on the metric.
+ */
+function scope3FreightCalcFactors(): EmissionFactorSeed[] {
+  type ModeRow = {
+    key: string;
+    label: string;
+    unit: string;
+    defra: number;
+    ghg: number;
+    ipcc: number;
+    uncertaintyPct: number;
+  };
+
+  const modes: ModeRow[] = [
+    {
+      key: "freight_road",
+      label: "Freight — road (HGV average)",
+      unit: "kgCO2e/tkm",
+      defra: 0.12,
+      ghg: 0.11,
+      ipcc: 0.115,
+      uncertaintyPct: 20,
+    },
+    {
+      key: "freight_rail",
+      label: "Freight — rail",
+      unit: "kgCO2e/tkm",
+      defra: 0.028,
+      ghg: 0.03,
+      ipcc: 0.03,
+      uncertaintyPct: 25,
+    },
+    {
+      key: "freight_sea",
+      label: "Freight — sea / ocean",
+      unit: "kgCO2e/tkm",
+      defra: 0.016,
+      ghg: 0.015,
+      ipcc: 0.016,
+      uncertaintyPct: 25,
+    },
+    {
+      key: "freight_air",
+      label: "Freight — air",
+      unit: "kgCO2e/tkm",
+      defra: 1.057,
+      ghg: 1.0,
+      ipcc: 1.02,
+      uncertaintyPct: 20,
+    },
+  ];
+
+  const out: EmissionFactorSeed[] = [];
+
+  for (const mode of modes) {
+    out.push({
+      key: mode.key,
+      label: `${mode.label} (DEFRA)`,
+      value: mode.defra,
+      unit: mode.unit,
+      scope: "3",
+      source: "DEFRA",
+      standard: "DEFRA",
+      sourceUrl: DEFRA_URL,
+      publicationYear: 2024,
+      region: "GB",
+      validFrom: "2024-01-01",
+      validUntil: "2024-12-31",
+      uncertaintyPct: mode.uncertaintyPct,
+      licence: "OGL v3.0",
+      attributionText:
+        "Contains public sector information licensed under the Open Government Licence v3.0. Seed freight Scope 3 factor derived from DESNZ / DEFRA conversion factors 2024.",
+    });
+    out.push({
+      key: mode.key,
+      label: `${mode.label} (GHG Protocol 2004)`,
+      value: mode.ghg,
+      unit: mode.unit,
+      scope: "3",
+      source: "GHGProtocol",
+      standard: "GHGProtocol2004",
+      sourceUrl: GHG_2004_URL,
+      publicationYear: 2004,
+      region: "GLOBAL",
+      validFrom: "2004-01-01",
+      uncertaintyPct: mode.uncertaintyPct + 5,
+      licence: "GHG Protocol — free use with attribution",
+      attributionText:
+        "Seed Scope 3 freight factor under GHG Protocol Corporate Standard (2004).",
+    });
+    out.push({
+      key: mode.key,
+      label: `${mode.label} (IPCC)`,
+      value: mode.ipcc,
+      unit: mode.unit,
+      scope: "3",
+      source: "IPCC",
+      standard: "IPCC",
+      sourceUrl: IPCC_URL,
+      publicationYear: 2006,
+      region: "GLOBAL",
+      validFrom: "2006-01-01",
+      uncertaintyPct: mode.uncertaintyPct + 5,
+      licence: "IPCC — free use with attribution",
+      attributionText:
+        "Seed Scope 3 freight factor for IPCC-aligned corporate inventories.",
+    });
+  }
+
+  return out;
+}
 
 function scope3ActivityFactors(): EmissionFactorSeed[] {
   type Row = {

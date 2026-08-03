@@ -28,6 +28,7 @@ export type FrameworkMapping = {
     | "CSRD_SET1"
     | "CSRD_SIMPLIFIED"
     | "BRSR"
+    | "SECR"
     | "VSME"
     | "GRI"
     | "ISSB_S1"

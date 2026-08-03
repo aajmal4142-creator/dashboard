@@ -630,7 +630,9 @@ export function AlertsClient({
                       ? "Notify"
                       : action === "send_email"
                         ? "Email"
-                        : "Slack"}
+                        : action === "post_slack"
+                          ? "Slack"
+                          : "Teams"}
                   </label>
                 ))}
               </div>

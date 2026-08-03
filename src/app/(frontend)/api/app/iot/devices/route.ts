@@ -49,6 +49,7 @@ function publicDevice(doc: {
   retentionDays?: number | null;
   sensorMappings?: unknown;
   gateway?: string | { id: string } | null;
+  facility?: string | { id: string } | null;
   createdAt: string;
   updatedAt: string;
 }) {
@@ -70,12 +71,20 @@ function publicDevice(doc: {
         ? doc.gateway
         : doc.gateway.id;
 
+  const facilityId =
+    doc.facility == null
+      ? null
+      : typeof doc.facility === "string"
+        ? doc.facility
+        : doc.facility.id;
+
   return {
     id: doc.id,
     deviceName: doc.deviceName,
     deviceId: doc.deviceId,
     deviceType: doc.deviceType,
     gatewayId,
+    facilityId,
     status,
     lastHeartbeat: doc.lastHeartbeat ?? null,
     location: doc.location ?? null,
@@ -149,6 +158,7 @@ export async function POST(request: Request) {
       deviceType?: string;
       location?: string;
       gatewayId?: string;
+      facilityId?: string | null;
       offlineAfterMinutes?: number;
       retentionDays?: number;
       sensorMappings?: Array<{
@@ -198,6 +208,34 @@ export async function POST(request: Request) {
       }
     }
 
+    let facilityId: string | undefined;
+    if (body.facilityId) {
+      try {
+        const facility = await payload.findByID({
+          collection: "facilities",
+          id: body.facilityId,
+          depth: 0,
+          overrideAccess: true,
+        });
+        const facilityOrg =
+          typeof facility.organisation === "string"
+            ? facility.organisation
+            : facility.organisation?.id;
+        if (!facility || facilityOrg !== ctx.activeOrg.id) {
+          return NextResponse.json(
+            { error: "facilityId not found in this organisation" },
+            { status: 400 },
+          );
+        }
+        facilityId = body.facilityId;
+      } catch {
+        return NextResponse.json(
+          { error: "facilityId not found in this organisation" },
+          { status: 400 },
+        );
+      }
+    }
+
     const created = await (
       payload.create as (args: {
         collection: "iot-devices";
@@ -217,6 +255,7 @@ export async function POST(request: Request) {
         retentionDays?: number | null;
         sensorMappings?: unknown;
         gateway?: string | { id: string } | null;
+        facility?: string | { id: string } | null;
         createdAt: string;
         updatedAt: string;
       }>
@@ -232,6 +271,7 @@ export async function POST(request: Request) {
         apiKeyPrefix,
         location: body.location?.trim() || undefined,
         gateway: body.gatewayId || undefined,
+        facility: facilityId,
         offlineAfterMinutes: body.offlineAfterMinutes ?? 60,
         retentionDays: body.retentionDays ?? 365,
         anomalyDetectionEnabled: true,

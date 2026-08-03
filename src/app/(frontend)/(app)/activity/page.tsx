@@ -57,6 +57,10 @@ const ACTION_TYPE_OPTIONS = [
   { value: "supplier_submit", label: "Supplier submitted" },
   { value: "compliance_assessment_create", label: "Assessment created" },
   { value: "internal_request_create", label: "Request created" },
+  { value: "internal_request_submit", label: "Request submitted" },
+  { value: "internal_request_approve", label: "Request approved" },
+  { value: "internal_request_reject", label: "Request rejected" },
+  { value: "internal_request_escalate", label: "Request escalated" },
 ] as const;
 
 const emptyFilters: Filters = {

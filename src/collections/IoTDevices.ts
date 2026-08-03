@@ -191,9 +191,21 @@ export const IoTDevices: CollectionConfig = {
       },
     },
     {
+      name: "facility",
+      type: "relationship",
+      relationTo: "facilities",
+      index: true,
+      admin: {
+        description:
+          "Optional link to an operational facility. Prefer this over free-text location when a facility exists.",
+      },
+    },
+    {
       name: "location",
       type: "text",
-      admin: { description: "Physical location of meter" },
+      admin: {
+        description: "Free-text physical location fallback when no facility is linked.",
+      },
     },
     {
       name: "installationDate",

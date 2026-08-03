@@ -30,9 +30,34 @@ const TIPS: { match: (path: string) => boolean; tip: ContextTip }[] = [
       tips: [
         "Drafts regenerate from live data; publish locks an immutable final.",
         "Export PDF, HTML, and machine formats from published rows.",
+        "Include subsidiaries rolls up linked entities — measured only; missing stays missing.",
+        "Download evidence pack for board or auditor hand-off (ZIP of PDF + CSV).",
         "ClearESG does not provide assurance or audit opinions.",
       ],
       relatedTourId: "reports",
+    },
+  },
+  {
+    match: (p) => p === "/assurance" || p.startsWith("/assurance/"),
+    tip: {
+      title: "Assurance Room",
+      tips: [
+        "Lineage is read-only against the latest published snapshot — factors stay pinned.",
+        "Download evidence pack assembles emissions, gaps, factor versions, and evidence IDs.",
+        "Open /assurance/engagements for limited vs reasonable pathway checklists.",
+        "ClearESG is not an assurance provider; browse partners when you need an opinion.",
+      ],
+    },
+  },
+  {
+    match: (p) => p.startsWith("/settings/org-hierarchy"),
+    tip: {
+      title: "Org hierarchy",
+      tips: [
+        "Set an explicit consolidation parent — never inferred from consultancy parentOrg.",
+        "Full, proportional, or equity method; ownership % scales along the path.",
+        "Preview and Reports → Include subsidiaries sum measured entities only; missing stays missing.",
+      ],
     },
   },
   {
@@ -42,7 +67,9 @@ const TIPS: { match: (path: string) => boolean; tip: ContextTip }[] = [
       tips: [
         "Language preference is stored on your user account.",
         "Branding tokens apply to the app shell and supplier portal.",
-        "Validation rules and custom metrics open from the sections below.",
+        "Org hierarchy links subsidiaries for consolidated reports — missing data never rolls up as zero.",
+        "Emission factors, validation rules, and custom metrics open from the sections below.",
+        "Missing factor keys still throw in calc — the factor admin does not invent defaults.",
       ],
       relatedTourId: "settings",
     },
@@ -58,12 +85,34 @@ const TIPS: { match: (path: string) => boolean; tip: ContextTip }[] = [
     },
   },
   {
+    match: (p) => p === "/developers" || p.startsWith("/developers/"),
+    tip: {
+      title: "Developer API",
+      tips: [
+        "Browse curated ingest, BI, webhook, and factor endpoints for your organisation.",
+        "Manage BI API keys under Settings. Try sample GETs in the sandbox.",
+        "Docs are behind login; mutations still require Membership server-side.",
+      ],
+    },
+  },
+  {
     match: (p) => p === "/suppliers" || p.startsWith("/suppliers/"),
     tip: {
       title: "Suppliers",
       tips: [
         "Add a supplier, send a questionnaire, then review responses.",
         "Risk and supply-chain views live under Collaborate in the nav.",
+      ],
+    },
+  },
+  {
+    match: (p) => p.startsWith("/operations/waste-water"),
+    tip: {
+      title: "Waste & water",
+      tips: [
+        "Enter operational waste and water by period; blank means not tracked, not zero.",
+        "Cat 5 GHG appears only when landfill/recycling factors are seeded.",
+        "Open Metrics for the full grid, including employees_total for water intensity.",
       ],
     },
   },
@@ -94,6 +143,42 @@ const TIPS: { match: (path: string) => boolean; tip: ContextTip }[] = [
       tips: [
         "Compare YoY, by department, supplier, or metric under Compare.",
         "Pathway and scenario tools sit alongside peer benchmarks.",
+        "Multi-entity roll-ups live on Reports → Include subsidiaries (measured only; missing stays missing).",
+      ],
+    },
+  },
+  {
+    match: (p) => p === "/social" || p.startsWith("/social/"),
+    tip: {
+      title: "Social metrics",
+      tips: [
+        "Coverage maps workforce, H&S, training, fair pay, and labour indicators to Metrics keys.",
+        "Unmapped rows (living wage, pay gap, turnover) stay gaps until metrics ship.",
+        "Enter values in Metrics or via the social values API for mapped keys only.",
+      ],
+    },
+  },
+  {
+    match: (p) => p === "/engagement" || p.startsWith("/engagement/"),
+    tip: {
+      title: "Employee engagement",
+      tips: [
+        "Create campaigns with a participant count or tCO₂e goal — missing goals show quality missing, never silent zero.",
+        "Record participation with +1; optional commute challenges link to Scope 3 travel & commute.",
+        "No WhatsApp BSP or paid HRIS — organisers track counts in ClearESG only.",
+      ],
+    },
+  },
+  {
+    match: (p) =>
+      p.startsWith("/integrations/email-import") || p === "/integrations/email-import",
+    tip: {
+      title: "Email data collection",
+      tips: [
+        "Share import+TOKEN@… and [ClearESG:TOKEN] in the subject with site managers and suppliers.",
+        "Whitelist every sender; attach CSV with metricKey,value,unit,quality.",
+        "Use dry-run before Apply. Live inbound rejects non-whitelisted mail automatically.",
+        "Internal requests and supplier engagement are alternatives when email is not suitable.",
       ],
     },
   },

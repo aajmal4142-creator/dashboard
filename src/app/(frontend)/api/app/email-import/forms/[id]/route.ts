@@ -3,9 +3,13 @@ import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
 import { requirePermission } from "@/lib/policy/protect";
-import { generateInboundToken } from "@/lib/emailImport/service";
+import {
+  buildInboundAddress,
+  buildSubjectTokenHint,
+  generateInboundToken,
+  normalizeEmailAddress,
+} from "@/lib/emailImport";
 import config from "@/payload.config";
-import { normalizeEmailAddress } from "@/lib/emailImport";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -55,13 +59,17 @@ export async function GET(_request: Request, context: RouteContext) {
       lastImportAt?: string | null;
     };
 
+    const inboundToken = extended.inboundToken ?? null;
+
     return NextResponse.json({
       id: form.id,
       formName: form.formName,
       formType: form.formType,
       status: form.status,
       inboundEnabled: extended.inboundEnabled ?? false,
-      inboundToken: extended.inboundToken ?? null,
+      inboundToken,
+      inboundAddress: inboundToken ? buildInboundAddress(inboundToken) : null,
+      subjectTokenHint: inboundToken ? buildSubjectTokenHint(inboundToken) : null,
       whitelistedSenders: (extended.whitelistedSenders ?? []).map((s) => ({
         email: s.email,
         label: s.label ?? null,
@@ -72,6 +80,8 @@ export async function GET(_request: Request, context: RouteContext) {
       recipientCount: form.recipientCount,
       responseCount: form.responseCount,
       responseRate: form.responseRate,
+      emailSubject: form.emailSubject,
+      emailBody: form.emailBody,
     });
   } catch (error) {
     console.error(
@@ -187,11 +197,15 @@ export async function PATCH(request: Request, context: RouteContext) {
       overrideAccess: true,
     });
 
+    const inboundToken = updated.inboundToken ?? null;
+
     return NextResponse.json({
       id: updated.id,
       status: updated.status,
       inboundEnabled: updated.inboundEnabled ?? false,
-      inboundToken: updated.inboundToken ?? null,
+      inboundToken,
+      inboundAddress: inboundToken ? buildInboundAddress(inboundToken) : null,
+      subjectTokenHint: inboundToken ? buildSubjectTokenHint(inboundToken) : null,
       recurringEnabled: updated.recurringEnabled ?? false,
       recurringCadence: updated.recurringCadence ?? "none",
       whitelistedSenders: updated.whitelistedSenders ?? [],

@@ -11,18 +11,6 @@ import {
 type BomMaterial = NonNullable<ProductLevelFootprinting["billOfMaterials"]>[number];
 type EmissionsSource = NonNullable<ProductLevelFootprinting["emissionsSources"]>[number];
 
-/**
- * Interim transport-mode factor table (kg CO2e per km per unit).
- * Residual (post-F3): still not in EmissionFactors registry — move when transport
- * mode keys are productised. Core Scope 1/2/3 factors are registry-only via F3.
- */
-const TRANSPORT_MODE_FACTORS: Record<string, number> = {
-  ocean: 0.01,
-  air: 0.5,
-  truck: 0.15,
-  rail: 0.05,
-};
-
 export function toSkuCalcInput(
   sku: ProductLevelFootprinting,
   packagingFactorKgCo2ePerKg: number | null,
@@ -68,17 +56,20 @@ export function toSkuCalcInput(
   };
 }
 
-function resolveTransportModeFactor(
-  mode: ProductLevelFootprinting["transportMode"],
-  distance: number,
-): number | null {
+/**
+ * User-entered transport factor only (kg CO2e per km per unit).
+ * No hardcoded mode table — missing factor throws when distance > 0.
+ */
+function resolveTransportModeFactor(sku: ProductLevelFootprinting): number | null {
+  const distance = sku.transportDistance ?? 0;
   if (distance <= 0) return null;
-  const key = mode ?? "truck";
-  const factor = TRANSPORT_MODE_FACTORS[key];
-  if (factor === undefined) {
-    throw new Error(`Unknown transport mode: ${String(mode)}`);
+  const factor = sku.transportEmissionsFactor;
+  if (typeof factor === "number" && Number.isFinite(factor) && factor >= 0) {
+    return factor;
   }
-  return factor;
+  throw new Error(
+    `Missing transport emissions factor for SKU ${sku.sku}: enter transportEmissionsFactor (kg CO2e per km per unit)`,
+  );
 }
 
 function resolvePackagingFactor(sku: ProductLevelFootprinting): number | null {
@@ -110,10 +101,7 @@ export async function calculateSKUFootprintById(
 ): Promise<SkuFootprintResult> {
   const sku = await loadSkuById(skuId);
   const packagingFactor = resolvePackagingFactor(sku);
-  const transportFactor = resolveTransportModeFactor(
-    sku.transportMode,
-    sku.transportDistance ?? 0,
-  );
+  const transportFactor = resolveTransportModeFactor(sku);
   return calculateSKUFootprint(toSkuCalcInput(sku, packagingFactor, transportFactor));
 }
 
@@ -167,6 +155,11 @@ export async function updateSKUFootprint(skuId: string): Promise<SkuFootprintRes
     data: {
       totalCarbonFootprint: result.totalCarbonFootprint,
       breakdownByStage: result.breakdown,
+      quality: result.quality,
+      totalManufacturingEmissions:
+        result.breakdown.materials + result.breakdown.production,
+      transportationEmissionsPerUnit: result.breakdown.transportation,
+      totalEndOfLifeEmissions: result.breakdown.endOfLife,
       lastCalculatedAt: new Date().toISOString(),
     },
   });

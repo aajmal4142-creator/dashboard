@@ -3,6 +3,7 @@ import { getPayload } from "payload";
 import { calculateEmissionsForecast } from "@/lib/analytics/forecast";
 import { loadEmissionsByPeriod } from "@/lib/analytics/loadEmissionsByPeriod";
 import { calculate, type CalcResult, type Quality } from "@/lib/calc";
+import { loadActiveScope2Instruments } from "@/lib/certificates";
 import {
   EMISSIONS_STANDARD_LABELS,
   loadOrgEmissionFactors,
@@ -142,18 +143,28 @@ export async function buildReportSnapshot(opts: {
 
   const emissionsStandard = opts.emissionsStandard ?? resolveOrgEmissionsStandard(org);
   const { factors } = await loadOrgEmissionFactors(payload, {
+    id: opts.organisationId,
     settings: { emissionsStandard },
   });
 
   let calc: CalcResult;
   try {
-    calc = calculate({ metrics, context: { region, year } }, factors);
+    const scope2Instruments = await loadActiveScope2Instruments(
+      payload,
+      opts.organisationId,
+      opts.periodId,
+    );
+    calc = calculate({ metrics, context: { region, year, scope2Instruments } }, factors);
   } catch {
     calc = {
       scores: { overall: 0, e: 0, s: 0, g: 0 },
       emissions: {
         scope1: { value: 0, unit: "tCO2e", quality: "missing" },
         scope2: { value: 0, unit: "tCO2e", quality: "missing" },
+        scope2Methods: {
+          locationBased: { value: 0, unit: "tCO2e", quality: "missing" },
+          marketBased: { value: 0, unit: "tCO2e", quality: "missing" },
+        },
         scope3: { value: 0, unit: "tCO2e", quality: "missing" },
         total: { value: 0, unit: "tCO2e", quality: "missing" },
       },
@@ -212,6 +223,8 @@ export async function buildReportSnapshot(opts: {
 
   const factorKeys = calc.factorsUsed.map((f) => `${f.key} (${f.source} ${f.year})`);
   const standardLabel = EMISSIONS_STANDARD_LABELS[emissionsStandard];
+  const loc = calc.emissions.scope2Methods.locationBased;
+  const mkt = calc.emissions.scope2Methods.marketBased;
   const scopeBreakdown = {
     scope1: scopeRow(
       calc.emissions.scope1.value,
@@ -223,10 +236,17 @@ export async function buildReportSnapshot(opts: {
       standardLabel,
     ),
     scope2: scopeRow(
-      calc.emissions.scope2.value,
-      calc.emissions.scope2.quality,
-      factorKeys.filter((k) => /grid|electric|heat|steam/i.test(k)),
-      "Scope 2",
+      loc.value,
+      loc.quality,
+      factorKeys.filter((k) => /grid|electric|heat|steam|residual|contractual/i.test(k)),
+      "Scope 2 (location-based)",
+      standardLabel,
+    ),
+    scope2Market: scopeRow(
+      mkt.value,
+      mkt.quality,
+      factorKeys.filter((k) => /residual|contractual|instrument/i.test(k)),
+      "Scope 2 (market-based)",
       standardLabel,
     ),
     scope3: scopeRow(
@@ -238,7 +258,7 @@ export async function buildReportSnapshot(opts: {
     ),
   };
   // If filter emptied sources, fall back to all pinned factors for transparency
-  for (const key of ["scope1", "scope2", "scope3"] as const) {
+  for (const key of ["scope1", "scope2", "scope2Market", "scope3"] as const) {
     if (
       scopeBreakdown[key].sources.length === 1 &&
       scopeBreakdown[key].sources[0]?.startsWith("Management")
@@ -340,6 +360,10 @@ export async function buildReportSnapshot(opts: {
   const emissions = {
     scope1: calc.emissions.scope1.value,
     scope2: calc.emissions.scope2.value,
+    scope2LocationBased: loc.value,
+    scope2MarketBased: mkt.value,
+    scope2LocationQuality: loc.quality,
+    scope2MarketQuality: mkt.quality,
     scope3: calc.emissions.scope3.value,
     total: calc.emissions.total.value,
     dataQualityPct: calc.dataQualityPct,

@@ -332,6 +332,7 @@ async function upsertEmissionFactors(payload: Awaited<ReturnType<typeof getPaylo
       collection: "emission-factors",
       where: {
         and: [
+          { organisation: { exists: false } },
           { key: { equals: factor.key } },
           { region: { equals: factor.region } },
           { publicationYear: { equals: factor.publicationYear } },
@@ -346,13 +347,13 @@ async function upsertEmissionFactors(payload: Awaited<ReturnType<typeof getPaylo
       await payload.update({
         collection: "emission-factors",
         id: existing.docs[0].id,
-        data: factor,
+        data: { ...factor, status: "active" },
         overrideAccess: true,
       });
     } else {
       await payload.create({
         collection: "emission-factors",
-        data: factor,
+        data: { ...factor, status: "active" },
         overrideAccess: true,
       });
     }

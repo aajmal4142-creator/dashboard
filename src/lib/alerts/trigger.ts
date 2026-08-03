@@ -3,6 +3,7 @@ import type { Payload } from "payload";
 import { writeAuditLog } from "@/lib/audit/write";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { postAlertToSlack } from "@/lib/integrations/slack";
+import { postAlertToTeams } from "@/lib/integrations/teams";
 import { notifyOrganisationMembers } from "@/lib/notifications/createNotification";
 
 import { evaluateAlertCondition, isAlertMuted } from "./evaluate";
@@ -113,6 +114,21 @@ async function runActions(args: {
         run.push(action);
       } else {
         skipped.push({ action, reason: slackResult.reason });
+      }
+      continue;
+    }
+
+    if (action === "post_teams") {
+      const teamsResult = await postAlertToTeams(args.payload, {
+        organisationId: args.organisationId,
+        ruleName: args.rule.name ?? "rule",
+        reason: message,
+        ruleId: args.rule.id,
+      });
+      if (teamsResult.posted) {
+        run.push(action);
+      } else {
+        skipped.push({ action, reason: teamsResult.reason });
       }
     }
   }

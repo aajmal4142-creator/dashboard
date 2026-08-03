@@ -12,6 +12,7 @@ const TYPE_LABELS: Record<NotificationType, string> = {
   audit_complete: "Audit complete",
   alert_triggered: "Alerts",
   supplier_response: "Supplier responses",
+  request_escalated: "Request escalations",
 };
 
 export function notificationTypeLabel(type: NotificationType): string {

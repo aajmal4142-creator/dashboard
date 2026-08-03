@@ -63,6 +63,10 @@ export async function GET(req: Request) {
       warnings: report.warnings,
       footer: report.footer,
       has_subsidiaries: report.byOrg.some((r) => r.depth > 0),
+      quality: report.quality,
+      measured_org_count: report.measuredOrgCount,
+      missing_org_count: report.missingOrgCount,
+      quality_message: report.qualityMessage,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Consolidation failed";

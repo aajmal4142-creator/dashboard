@@ -3,6 +3,7 @@ import { getPayload } from "payload";
 
 import { getCurrentContext } from "@/lib/auth";
 import { calculate } from "@/lib/calc";
+import { loadActiveScope2Instruments } from "@/lib/certificates";
 import { loadOrgEmissionFactors } from "@/lib/factors";
 import { detectAnomalies } from "@/lib/governance/anomalies";
 import { calmStatus, readinessBreakdown } from "@/lib/governance/calmStatus";
@@ -230,13 +231,24 @@ export default async function RunwayPage() {
   let overall = 0;
   let scope1 = 0;
   let scope2 = 0;
+  let scope2MarketBased: number | null = null;
+  let scope2MarketQuality: "measured" | "calculated" | "estimated" | "missing" | null =
+    null;
   let scope3 = 0;
   let calcOk = false;
   try {
-    const calc = calculate({ metrics, context: { region, year } }, factors);
+    const scope2Instruments = period
+      ? await loadActiveScope2Instruments(payload, ctx.activeOrg.id, String(period.id))
+      : [];
+    const calc = calculate(
+      { metrics, context: { region, year, scope2Instruments } },
+      factors,
+    );
     overall = calc.scores.overall;
     scope1 = calc.emissions.scope1.value;
     scope2 = calc.emissions.scope2.value;
+    scope2MarketBased = calc.emissions.scope2Methods.marketBased.value;
+    scope2MarketQuality = calc.emissions.scope2Methods.marketBased.quality;
     scope3 = calc.emissions.scope3.value;
     calcOk = true;
   } catch {
@@ -328,6 +340,8 @@ export default async function RunwayPage() {
       overall={overall}
       scope1={scope1}
       scope2={scope2}
+      scope2MarketBased={scope2MarketBased}
+      scope2MarketQuality={scope2MarketQuality}
       scope3={scope3}
       s1Pct={s1Pct}
       s2Pct={s2Pct}

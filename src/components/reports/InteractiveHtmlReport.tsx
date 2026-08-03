@@ -441,6 +441,33 @@ export function InteractiveHtmlReport({
               </p>
             </div>
           </div>
+          {typeof snapshot.emissions.scope2MarketBased === "number" ? (
+            <p className="mt-3 text-xs text-ink-muted">
+              Scope 2 dual · loc{" "}
+              <span className="font-data text-ink">
+                {(
+                  snapshot.emissions.scope2LocationBased ?? snapshot.emissions.scope2
+                ).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              </span>
+              {" · mkt "}
+              <span
+                className={
+                  snapshot.emissions.scope2MarketQuality === "missing"
+                    ? "font-data text-ink-muted"
+                    : "font-data text-ink"
+                }
+              >
+                {snapshot.emissions.scope2MarketBased.toLocaleString(undefined, {
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+              {snapshot.emissions.scope2MarketQuality === "missing"
+                ? " (incomplete)"
+                : null}
+              {" · "}
+              district heat uses the location factor in both totals
+            </p>
+          ) : null}
           <ul className="mt-4 space-y-2 text-sm text-ink-muted">
             {highlights.map((line) => (
               <li key={line}>{line}</li>

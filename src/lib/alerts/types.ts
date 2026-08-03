@@ -7,7 +7,12 @@ export const ALERT_CONDITION_TYPES = [
 
 export const ALERT_OPERATORS = ["gt", "lt", "eq"] as const;
 
-export const ALERT_ACTIONS = ["notify_user", "send_email", "post_slack"] as const;
+export const ALERT_ACTIONS = [
+  "notify_user",
+  "send_email",
+  "post_slack",
+  "post_teams",
+] as const;
 
 export type AlertConditionType = (typeof ALERT_CONDITION_TYPES)[number];
 export type AlertOperator = (typeof ALERT_OPERATORS)[number];

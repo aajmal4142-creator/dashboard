@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import {
@@ -11,6 +12,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { BUYER_FAQ } from "@/lib/reports/buyerFaq";
 import { frameworkLabel } from "@/lib/ui/displayLabels";
+
+import { EvidencePackDownloadButton } from "@/components/assurance/EvidencePackDownloadButton";
+import { AudiencePackDownloadButton } from "@/components/reports/AudiencePackDownloadButton";
 
 import { ScheduleDeliveryModal } from "./ScheduleDeliveryModal";
 import { ConsolidatedReportPanel } from "./ConsolidatedReportPanel";
@@ -80,7 +84,7 @@ export function ReportsClient({
     setStatusTone("neutral");
     setStatus(
       framework === "BRSR"
-        ? "Confirm BRSR-readiness publish. This locks an immutable snapshot — not a complete BRSR principle mapping."
+        ? "Confirm BRSR-readiness publish. This locks an immutable snapshot — not a complete BRSR filing. Review Core / Comprehensive coverage before publishing."
         : "Confirm CSRD (simplified) publish. This locks an immutable ESRS-structured snapshot of scores, emissions, materiality, evidence, and factor versions.",
     );
   }
@@ -296,6 +300,18 @@ export function ReportsClient({
             >
               Publish BRSR-readiness
             </Button>
+            <Link
+              href="/frameworks/brsr"
+              className="inline-flex h-8 items-center px-1 text-[12px] text-accent underline-offset-2 hover:underline"
+            >
+              BRSR coverage
+            </Link>
+            <Link
+              href="/frameworks/secr"
+              className="inline-flex h-8 items-center px-1 text-[12px] text-accent underline-offset-2 hover:underline"
+            >
+              SECR coverage
+            </Link>
           </div>
         ) : (
           <p className="text-[13px] text-ink-muted">
@@ -364,7 +380,7 @@ export function ReportsClient({
           <PageCard title="Confirm publish">
             <p className="text-[13px] text-ink">
               {pending === "BRSR"
-                ? "Publish BRSR-readiness snapshot as a locked final?"
+                ? "Publish BRSR-readiness snapshot as a locked final? Principle-level Core / Comprehensive coverage lives under Frameworks → BRSR."
                 : "Publish CSRD (simplified) ESRS report as a locked final?"}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -636,6 +652,14 @@ export function ReportsClient({
                             >
                               Export PDF · HTML
                             </button>
+                            <AudiencePackDownloadButton
+                              reportId={r.id}
+                              appearance="link"
+                            />
+                            <EvidencePackDownloadButton
+                              reportId={r.id}
+                              appearance="link"
+                            />
                             <button
                               type="button"
                               className="text-accent underline-offset-2 hover:underline"

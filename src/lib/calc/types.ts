@@ -25,6 +25,20 @@ export interface DatapointValue {
 }
 
 /**
+ * Optional market-based Scope 2 contractual instrument (REC / GO / supplier rate).
+ * Pure input — the REC ledger agent supplies these; calc never loads certificates.
+ */
+export interface Scope2ContractualInstrument {
+  /** Electricity covered by this instrument (kWh). */
+  kWh: number;
+  /** Emission factor for the matched volume (kgCO2e/kWh). */
+  factorKgPerKwh: number;
+  /** Optional audit id from the certificate / supplier-rate registry. */
+  factorId?: string;
+  label?: string;
+}
+
+/**
  * Everything a calculation needs that is not itself a metricKey datapoint:
  * factor-resolution coordinates plus optional overrides used only when the
  * canonical metric (`employees_total`, `electricity_renewable_pct`) is absent.
@@ -34,6 +48,11 @@ export interface CalcContext {
   year: number;
   employees?: number;
   renewablePct?: number;
+  /**
+   * Optional contractual instruments for market-based Scope 2.
+   * When omitted, unmatched electricity = 100% of load (residual mix or missing).
+   */
+  scope2Instruments?: Scope2ContractualInstrument[];
 }
 
 /**
@@ -77,11 +96,19 @@ export interface BreakdownItem {
   explanation: string;
 }
 
+export interface Scope2Methods {
+  locationBased: Measured;
+  marketBased: Measured;
+}
+
 export interface CalcResult {
   scores: { overall: number; e: number; s: number; g: number };
   emissions: {
     scope1: Measured;
+    /** Location-based Scope 2 (canonical for totals / charts). */
     scope2: Measured;
+    /** GHG Protocol dual reporting — both methods always present. */
+    scope2Methods: Scope2Methods;
     scope3: Measured;
     total: Measured;
   };

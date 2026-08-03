@@ -1,8 +1,10 @@
 ﻿import { NextResponse } from "next/server";
 import { getPayload } from "payload";
+
+import { coverageForPathway, isAssuranceLevel } from "@/lib/assurance/pathways";
+import type { AssuranceEngagement } from "@/lib/assurance";
 import { getCurrentContext } from "@/lib/auth";
 import config from "@/payload.config";
-import type { AssuranceEngagement } from "@/lib/assurance";
 
 export async function GET() {
   const auth = await getCurrentContext();
@@ -14,19 +16,51 @@ export async function GET() {
   const payload = await getPayload({ config });
 
   try {
-    const engagements = await payload.find({
-      collection: "assurance-engagements",
-      where: {
-        organisation: {
-          equals: auth.activeOrg.id,
+    const [engagements, periods] = await Promise.all([
+      payload.find({
+        collection: "assurance-engagements",
+        where: {
+          organisation: {
+            equals: auth.activeOrg.id,
+          },
         },
-      },
-      limit: 100,
+        sort: "-requestedAt",
+        limit: 100,
+        overrideAccess: true,
+      }),
+      payload.find({
+        collection: "reporting-periods",
+        where: {
+          organisation: {
+            equals: auth.activeOrg.id,
+          },
+        },
+        sort: "-startDate",
+        limit: 50,
+        overrideAccess: true,
+      }),
+    ]);
+
+    const withCoverage = engagements.docs.map((doc) => {
+      const level = isAssuranceLevel(doc.assuranceLevel) ? doc.assuranceLevel : "limited";
+      const completedIds = (doc.pathwayCheckpoints ?? [])
+        .map((r) => r.checkpointId)
+        .filter(Boolean);
+      return {
+        ...doc,
+        assuranceLevel: level,
+        pathwayCoverage: coverageForPathway(level, completedIds),
+      };
     });
 
     return NextResponse.json({
-      engagements: engagements.docs,
+      engagements: withCoverage,
       total: engagements.totalDocs,
+      periods: periods.docs.map((p) => ({
+        id: p.id,
+        label: p.label ?? p.id,
+        status: p.status,
+      })),
     });
   } catch (error) {
     console.error("Error fetching engagements:", error);
@@ -41,12 +75,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const canWrite =
+    auth.role === "owner" || auth.role === "admin" || auth.role === "contributor";
+  if (!canWrite) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   try {
     const body = (await req.json()) as Partial<AssuranceEngagement>;
 
-    // Validate required fields
     if (!body.reportingPeriod || !body.provider) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    if (!body.provider.name?.trim() || !body.provider.email?.trim()) {
+      return NextResponse.json(
+        { error: "Provider name and email are required" },
+        { status: 400 },
+      );
     }
 
     const validFrameworks = ["csrd", "brsr", "gri", "sasb"] as const;
@@ -62,31 +108,58 @@ export async function POST(req: Request) {
         ? (body.scope as (typeof validScopes)[number])
         : "all";
 
+    const assuranceLevel = isAssuranceLevel(body.assuranceLevel)
+      ? body.assuranceLevel
+      : "limited";
+
     const payload = await getPayload({ config });
 
-    // Create new engagement in draft status
+    const period = await payload.findByID({
+      collection: "reporting-periods",
+      id: body.reportingPeriod,
+      overrideAccess: true,
+    });
+    const periodOrg =
+      typeof period.organisation === "object"
+        ? period.organisation.id
+        : String(period.organisation);
+    if (periodOrg !== auth.activeOrg.id) {
+      return NextResponse.json({ error: "Invalid reporting period" }, { status: 400 });
+    }
+
     const engagement = await payload.create({
       collection: "assurance-engagements",
       data: {
         organisation: auth.activeOrg.id,
         reportingPeriod: body.reportingPeriod,
         provider: {
-          name: body.provider.name || "",
-          email: body.provider.email || "",
+          name: body.provider.name.trim(),
+          email: body.provider.email.trim(),
           contactPerson: body.provider.contactPerson,
           providerOrg: body.provider.providerOrg,
         },
         scope,
         framework,
+        assuranceLevel,
+        pathwayCheckpoints: [],
         status: "draft",
         requestedAt: new Date().toISOString(),
         dataGaps: body.dataGaps || [],
         notes: body.notes,
         createdBy: auth.user.id,
       },
+      overrideAccess: true,
     });
 
-    return NextResponse.json({ engagement }, { status: 201 });
+    return NextResponse.json(
+      {
+        engagement: {
+          ...engagement,
+          pathwayCoverage: coverageForPathway(assuranceLevel, []),
+        },
+      },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Error creating engagement:", error);
     return NextResponse.json({ error: "Failed to create engagement" }, { status: 500 });

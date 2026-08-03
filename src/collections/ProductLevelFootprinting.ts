@@ -7,7 +7,14 @@ export const ProductLevelFootprinting: CollectionConfig = {
   slug: PRODUCT_LEVEL_FOOTPRINTING_SLUG,
   admin: {
     useAsTitle: "productName",
-    defaultColumns: ["productName", "sku", "category", "totalCarbonFootprint", "status"],
+    defaultColumns: [
+      "productName",
+      "sku",
+      "category",
+      "totalCarbonFootprint",
+      "quality",
+      "status",
+    ],
   },
   access: tenantAccess({ writeMin: "admin" }),
   fields: [
@@ -17,6 +24,15 @@ export const ProductLevelFootprinting: CollectionConfig = {
       relationTo: "organisations",
       required: true,
       index: true,
+    },
+    {
+      name: "period",
+      type: "relationship",
+      relationTo: "reporting-periods",
+      index: true,
+      admin: {
+        description: "Reporting period this product footprint covers",
+      },
     },
     {
       name: "productName",
@@ -190,6 +206,14 @@ export const ProductLevelFootprinting: CollectionConfig = {
       ],
     },
     {
+      name: "transportEmissionsFactor",
+      type: "number",
+      admin: {
+        description:
+          "User-entered transport factor (kg CO2e per km per unit). Required when distance > 0 — no hardcoded defaults.",
+      },
+    },
+    {
       name: "transportWeightShipped",
       type: "number",
       admin: { description: "Product weight shipped (kg)" },
@@ -237,13 +261,31 @@ export const ProductLevelFootprinting: CollectionConfig = {
     {
       name: "totalCarbonFootprint",
       type: "number",
-      required: true,
-      admin: { description: "Cradle-to-grave total emissions (kg CO2e per unit)" },
+      admin: {
+        description:
+          "Cradle-to-grave total emissions (kg CO2e per unit). Null until calculated — never invent zero.",
+      },
     },
     {
       name: "breakdownByStage",
       type: "json",
-      admin: { description: "Percentage contribution by lifecycle stage" },
+      admin: { description: "kg CO2e contribution by lifecycle stage" },
+    },
+    {
+      name: "quality",
+      type: "select",
+      defaultValue: "missing",
+      options: [
+        { label: "Measured", value: "measured" },
+        { label: "Calculated", value: "calculated" },
+        { label: "Estimated", value: "estimated" },
+        { label: "Missing", value: "missing" },
+      ],
+      index: true,
+      admin: {
+        description:
+          "Result quality. Missing when no activity lines or calculation has not run.",
+      },
     },
     {
       name: "status",

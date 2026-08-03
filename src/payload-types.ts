@@ -148,6 +148,9 @@ export interface Config {
     'scheduled-reports': ScheduledReport;
     'sbti-targets': SbtiTarget;
     'green-taxonomy-assessments': GreenTaxonomyAssessment;
+    'cbam-goods': CbamGood;
+    'cbam-declarations': CbamDeclaration;
+    'energy-certificates': EnergyCertificate;
     'report-embed-tokens': ReportEmbedToken;
     'iot-gateways': IotGateway;
     notifications: Notification;
@@ -156,6 +159,21 @@ export interface Config {
     'slack-integrations': SlackIntegration;
     automations: Automation;
     'automation-runs': AutomationRun;
+    facilities: Facility;
+    meters: Meter;
+    'base-year-restatements': BaseYearRestatement;
+    'abatement-levers': AbatementLever;
+    'carbon-credits': CarbonCredit;
+    'reduction-projects': ReductionProject;
+    'cascaded-targets': CascadedTarget;
+    'procurement-tradeoffs': ProcurementTradeoff;
+    'teams-integrations': TeamsIntegration;
+    'supplier-network-invites': SupplierNetworkInvite;
+    'shared-emission-snapshots': SharedEmissionSnapshot;
+    'work-tracker-connections': WorkTrackerConnection;
+    policies: Policy;
+    'trust-control-events': TrustControlEvent;
+    'engagement-campaigns': EngagementCampaign;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -244,6 +262,9 @@ export interface Config {
     'scheduled-reports': ScheduledReportsSelect<false> | ScheduledReportsSelect<true>;
     'sbti-targets': SbtiTargetsSelect<false> | SbtiTargetsSelect<true>;
     'green-taxonomy-assessments': GreenTaxonomyAssessmentsSelect<false> | GreenTaxonomyAssessmentsSelect<true>;
+    'cbam-goods': CbamGoodsSelect<false> | CbamGoodsSelect<true>;
+    'cbam-declarations': CbamDeclarationsSelect<false> | CbamDeclarationsSelect<true>;
+    'energy-certificates': EnergyCertificatesSelect<false> | EnergyCertificatesSelect<true>;
     'report-embed-tokens': ReportEmbedTokensSelect<false> | ReportEmbedTokensSelect<true>;
     'iot-gateways': IotGatewaysSelect<false> | IotGatewaysSelect<true>;
     notifications: NotificationsSelect<false> | NotificationsSelect<true>;
@@ -252,6 +273,21 @@ export interface Config {
     'slack-integrations': SlackIntegrationsSelect<false> | SlackIntegrationsSelect<true>;
     automations: AutomationsSelect<false> | AutomationsSelect<true>;
     'automation-runs': AutomationRunsSelect<false> | AutomationRunsSelect<true>;
+    facilities: FacilitiesSelect<false> | FacilitiesSelect<true>;
+    meters: MetersSelect<false> | MetersSelect<true>;
+    'base-year-restatements': BaseYearRestatementsSelect<false> | BaseYearRestatementsSelect<true>;
+    'abatement-levers': AbatementLeversSelect<false> | AbatementLeversSelect<true>;
+    'carbon-credits': CarbonCreditsSelect<false> | CarbonCreditsSelect<true>;
+    'reduction-projects': ReductionProjectsSelect<false> | ReductionProjectsSelect<true>;
+    'cascaded-targets': CascadedTargetsSelect<false> | CascadedTargetsSelect<true>;
+    'procurement-tradeoffs': ProcurementTradeoffsSelect<false> | ProcurementTradeoffsSelect<true>;
+    'teams-integrations': TeamsIntegrationsSelect<false> | TeamsIntegrationsSelect<true>;
+    'supplier-network-invites': SupplierNetworkInvitesSelect<false> | SupplierNetworkInvitesSelect<true>;
+    'shared-emission-snapshots': SharedEmissionSnapshotsSelect<false> | SharedEmissionSnapshotsSelect<true>;
+    'work-tracker-connections': WorkTrackerConnectionsSelect<false> | WorkTrackerConnectionsSelect<true>;
+    policies: PoliciesSelect<false> | PoliciesSelect<true>;
+    'trust-control-events': TrustControlEventsSelect<false> | TrustControlEventsSelect<true>;
+    'engagement-campaigns': EngagementCampaignsSelect<false> | EngagementCampaignsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -462,6 +498,21 @@ export interface Organisation {
    */
   benchmarkOptOut?: boolean | null;
   /**
+   * Append-only log of free industry marketplace templates applied to this org (F33). Never delete rows in product flows.
+   */
+  appliedMarketplaceTemplates?:
+    | {
+        templateKey: string;
+        templateName: string;
+        kind: 'questionnaire' | 'report_pack' | 'metric_set';
+        industry: 'retail' | 'manufacturing' | 'finance' | 'services' | 'logistics' | 'energy';
+        reportTemplateId: string;
+        appliedAt: string;
+        appliedBy?: (string | null) | User;
+        id?: string | null;
+      }[]
+    | null;
+  /**
    * Science-Based Targets Initiative commitment metadata (S7.2).
    */
   sbti?: {
@@ -652,7 +703,8 @@ export interface MetricDefinition {
   calcRole: string;
   frameworkMappings?:
     | {
-        framework: 'CSRD_SET1' | 'CSRD_SIMPLIFIED' | 'BRSR' | 'VSME' | 'GRI' | 'ISSB_S1' | 'ISSB_S2' | 'EU_TAXONOMY';
+        framework:
+          'CSRD_SET1' | 'CSRD_SIMPLIFIED' | 'BRSR' | 'SECR' | 'VSME' | 'GRI' | 'ISSB_S1' | 'ISSB_S2' | 'EU_TAXONOMY';
         /**
          * Disclosure code (product alias: disclosureCode). Not a datapoint document id.
          */
@@ -706,7 +758,8 @@ export interface DerivedMetricDefinition {
   createdBy?: (string | null) | User;
   frameworkMappings?:
     | {
-        framework: 'CSRD_SET1' | 'CSRD_SIMPLIFIED' | 'BRSR' | 'VSME' | 'GRI' | 'ISSB_S1' | 'ISSB_S2' | 'EU_TAXONOMY';
+        framework:
+          'CSRD_SET1' | 'CSRD_SIMPLIFIED' | 'BRSR' | 'SECR' | 'VSME' | 'GRI' | 'ISSB_S1' | 'ISSB_S2' | 'EU_TAXONOMY';
         /**
          * Disclosure code (product alias: disclosureCode). Not a datapoint document id.
          */
@@ -742,6 +795,10 @@ export interface DerivedMetricDefinition {
  */
 export interface EmissionFactor {
   id: string;
+  /**
+   * Unset for global seed factors. Set for organisation-owned custom registry rows.
+   */
+  organisation?: (string | null) | Organisation;
   key: string;
   label: string;
   value: number;
@@ -753,7 +810,7 @@ export interface EmissionFactor {
   /**
    * Publisher / citation for this factor row (not the org methodology selector).
    */
-  source: 'DEFRA' | 'EPA' | 'IEA' | 'CEA_India' | 'GHGProtocol' | 'IPCC' | 'EEA' | 'NationalInventory';
+  source: 'DEFRA' | 'EPA' | 'IEA' | 'CEA_India' | 'GHGProtocol' | 'IPCC' | 'EEA' | 'NationalInventory' | 'Custom';
   /**
    * Methodology family used when an organisation selects its emissions standard. Distinct from source.
    */
@@ -770,6 +827,10 @@ export interface EmissionFactor {
   uncertaintyPct?: number | null;
   validFrom: string;
   validUntil?: string | null;
+  /**
+   * Deactivated custom rows stay in the registry for audit but are not injected into calc.
+   */
+  status: 'active' | 'deactivated';
   supersededBy?: (string | null) | EmissionFactor;
   /**
    * e.g. OGL v3.0, US public domain, Government of India
@@ -812,17 +873,53 @@ export interface Datapoint {
   factorId?: string | null;
   evidence?: (string | Evidence)[] | null;
   source: 'manual' | 'import' | 'supplier' | 'estimate' | 'api' | 'internal_survey';
+  /**
+   * Legacy mirror of the multi-step chain (pending / approved=locked / rejected).
+   */
   approvalState: 'pending' | 'approved' | 'rejected';
   /**
    * Required when approvalState is rejected.
    */
   approvalReason?: string | null;
+  /**
+   * Current step in prepare → review → approve → lock.
+   */
+  approvalStep?: ('prepare' | 'review' | 'approve' | 'lock') | null;
+  approvalChainStatus?: ('in_progress' | 'rejected' | 'locked') | null;
+  /**
+   * Optional role expected to act on the current step.
+   */
+  approvalAssigneeRole?: ('contributor' | 'admin' | 'owner') | null;
+  /**
+   * Optional named assignee for the current step.
+   */
+  approvalAssigneeUser?: (string | null) | User;
+  /**
+   * Append-only trail of step transitions.
+   */
+  approvalHistory?:
+    | {
+        fromStep: 'prepare' | 'review' | 'approve' | 'lock';
+        toStep: 'prepare' | 'review' | 'approve' | 'lock';
+        action: 'advance' | 'reject' | 'return';
+        at: string;
+        actor?: (string | null) | User;
+        note?: string | null;
+        assigneeRole?: ('contributor' | 'admin' | 'owner') | null;
+        assigneeUser?: (string | null) | User;
+        id?: string | null;
+      }[]
+    | null;
   assignedTo?: (string | null) | User;
   dueDate?: string | null;
   taskStatus?: ('open' | 'submitted' | 'approved') | null;
   enteredBy?: (string | null) | User;
   enteredAt?: string | null;
   note?: string | null;
+  /**
+   * Optional operational facility for this datapoint. Prefer over facility: tags in note.
+   */
+  facility?: (string | null) | Facility;
   /**
    * Compact lineage graph snapshot refreshed on write (sources → transforms → result).
    */
@@ -1041,6 +1138,40 @@ export interface Evidence {
    * OCR is not productized; new uploads should set skipped until a worker ships.
    */
   ocrStatus?: ('pending' | 'done' | 'failed' | 'skipped') | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "facilities".
+ */
+export interface Facility {
+  id: string;
+  organisation: string | Organisation;
+  name: string;
+  /**
+   * Short site code unique within the organisation (e.g. LON-HQ).
+   */
+  code: string;
+  facilityType: 'office' | 'plant' | 'warehouse' | 'other';
+  /**
+   * ISO 3166-1 alpha-2 when known.
+   */
+  country?: string | null;
+  /**
+   * State, province, or free-text region.
+   */
+  region?: string | null;
+  /**
+   * Optional street address.
+   */
+  address?: string | null;
+  active?: boolean | null;
+  /**
+   * Optional parent site for operational hierarchy (campus → building). Not legal consolidation.
+   */
+  parentFacility?: (string | null) | Facility;
+  notes?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1536,6 +1667,30 @@ export interface AssuranceEngagement {
    * Optional framework focus
    */
   framework?: ('csrd' | 'brsr' | 'gri' | 'sasb') | null;
+  /**
+   * Verification pathway: limited (inquiry/analytical) vs reasonable (substantive).
+   */
+  assuranceLevel: 'limited' | 'reasonable';
+  /**
+   * Completed checkpoints for the selected assurance pathway
+   */
+  pathwayCheckpoints?:
+    | {
+        /**
+         * Stable id from the pathway template
+         */
+        checkpointId: string;
+        /**
+         * When the checkpoint was marked complete
+         */
+        completedAt?: string | null;
+        /**
+         * Optional notes for this checkpoint
+         */
+        notes?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   status: 'draft' | 'submitted' | 'reviewing' | 'findings_submitted' | 'approved' | 'signed_off';
   /**
    * When engagement was requested
@@ -1766,17 +1921,41 @@ export interface InternalDataRequest {
   period: string | ReportingPeriod;
   title: string;
   assignee: string | User;
+  /**
+   * Multi-metric pack — one or more metric keys to collect.
+   */
   metricKeys: {
     key: string;
     id?: string | null;
   }[];
   requestStatus?: ('not_sent' | 'sent' | 'opened' | 'submitted') | null;
+  /**
+   * Approve-after-submit workflow. Independent of datapoint approvalState (F13).
+   */
+  reviewStatus?: ('pending' | 'submitted' | 'approved' | 'rejected') | null;
+  /**
+   * Notes from the reviewer on approve/reject.
+   */
+  reviewerNotes?: string | null;
+  reviewedBy?: (string | null) | User;
+  reviewedAt?: string | null;
+  /**
+   * SLA due date (API also exposes as dueAt).
+   */
   dueDate?: string | null;
   sentAt?: string | null;
   openedAt?: string | null;
   submittedAt?: string | null;
+  /**
+   * Set when overdue escalation fires.
+   */
+  escalatedAt?: string | null;
   lastReminderAt?: string | null;
   reminderCount?: number | null;
+  /**
+   * Evidence attachments linked on submit.
+   */
+  evidence?: (string | Evidence)[] | null;
   createdBy?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -1835,9 +2014,32 @@ export interface Report {
   framework: 'CSRD_SET1' | 'CSRD_SIMPLIFIED' | 'BRSR' | 'VSME' | 'GRI' | 'CUSTOM';
   version: number;
   /**
-   * Draft is regenerable. Published is final and immutable.
+   * Draft is regenerable. Published is final and immutable (chain lock).
    */
   status: 'draft' | 'published';
+  /**
+   * Publish path: prepare → review → approve → lock (published).
+   */
+  approvalStep?: ('prepare' | 'review' | 'approve' | 'lock') | null;
+  approvalChainStatus?: ('in_progress' | 'rejected' | 'locked') | null;
+  approvalAssigneeRole?: ('contributor' | 'admin' | 'owner') | null;
+  approvalAssigneeUser?: (string | null) | User;
+  /**
+   * Append-only trail of report approval-chain transitions.
+   */
+  approvalHistory?:
+    | {
+        fromStep: 'prepare' | 'review' | 'approve' | 'lock';
+        toStep: 'prepare' | 'review' | 'approve' | 'lock';
+        action: 'advance' | 'reject' | 'return';
+        at: string;
+        actor?: (string | null) | User;
+        note?: string | null;
+        assigneeRole?: ('contributor' | 'admin' | 'owner') | null;
+        assigneeUser?: (string | null) | User;
+        id?: string | null;
+      }[]
+    | null;
   scores?: {
     overall?: number | null;
     e?: number | null;
@@ -3680,7 +3882,7 @@ export interface IntegrationSyncLog {
    * Foreign key to connection (accounting-connections, etc.)
    */
   integrationId: string;
-  provider: 'xero' | 'quickbooks' | 'wave' | 'csv' | 'webhook';
+  provider: 'xero' | 'quickbooks' | 'wave' | 'csv' | 'webhook' | 'jira' | 'linear';
   status?: ('success' | 'partial' | 'failed') | null;
   recordsProcessed?: number | null;
   recordsFailed?: number | null;
@@ -4006,7 +4208,11 @@ export interface IotDevice {
    */
   anomalyThreshold?: number | null;
   /**
-   * Physical location of meter
+   * Optional link to an operational facility. Prefer this over free-text location when a facility exists.
+   */
+  facility?: (string | null) | Facility;
+  /**
+   * Free-text physical location fallback when no facility is linked.
    */
   location?: string | null;
   /**
@@ -4380,9 +4586,10 @@ export interface ReportTemplate {
    */
   purpose: 'report' | 'compliance';
   /**
-   * Industry starter tag for compliance templates
+   * Industry starter tag for compliance templates and marketplace packs (F33)
    */
-  industry?: ('general' | 'oil_gas' | 'manufacturing' | 'finance' | 'retail') | null;
+  industry?:
+    ('general' | 'oil_gas' | 'manufacturing' | 'finance' | 'retail' | 'services' | 'logistics' | 'energy') | null;
   framework: 'csrd' | 'brsr' | 'gri' | 'sasb' | 'custom';
   type: 'html' | 'pdf' | 'excel' | 'pptx' | 'json';
   sections?:
@@ -4974,6 +5181,10 @@ export interface ProductLevelFootprinting {
   id: string;
   organisation: string | Organisation;
   /**
+   * Reporting period this product footprint covers
+   */
+  period?: (string | null) | ReportingPeriod;
+  /**
    * Product name
    */
   productName: string;
@@ -5074,6 +5285,10 @@ export interface ProductLevelFootprinting {
   transportDistance?: number | null;
   transportMode?: ('ocean' | 'air' | 'truck' | 'rail') | null;
   /**
+   * User-entered transport factor (kg CO2e per km per unit). Required when distance > 0 — no hardcoded defaults.
+   */
+  transportEmissionsFactor?: number | null;
+  /**
    * Product weight shipped (kg)
    */
   transportWeightShipped?: number | null;
@@ -5103,11 +5318,11 @@ export interface ProductLevelFootprinting {
    */
   totalEndOfLifeEmissions?: number | null;
   /**
-   * Cradle-to-grave total emissions (kg CO2e per unit)
+   * Cradle-to-grave total emissions (kg CO2e per unit). Null until calculated — never invent zero.
    */
-  totalCarbonFootprint: number;
+  totalCarbonFootprint?: number | null;
   /**
-   * Percentage contribution by lifecycle stage
+   * kg CO2e contribution by lifecycle stage
    */
   breakdownByStage?:
     | {
@@ -5118,6 +5333,10 @@ export interface ProductLevelFootprinting {
     | number
     | boolean
     | null;
+  /**
+   * Result quality. Missing when no activity lines or calculation has not run.
+   */
+  quality?: ('measured' | 'calculated' | 'estimated' | 'missing') | null;
   status?: ('draft' | 'published' | 'verified' | 'superseded') | null;
   /**
    * When footprint was last calculated
@@ -6207,6 +6426,115 @@ export interface GreenTaxonomyAssessment {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cbam-goods".
+ */
+export interface CbamGood {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Combined Nomenclature (CN) code for the imported good.
+   */
+  cnCode: string;
+  /**
+   * Optional goods description / commercial name.
+   */
+  description?: string | null;
+  /**
+   * Net mass / quantity of the consignment.
+   */
+  quantity: number;
+  quantityUnit: 't' | 'kg' | 'mwh';
+  /**
+   * Specific direct embedded emissions (tCO₂e per quantity unit). Leave empty when unknown — never coerce to zero.
+   */
+  directEmissions?: number | null;
+  /**
+   * Specific indirect embedded emissions (tCO₂e per quantity unit). Leave empty when unknown.
+   */
+  indirectEmissions?: number | null;
+  /**
+   * True when Commission default values were used instead of actual installation data.
+   */
+  usesDefaultValues?: boolean | null;
+  /**
+   * ISO 3166-1 alpha-2 country of the producing installation.
+   */
+  installationCountry: string;
+  reportingYear: number;
+  reportingQuarter: '1' | '2' | '3' | '4';
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cbam-declarations".
+ */
+export interface CbamDeclaration {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Denormalised label (e.g. 2026 Q1) for admin lists.
+   */
+  label?: string | null;
+  reportingYear: number;
+  reportingQuarter: '1' | '2' | '3' | '4';
+  status: 'draft' | 'submitted';
+  /**
+   * Operator-entered CBAM certificate price estimate (€ / tCO₂e). Required for liability estimates; never silently defaulted.
+   */
+  certificatePriceEur?: number | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "energy-certificates".
+ */
+export interface EnergyCertificate {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Optional display label (serial / contract id). Falls back to type + vintage in UI.
+   */
+  label?: string | null;
+  certificateType: 'REC' | 'GO' | 'EAC' | 'PPA' | 'green_tariff';
+  /**
+   * Certificate or contract volume in kilowatt-hours.
+   */
+  volumeKwh: number;
+  /**
+   * Optional instrument emission factor (kgCO2e/kWh). When omitted, market-based Scope 2 uses 0 kgCO2e/kWh (estimated zero-emission renewable claim).
+   */
+  factorKgPerKwh?: number | null;
+  /**
+   * Generation / vintage year of the instrument.
+   */
+  vintageYear: number;
+  /**
+   * Geography of generation or delivery (ISO country, grid region, or free text).
+   */
+  region: string;
+  /**
+   * Optional ISO 3166-1 alpha-2 country code when region is a sub-national label.
+   */
+  country?: string | null;
+  status: 'active' | 'retired' | 'expired';
+  /**
+   * Reporting period this volume applies to for Scope 2 matching.
+   */
+  period: string | ReportingPeriod;
+  /**
+   * Optional supplier, issuer, or counterparty name.
+   */
+  supplier?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "report-embed-tokens".
  */
 export interface ReportEmbedToken {
@@ -6236,7 +6564,13 @@ export interface Notification {
   id: string;
   userId: string | User;
   organisationId: string | Organisation;
-  type: 'datapoint_approved' | 'report_ready' | 'audit_complete' | 'alert_triggered' | 'supplier_response';
+  type:
+    | 'datapoint_approved'
+    | 'report_ready'
+    | 'audit_complete'
+    | 'alert_triggered'
+    | 'supplier_response'
+    | 'request_escalated';
   title: string;
   message: string;
   /**
@@ -6295,7 +6629,7 @@ export interface AlertRule {
     | number
     | boolean
     | null;
-  actions: ('notify_user' | 'send_email' | 'post_slack')[];
+  actions: ('notify_user' | 'send_email' | 'post_slack' | 'post_teams')[];
   muted: boolean;
   /**
    * When set, mute expires at this time. Null = indefinite while muted.
@@ -6450,6 +6784,648 @@ export interface AutomationRun {
     | number
     | boolean
     | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "meters".
+ */
+export interface Meter {
+  id: string;
+  organisation: string | Organisation;
+  facility: string | Facility;
+  name: string;
+  utility: 'electricity' | 'gas' | 'water' | 'heat';
+  /**
+   * e.g. kWh, m³, therm, GJ.
+   */
+  unit: string;
+  /**
+   * Optional external / IoT / utility account identifier.
+   */
+  externalId?: string | null;
+  active?: boolean | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Structural-change restatements of the organisational base-year inventory (acquisition, boundary, methodology).
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "base-year-restatements".
+ */
+export interface BaseYearRestatement {
+  id: string;
+  organisation: string | Organisation;
+  title: string;
+  reason:
+    | 'acquisition'
+    | 'divestiture'
+    | 'merger'
+    | 'methodology_change'
+    | 'boundary_change'
+    | 'outsourcing_insourcing'
+    | 'other';
+  /**
+   * Narrative describing the structural change and why restatement is required.
+   */
+  reasonDetail: string;
+  /**
+   * How the base year was recalculated (scopes, factors, consolidation approach).
+   */
+  methodologyNote: string;
+  /**
+   * Reporting period in which the structural change took effect.
+   */
+  effectivePeriod: string | ReportingPeriod;
+  /**
+   * Base-year reporting period being restated.
+   */
+  baseYearPeriod: string | ReportingPeriod;
+  status: 'draft' | 'final';
+  /**
+   * Prior (published) base-year inventory snapshot before restatement.
+   */
+  priorInventory: {
+    /**
+     * Scope 1 total (tCO₂e). Leave empty when unknown — never coerce to zero.
+     */
+    scope1?: number | null;
+    /**
+     * Scope 2 total (tCO₂e). Leave empty when unknown.
+     */
+    scope2?: number | null;
+    /**
+     * Scope 3 total (tCO₂e). Leave empty when unknown.
+     */
+    scope3?: number | null;
+    quality: 'measured' | 'missing';
+    /**
+     * Provenance label (e.g. report:id or manual).
+     */
+    source?: string | null;
+    capturedAt?: string | null;
+  };
+  /**
+   * Restated base-year inventory after applying the structural change.
+   */
+  restatedInventory: {
+    /**
+     * Scope 1 total (tCO₂e). Leave empty when unknown — never coerce to zero.
+     */
+    scope1?: number | null;
+    /**
+     * Scope 2 total (tCO₂e). Leave empty when unknown.
+     */
+    scope2?: number | null;
+    /**
+     * Scope 3 total (tCO₂e). Leave empty when unknown.
+     */
+    scope3?: number | null;
+    quality: 'measured' | 'missing';
+    /**
+     * Provenance label (e.g. report:id or manual).
+     */
+    source?: string | null;
+    capturedAt?: string | null;
+  };
+  /**
+   * Cached prior→restated scope deltas from compareBaseYearInventories.
+   */
+  comparisonJson?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Disclosure-package note generated on finalise.
+   */
+  disclosureNote?: string | null;
+  /**
+   * Datapoint version-history narrative for the base-year period.
+   */
+  auditNarrative?: string | null;
+  finalizedAt?: string | null;
+  finalizedBy?: (string | null) | User;
+  createdBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "abatement-levers".
+ */
+export interface AbatementLever {
+  id: string;
+  organisation: string | Organisation;
+  name: string;
+  /**
+   * Optional grouping for the MACC table. Does not affect cost/tCO₂e.
+   */
+  category?:
+    | ('energy_efficiency' | 'renewable_electricity' | 'process_fuel' | 'fleet_transport' | 'nature_offsets' | 'other')
+    | null;
+  /**
+   * Expected annual abatement in tCO₂e. Missing or zero blocks cost/tCO₂e on the curve.
+   */
+  annualAbatementTco2e: number;
+  /**
+   * Upfront capital cost in org currency units (not converted).
+   */
+  capex: number;
+  /**
+   * Net incremental operating cost per year (same currency as CAPEX).
+   */
+  opexPerYear: number;
+  /**
+   * Economic lifetime in whole years for straight-line CAPEX amortisation.
+   */
+  lifetimeYears: number;
+  notes?: string | null;
+  /**
+   * Inactive levers are hidden from the default MACC compute.
+   */
+  active?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "carbon-credits".
+ */
+export interface CarbonCredit {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Optional display label. Falls back to type + vintage + registry in UI.
+   */
+  label?: string | null;
+  /**
+   * Offset lot category. Not an energy certificate (REC / GO / EAC) — those live under Energy certificates.
+   */
+  creditType: 'avoidance' | 'removal' | 'mixed' | 'other';
+  /**
+   * Credit volume in tonnes CO₂e.
+   */
+  volumeTco2e: number;
+  /**
+   * Vintage year of the credit lot.
+   */
+  vintageYear: number;
+  /**
+   * Only retired volume reduces residual emissions. Held volume stays in inventory.
+   */
+  status: 'held' | 'retired';
+  /**
+   * Free-text registry or programme name (e.g. Verra VCS, Gold Standard). No paid registry sync.
+   */
+  registryName: string;
+  /**
+   * Optional serial / batch identifier from the registry.
+   */
+  serial?: string | null;
+  /**
+   * Optional reporting period this retirement or holding applies to.
+   */
+  period?: (string | null) | ReportingPeriod;
+  /**
+   * Optional retirement date when status is retired.
+   */
+  retiredAt?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reduction-projects".
+ */
+export interface ReductionProject {
+  id: string;
+  organisation: string | Organisation;
+  title: string;
+  status: 'planned' | 'in_progress' | 'completed' | 'cancelled';
+  /**
+   * Planned emissions reduction in tCO₂e.
+   */
+  plannedReductionTco2e: number;
+  /**
+   * Measured / realised reduction in tCO₂e. Leave empty until known — never treat as zero in summaries.
+   */
+  actualReductionTco2e?: number | null;
+  /**
+   * Project owner name or email (free text).
+   */
+  owner: string;
+  /**
+   * Optional project start date.
+   */
+  startDate?: string | null;
+  /**
+   * Optional target or actual end date.
+   */
+  endDate?: string | null;
+  /**
+   * Optional facility / site this project applies to.
+   */
+  facility?: (string | null) | Facility;
+  /**
+   * Optional metric definition key this project targets (e.g. electricity_kwh).
+   */
+  metricKey?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cascaded-targets".
+ */
+export interface CascadedTarget {
+  id: string;
+  organisation: string | Organisation;
+  name: string;
+  /**
+   * Optional link to an org SBTi target (read-only reference).
+   */
+  sbtiTarget?: (string | null) | SbtiTarget;
+  baselineYear: number;
+  targetYear: number;
+  orgBaselineTco2e: number;
+  orgTargetTco2e: number;
+  /**
+   * When on, share-% rows must sum to exactly 100%. When off, sum must be ≤ 100%.
+   */
+  requireExactShares?: boolean | null;
+  status: 'draft' | 'active' | 'archived';
+  notes?: string | null;
+  /**
+   * Facility (optional owner) child targets as share % of org target or absolute tCO₂e.
+   */
+  allocations?:
+    | {
+        facility: string | Facility;
+        /**
+         * Optional accountable owner for this facility slice.
+         */
+        owner?: (string | null) | User;
+        mode: 'sharePct' | 'absolute';
+        /**
+         * Percent of org target allocated to this child.
+         */
+        sharePct?: number | null;
+        /**
+         * Absolute child target emissions (tCO₂e).
+         */
+        absoluteTco2e?: number | null;
+        /**
+         * Optional reported current emissions for progress. Leave empty when unknown — never treated as zero.
+         */
+        reportedCurrentTco2e?: number | null;
+        notes?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "procurement-tradeoffs".
+ */
+export interface ProcurementTradeoff {
+  id: string;
+  organisation: string | Organisation;
+  name: string;
+  notes?: string | null;
+  /**
+   * Relative weight for purchase cost (lower cost is better).
+   */
+  weightCost: number;
+  /**
+   * Relative weight for estimated tCO₂e (lower is better).
+   */
+  weightCarbon: number;
+  /**
+   * Relative weight for lead time in days. Set 0 to ignore lead time.
+   */
+  weightLead: number;
+  /**
+   * Purchase alternatives. Carbon may be direct tCO₂e or factor × quantity.
+   */
+  options?:
+    | {
+        /**
+         * Stable client id for the option row.
+         */
+        optionId: string;
+        name: string;
+        /**
+         * Total purchase cost. Leave blank if unknown — never treated as zero.
+         */
+        cost?: number | null;
+        /**
+         * Direct estimated emissions in tCO₂e, if known.
+         */
+        tco2e?: number | null;
+        /**
+         * tCO₂e per unit — used with quantity when tCO₂e is blank.
+         */
+        factorTco2ePerUnit?: number | null;
+        /**
+         * Units purchased — paired with factor when tCO₂e is blank.
+         */
+        quantity?: number | null;
+        /**
+         * Optional lead time in calendar days.
+         */
+        leadDays?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "teams-integrations".
+ */
+export interface TeamsIntegration {
+  id: string;
+  organisationId: string | Organisation;
+  status: 'connected' | 'disconnected' | 'failed';
+  /**
+   * When off, alert posts are skipped without clearing the webhook.
+   */
+  enabled: boolean;
+  /**
+   * Incoming Webhook URL (AES-256-GCM encrypted at rest)
+   */
+  webhookUrl?: string | null;
+  /**
+   * Optional display label for the Teams channel
+   */
+  channelLabel?: string | null;
+  connectedAt?: string | null;
+  connectedBy?: (string | null) | User;
+  lastTestedAt?: string | null;
+  lastError?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-network-invites".
+ */
+export interface SupplierNetworkInvite {
+  id: string;
+  /**
+   * Buyer organisation that sent the invite
+   */
+  organisation: string | Organisation;
+  /**
+   * Supplier contact email. Accept requires Membership with this email.
+   */
+  inviteEmail: string;
+  /**
+   * Opaque invite token — never embeds organisation id
+   */
+  token: string;
+  status: 'pending' | 'accepted' | 'declined' | 'revoked';
+  /**
+   * Bound when the invite is accepted by a supplier org
+   */
+  supplierOrganisation?: (string | null) | Organisation;
+  /**
+   * Optional label the buyer uses for this supplier
+   */
+  supplierDisplayName?: string | null;
+  /**
+   * Optional note shown to the supplier with the invite
+   */
+  message?: string | null;
+  invitedBy?: (string | null) | User;
+  expiresAt: string;
+  acceptedAt?: string | null;
+  declinedAt?: string | null;
+  revokedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shared-emission-snapshots".
+ */
+export interface SharedEmissionSnapshot {
+  id: string;
+  /**
+   * Buyer organisation receiving the consented share
+   */
+  organisation: string | Organisation;
+  /**
+   * Supplier organisation that consented to share
+   */
+  supplierOrganisation: string | Organisation;
+  invite: string | SupplierNetworkInvite;
+  /**
+   * Reporting period label, e.g. "FY2024" or "2024"
+   */
+  periodLabel: string;
+  /**
+   * Optional period start (ISO date)
+   */
+  periodStart?: string | null;
+  /**
+   * Optional period end (ISO date)
+   */
+  periodEnd?: string | null;
+  /**
+   * Scope 1 total tCO₂e. Null = not shared (never treated as zero).
+   */
+  scope1Tco2e?: number | null;
+  /**
+   * Scope 2 total tCO₂e. Null = not shared (never treated as zero).
+   */
+  scope2Tco2e?: number | null;
+  /**
+   * Optional Scope 3 total tCO₂e. Null = not shared (never treated as zero).
+   */
+  scope3Tco2e?: number | null;
+  /**
+   * measured = Scope 1+2 present; partial = one of 1/2; missing = neither
+   */
+  quality: 'measured' | 'partial' | 'missing';
+  consentedAt: string;
+  consentedBy: string | User;
+  /**
+   * Optional supplier note with the share
+   */
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "work-tracker-connections".
+ */
+export interface WorkTrackerConnection {
+  id: string;
+  organisationId: string | Organisation;
+  provider: 'jira' | 'linear';
+  /**
+   * Human-readable connection name
+   */
+  label: string;
+  /**
+   * Jira: https://{site}.atlassian.net or https://api.atlassian.com/ex/jira/{cloudId}. Linear: https://api.linear.app
+   */
+  baseUrl: string;
+  /**
+   * Optional workspace / cloud id / site key for display
+   */
+  workspaceKey?: string | null;
+  /**
+   * Atlassian account email (required for Jira API token auth)
+   */
+  accountEmail?: string | null;
+  /**
+   * AES-256-GCM ciphertext. Never log or return to clients.
+   */
+  encryptedToken: string;
+  /**
+   * Jira project key/id or Linear team id
+   */
+  projectOrTeamId: string;
+  /**
+   * Display name for the mapped project / team
+   */
+  projectOrTeamName?: string | null;
+  /**
+   * Jira issue type name (ignored for Linear)
+   */
+  issueTypeName?: string | null;
+  enabled?: boolean | null;
+  status: 'pending' | 'connected' | 'failed' | 'disconnected';
+  lastSyncAt?: string | null;
+  lastError?: string | null;
+  /**
+   * Last created issue id
+   */
+  lastExternalId?: string | null;
+  /**
+   * Last created issue key / identifier
+   */
+  lastExternalKey?: string | null;
+  lastExternalUrl?: string | null;
+  lastEntityType?: ('internal_request' | 'compliance_obligation') | null;
+  lastEntityId?: string | null;
+  createdBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policies".
+ */
+export interface Policy {
+  id: string;
+  organisation: string | Organisation;
+  title: string;
+  category: 'climate' | 'travel' | 'supplier_code' | 'environment' | 'health_safety' | 'ethics' | 'other';
+  status: 'draft' | 'active' | 'retired';
+  /**
+   * Document version label (e.g. 1.0, 2024-Q1).
+   */
+  version: string;
+  /**
+   * Policy owner name or email (free text).
+   */
+  owner: string;
+  /**
+   * Date the policy version takes effect.
+   */
+  effectiveDate: string;
+  /**
+   * Optional uploaded file via Media. Prefer URL when no upload.
+   */
+  document?: (string | null) | Media;
+  /**
+   * Link to the policy document when not stored in Media.
+   */
+  documentUrl?: string | null;
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Append-only Trust Center checklist events. Do not edit or delete rows.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "trust-control-events".
+ */
+export interface TrustControlEvent {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Stable id from lib/trust checklist catalog
+   */
+  controlId: string;
+  status: 'not_started' | 'in_progress' | 'implemented' | 'not_applicable';
+  /**
+   * Optional evidence note for this status change
+   */
+  note?: string | null;
+  actor?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "engagement-campaigns".
+ */
+export interface EngagementCampaign {
+  id: string;
+  organisation: string | Organisation;
+  title: string;
+  status: 'draft' | 'active' | 'completed' | 'cancelled';
+  /**
+   * Campaign start date.
+   */
+  startDate?: string | null;
+  /**
+   * Campaign end date.
+   */
+  endDate?: string | null;
+  /**
+   * Goal is a participant count or an emissions avoidance target.
+   */
+  goalType: 'participants' | 'tco2e';
+  /**
+   * Target participants or tCO₂e. Leave empty until set — progress quality is missing without a goal.
+   */
+  goalValue?: number | null;
+  /**
+   * Recorded participation count. Increment via the participate action.
+   */
+  participantCount: number;
+  /**
+   * Measured / claimed tCO₂e avoided toward a tCO₂e goal. Leave empty until known.
+   */
+  achievedTco2e?: number | null;
+  /**
+   * When enabled, UI links to Scope 3 travel & commute metrics for commute challenges.
+   */
+  linkCommuteChallenge?: boolean | null;
+  /**
+   * Optional campaign brief shown to organisers.
+   */
+  description?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -6802,6 +7778,18 @@ export interface PayloadLockedDocument {
         value: string | GreenTaxonomyAssessment;
       } | null)
     | ({
+        relationTo: 'cbam-goods';
+        value: string | CbamGood;
+      } | null)
+    | ({
+        relationTo: 'cbam-declarations';
+        value: string | CbamDeclaration;
+      } | null)
+    | ({
+        relationTo: 'energy-certificates';
+        value: string | EnergyCertificate;
+      } | null)
+    | ({
         relationTo: 'report-embed-tokens';
         value: string | ReportEmbedToken;
       } | null)
@@ -6832,6 +7820,66 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'automation-runs';
         value: string | AutomationRun;
+      } | null)
+    | ({
+        relationTo: 'facilities';
+        value: string | Facility;
+      } | null)
+    | ({
+        relationTo: 'meters';
+        value: string | Meter;
+      } | null)
+    | ({
+        relationTo: 'base-year-restatements';
+        value: string | BaseYearRestatement;
+      } | null)
+    | ({
+        relationTo: 'abatement-levers';
+        value: string | AbatementLever;
+      } | null)
+    | ({
+        relationTo: 'carbon-credits';
+        value: string | CarbonCredit;
+      } | null)
+    | ({
+        relationTo: 'reduction-projects';
+        value: string | ReductionProject;
+      } | null)
+    | ({
+        relationTo: 'cascaded-targets';
+        value: string | CascadedTarget;
+      } | null)
+    | ({
+        relationTo: 'procurement-tradeoffs';
+        value: string | ProcurementTradeoff;
+      } | null)
+    | ({
+        relationTo: 'teams-integrations';
+        value: string | TeamsIntegration;
+      } | null)
+    | ({
+        relationTo: 'supplier-network-invites';
+        value: string | SupplierNetworkInvite;
+      } | null)
+    | ({
+        relationTo: 'shared-emission-snapshots';
+        value: string | SharedEmissionSnapshot;
+      } | null)
+    | ({
+        relationTo: 'work-tracker-connections';
+        value: string | WorkTrackerConnection;
+      } | null)
+    | ({
+        relationTo: 'policies';
+        value: string | Policy;
+      } | null)
+    | ({
+        relationTo: 'trust-control-events';
+        value: string | TrustControlEvent;
+      } | null)
+    | ({
+        relationTo: 'engagement-campaigns';
+        value: string | EngagementCampaign;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -6972,6 +8020,18 @@ export interface OrganisationsSelect<T extends boolean = true> {
   onboardedAt?: T;
   guideProgress?: T;
   benchmarkOptOut?: T;
+  appliedMarketplaceTemplates?:
+    | T
+    | {
+        templateKey?: T;
+        templateName?: T;
+        kind?: T;
+        industry?: T;
+        reportTemplateId?: T;
+        appliedAt?: T;
+        appliedBy?: T;
+        id?: T;
+      };
   sbti?:
     | T
     | {
@@ -7127,6 +8187,7 @@ export interface DerivedMetricDefinitionsSelect<T extends boolean = true> {
  * via the `definition` "emission-factors_select".
  */
 export interface EmissionFactorsSelect<T extends boolean = true> {
+  organisation?: T;
   key?: T;
   label?: T;
   value?: T;
@@ -7140,6 +8201,7 @@ export interface EmissionFactorsSelect<T extends boolean = true> {
   uncertaintyPct?: T;
   validFrom?: T;
   validUntil?: T;
+  status?: T;
   supersededBy?: T;
   licence?: T;
   attributionText?: T;
@@ -7165,12 +8227,30 @@ export interface DatapointsSelect<T extends boolean = true> {
   source?: T;
   approvalState?: T;
   approvalReason?: T;
+  approvalStep?: T;
+  approvalChainStatus?: T;
+  approvalAssigneeRole?: T;
+  approvalAssigneeUser?: T;
+  approvalHistory?:
+    | T
+    | {
+        fromStep?: T;
+        toStep?: T;
+        action?: T;
+        at?: T;
+        actor?: T;
+        note?: T;
+        assigneeRole?: T;
+        assigneeUser?: T;
+        id?: T;
+      };
   assignedTo?: T;
   dueDate?: T;
   taskStatus?: T;
   enteredBy?: T;
   enteredAt?: T;
   note?: T;
+  facility?: T;
   lineageSnapshot?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -7399,12 +8479,18 @@ export interface InternalDataRequestsSelect<T extends boolean = true> {
         id?: T;
       };
   requestStatus?: T;
+  reviewStatus?: T;
+  reviewerNotes?: T;
+  reviewedBy?: T;
+  reviewedAt?: T;
   dueDate?: T;
   sentAt?: T;
   openedAt?: T;
   submittedAt?: T;
+  escalatedAt?: T;
   lastReminderAt?: T;
   reminderCount?: T;
+  evidence?: T;
   createdBy?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -7450,6 +8536,23 @@ export interface ReportsSelect<T extends boolean = true> {
   framework?: T;
   version?: T;
   status?: T;
+  approvalStep?: T;
+  approvalChainStatus?: T;
+  approvalAssigneeRole?: T;
+  approvalAssigneeUser?: T;
+  approvalHistory?:
+    | T
+    | {
+        fromStep?: T;
+        toStep?: T;
+        action?: T;
+        at?: T;
+        actor?: T;
+        note?: T;
+        assigneeRole?: T;
+        assigneeUser?: T;
+        id?: T;
+      };
   scores?:
     | T
     | {
@@ -7727,6 +8830,15 @@ export interface AssuranceEngagementsSelect<T extends boolean = true> {
       };
   scope?: T;
   framework?: T;
+  assuranceLevel?: T;
+  pathwayCheckpoints?:
+    | T
+    | {
+        checkpointId?: T;
+        completedAt?: T;
+        notes?: T;
+        id?: T;
+      };
   status?: T;
   requestedAt?: T;
   submittedAt?: T;
@@ -8504,6 +9616,7 @@ export interface IotDevicesSelect<T extends boolean = true> {
       };
   anomalyDetectionEnabled?: T;
   anomalyThreshold?: T;
+  facility?: T;
   location?: T;
   installationDate?: T;
   credentials?: T;
@@ -8899,6 +10012,7 @@ export interface EmailDataCollectionFormsSelect<T extends boolean = true> {
  */
 export interface ProductLevelFootprintingSelect<T extends boolean = true> {
   organisation?: T;
+  period?: T;
   productName?: T;
   sku?: T;
   category?: T;
@@ -8936,6 +10050,7 @@ export interface ProductLevelFootprintingSelect<T extends boolean = true> {
   transportDestination?: T;
   transportDistance?: T;
   transportMode?: T;
+  transportEmissionsFactor?: T;
   transportWeightShipped?: T;
   transportUnitsShipped?: T;
   transportationEmissionsPerUnit?: T;
@@ -8946,6 +10061,7 @@ export interface ProductLevelFootprintingSelect<T extends boolean = true> {
   totalEndOfLifeEmissions?: T;
   totalCarbonFootprint?: T;
   breakdownByStage?: T;
+  quality?: T;
   status?: T;
   lastCalculatedAt?: T;
   certifications?:
@@ -9446,6 +10562,61 @@ export interface GreenTaxonomyAssessmentsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cbam-goods_select".
+ */
+export interface CbamGoodsSelect<T extends boolean = true> {
+  organisation?: T;
+  cnCode?: T;
+  description?: T;
+  quantity?: T;
+  quantityUnit?: T;
+  directEmissions?: T;
+  indirectEmissions?: T;
+  usesDefaultValues?: T;
+  installationCountry?: T;
+  reportingYear?: T;
+  reportingQuarter?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cbam-declarations_select".
+ */
+export interface CbamDeclarationsSelect<T extends boolean = true> {
+  organisation?: T;
+  label?: T;
+  reportingYear?: T;
+  reportingQuarter?: T;
+  status?: T;
+  certificatePriceEur?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "energy-certificates_select".
+ */
+export interface EnergyCertificatesSelect<T extends boolean = true> {
+  organisation?: T;
+  label?: T;
+  certificateType?: T;
+  volumeKwh?: T;
+  factorKgPerKwh?: T;
+  vintageYear?: T;
+  region?: T;
+  country?: T;
+  status?: T;
+  period?: T;
+  supplier?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "report-embed-tokens_select".
  */
 export interface ReportEmbedTokensSelect<T extends boolean = true> {
@@ -9593,6 +10764,329 @@ export interface AutomationRunsSelect<T extends boolean = true> {
   actionsSkipped?: T;
   error?: T;
   context?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "facilities_select".
+ */
+export interface FacilitiesSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  code?: T;
+  facilityType?: T;
+  country?: T;
+  region?: T;
+  address?: T;
+  active?: T;
+  parentFacility?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "meters_select".
+ */
+export interface MetersSelect<T extends boolean = true> {
+  organisation?: T;
+  facility?: T;
+  name?: T;
+  utility?: T;
+  unit?: T;
+  externalId?: T;
+  active?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "base-year-restatements_select".
+ */
+export interface BaseYearRestatementsSelect<T extends boolean = true> {
+  organisation?: T;
+  title?: T;
+  reason?: T;
+  reasonDetail?: T;
+  methodologyNote?: T;
+  effectivePeriod?: T;
+  baseYearPeriod?: T;
+  status?: T;
+  priorInventory?:
+    | T
+    | {
+        scope1?: T;
+        scope2?: T;
+        scope3?: T;
+        quality?: T;
+        source?: T;
+        capturedAt?: T;
+      };
+  restatedInventory?:
+    | T
+    | {
+        scope1?: T;
+        scope2?: T;
+        scope3?: T;
+        quality?: T;
+        source?: T;
+        capturedAt?: T;
+      };
+  comparisonJson?: T;
+  disclosureNote?: T;
+  auditNarrative?: T;
+  finalizedAt?: T;
+  finalizedBy?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "abatement-levers_select".
+ */
+export interface AbatementLeversSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  category?: T;
+  annualAbatementTco2e?: T;
+  capex?: T;
+  opexPerYear?: T;
+  lifetimeYears?: T;
+  notes?: T;
+  active?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "carbon-credits_select".
+ */
+export interface CarbonCreditsSelect<T extends boolean = true> {
+  organisation?: T;
+  label?: T;
+  creditType?: T;
+  volumeTco2e?: T;
+  vintageYear?: T;
+  status?: T;
+  registryName?: T;
+  serial?: T;
+  period?: T;
+  retiredAt?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reduction-projects_select".
+ */
+export interface ReductionProjectsSelect<T extends boolean = true> {
+  organisation?: T;
+  title?: T;
+  status?: T;
+  plannedReductionTco2e?: T;
+  actualReductionTco2e?: T;
+  owner?: T;
+  startDate?: T;
+  endDate?: T;
+  facility?: T;
+  metricKey?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "cascaded-targets_select".
+ */
+export interface CascadedTargetsSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  sbtiTarget?: T;
+  baselineYear?: T;
+  targetYear?: T;
+  orgBaselineTco2e?: T;
+  orgTargetTco2e?: T;
+  requireExactShares?: T;
+  status?: T;
+  notes?: T;
+  allocations?:
+    | T
+    | {
+        facility?: T;
+        owner?: T;
+        mode?: T;
+        sharePct?: T;
+        absoluteTco2e?: T;
+        reportedCurrentTco2e?: T;
+        notes?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "procurement-tradeoffs_select".
+ */
+export interface ProcurementTradeoffsSelect<T extends boolean = true> {
+  organisation?: T;
+  name?: T;
+  notes?: T;
+  weightCost?: T;
+  weightCarbon?: T;
+  weightLead?: T;
+  options?:
+    | T
+    | {
+        optionId?: T;
+        name?: T;
+        cost?: T;
+        tco2e?: T;
+        factorTco2ePerUnit?: T;
+        quantity?: T;
+        leadDays?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "teams-integrations_select".
+ */
+export interface TeamsIntegrationsSelect<T extends boolean = true> {
+  organisationId?: T;
+  status?: T;
+  enabled?: T;
+  webhookUrl?: T;
+  channelLabel?: T;
+  connectedAt?: T;
+  connectedBy?: T;
+  lastTestedAt?: T;
+  lastError?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "supplier-network-invites_select".
+ */
+export interface SupplierNetworkInvitesSelect<T extends boolean = true> {
+  organisation?: T;
+  inviteEmail?: T;
+  token?: T;
+  status?: T;
+  supplierOrganisation?: T;
+  supplierDisplayName?: T;
+  message?: T;
+  invitedBy?: T;
+  expiresAt?: T;
+  acceptedAt?: T;
+  declinedAt?: T;
+  revokedAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "shared-emission-snapshots_select".
+ */
+export interface SharedEmissionSnapshotsSelect<T extends boolean = true> {
+  organisation?: T;
+  supplierOrganisation?: T;
+  invite?: T;
+  periodLabel?: T;
+  periodStart?: T;
+  periodEnd?: T;
+  scope1Tco2e?: T;
+  scope2Tco2e?: T;
+  scope3Tco2e?: T;
+  quality?: T;
+  consentedAt?: T;
+  consentedBy?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "work-tracker-connections_select".
+ */
+export interface WorkTrackerConnectionsSelect<T extends boolean = true> {
+  organisationId?: T;
+  provider?: T;
+  label?: T;
+  baseUrl?: T;
+  workspaceKey?: T;
+  accountEmail?: T;
+  encryptedToken?: T;
+  projectOrTeamId?: T;
+  projectOrTeamName?: T;
+  issueTypeName?: T;
+  enabled?: T;
+  status?: T;
+  lastSyncAt?: T;
+  lastError?: T;
+  lastExternalId?: T;
+  lastExternalKey?: T;
+  lastExternalUrl?: T;
+  lastEntityType?: T;
+  lastEntityId?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "policies_select".
+ */
+export interface PoliciesSelect<T extends boolean = true> {
+  organisation?: T;
+  title?: T;
+  category?: T;
+  status?: T;
+  version?: T;
+  owner?: T;
+  effectiveDate?: T;
+  document?: T;
+  documentUrl?: T;
+  notes?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "trust-control-events_select".
+ */
+export interface TrustControlEventsSelect<T extends boolean = true> {
+  organisation?: T;
+  controlId?: T;
+  status?: T;
+  note?: T;
+  actor?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "engagement-campaigns_select".
+ */
+export interface EngagementCampaignsSelect<T extends boolean = true> {
+  organisation?: T;
+  title?: T;
+  status?: T;
+  startDate?: T;
+  endDate?: T;
+  goalType?: T;
+  goalValue?: T;
+  participantCount?: T;
+  achievedTco2e?: T;
+  linkCommuteChallenge?: T;
+  description?: T;
   updatedAt?: T;
   createdAt?: T;
 }

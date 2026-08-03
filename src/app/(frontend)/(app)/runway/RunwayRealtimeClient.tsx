@@ -171,6 +171,8 @@ export function RunwayRealtimeClient(props: RunwayViewProps) {
             totalEmissions={totalEmissions}
             scope1={scope1}
             scope2={scope2}
+            scope2MarketBased={props.scope2MarketBased}
+            scope2MarketQuality={props.scope2MarketQuality}
             scope3={scope3}
             s1Pct={s1Pct}
             s2Pct={s2Pct}

@@ -6,6 +6,7 @@
 import type { Payload } from "payload";
 
 import { calculate } from "@/lib/calc";
+import { loadActiveScope2Instruments } from "@/lib/certificates";
 import { loadOrgEmissionFactors } from "@/lib/factors";
 import { rankGaps } from "@/lib/governance/gaps";
 import { metricsAndCompositionFromDatapoints } from "@/lib/suppliers";
@@ -19,6 +20,9 @@ export type OrgKpiSnapshot = {
     total: number;
     scope1: number;
     scope2: number;
+    scope2LocationBased: number;
+    scope2MarketBased: number | null;
+    scope2MarketQuality: "measured" | "calculated" | "estimated" | "missing" | null;
     scope3: number;
     calcOk: boolean;
   };
@@ -87,6 +91,9 @@ export async function computeOrgKpiSnapshotForPeriod(
 
   let scope1 = 0;
   let scope2 = 0;
+  let scope2MarketBased: number | null = null;
+  let scope2MarketQuality: "measured" | "calculated" | "estimated" | "missing" | null =
+    null;
   let scope3 = 0;
   let calcOk = false;
 
@@ -121,9 +128,19 @@ export async function computeOrgKpiSnapshotForPeriod(
       const { factors } = await loadOrgEmissionFactors(payload, org);
       const year = new Date(String(period.endDate)).getFullYear();
       const region = org.country || "GB";
-      const calc = calculate({ metrics, context: { region, year } }, factors);
+      const scope2Instruments = await loadActiveScope2Instruments(
+        payload,
+        organisationId,
+        String(period.id),
+      );
+      const calc = calculate(
+        { metrics, context: { region, year, scope2Instruments } },
+        factors,
+      );
       scope1 = calc.emissions.scope1.value;
       scope2 = calc.emissions.scope2.value;
+      scope2MarketBased = calc.emissions.scope2Methods.marketBased.value;
+      scope2MarketQuality = calc.emissions.scope2Methods.marketBased.quality;
       scope3 = calc.emissions.scope3.value;
       calcOk = true;
     } catch {
@@ -138,6 +155,9 @@ export async function computeOrgKpiSnapshotForPeriod(
       total: scope1 + scope2 + scope3,
       scope1,
       scope2,
+      scope2LocationBased: scope2,
+      scope2MarketBased,
+      scope2MarketQuality,
       scope3,
       calcOk,
     },
@@ -193,6 +213,7 @@ export function snapshotToUpdates(
       scopes: {
         scope1: snapshot.emissions.scope1,
         scope2: snapshot.emissions.scope2,
+        scope2MarketBased: snapshot.emissions.scope2MarketBased,
         scope3: snapshot.emissions.scope3,
       },
       activity,

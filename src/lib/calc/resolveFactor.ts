@@ -37,13 +37,13 @@ function latestOf(candidates: FactorRecord[]): FactorRecord {
   );
 }
 
-export function resolveFactor(
+function matchFactor(
   factors: FactorRecord[],
   key: string,
   region: string,
   year: number,
   standard?: string,
-): FactorRecord {
+): FactorRecord | null {
   let byKey = factors.filter((f) => f.key === key);
   if (standard !== undefined) {
     byKey = byKey.filter((f) => f.standard === standard);
@@ -60,9 +60,36 @@ export function resolveFactor(
   );
   if (globalYear.length > 0) return latestOf(globalYear);
 
+  return null;
+}
+
+export function resolveFactor(
+  factors: FactorRecord[],
+  key: string,
+  region: string,
+  year: number,
+  standard?: string,
+): FactorRecord {
+  const found = matchFactor(factors, key, region, year, standard);
+  if (found) return found;
+
   const standardClause = standard !== undefined ? ` standard="${standard}"` : "";
   throw new Error(
     `resolveFactor: no factor for key="${key}" region="${region}" year=${year}${standardClause}. ` +
       `Checked exact region+year, region+latest, and GLOBAL+year — refusing to silently default.`,
   );
+}
+
+/**
+ * Soft resolve for optional factors (e.g. residual_mix). Returns null when
+ * absent — callers must treat absence as quality "missing", never invent a value.
+ */
+export function tryResolveFactor(
+  factors: FactorRecord[],
+  key: string,
+  region: string,
+  year: number,
+  standard?: string,
+): FactorRecord | null {
+  return matchFactor(factors, key, region, year, standard);
 }

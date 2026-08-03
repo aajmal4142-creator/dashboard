@@ -150,7 +150,7 @@ export default function Scope3Dashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Link
           href="/scope3/sources"
           className="bg-blue-50 border border-blue-200 rounded-lg p-6 hover:bg-blue-100 transition"
@@ -159,11 +159,31 @@ export default function Scope3Dashboard() {
           <p className="text-sm text-gray-600">Create and configure Scope 3 sources</p>
         </Link>
         <Link
+          href="/scope3/travel"
+          className="bg-blue-50 border border-blue-200 rounded-lg p-6 hover:bg-blue-100 transition"
+        >
+          <h3 className="font-bold mb-2">Travel & commuting</h3>
+          <p className="text-sm text-gray-600">
+            Cat 6 mode-split travel and Cat 7 commute datapoints
+          </p>
+        </Link>
+        <Link
+          href="/scope3/freight"
+          className="bg-blue-50 border border-blue-200 rounded-lg p-6 hover:bg-blue-100 transition"
+        >
+          <h3 className="font-bold mb-2">Freight & logistics</h3>
+          <p className="text-sm text-gray-600">
+            Cat 4 upstream and Cat 9 downstream tonne-km by mode
+          </p>
+        </Link>
+        <Link
           href="/scope3/data"
           className="bg-blue-50 border border-blue-200 rounded-lg p-6 hover:bg-blue-100 transition"
         >
-          <h3 className="font-bold mb-2">Activity Data</h3>
-          <p className="text-sm text-gray-600">View and manage activity records</p>
+          <h3 className="font-bold mb-2">Activity records</h3>
+          <p className="text-sm text-gray-600">
+            List, filter, edit, and delete CSV-imported Scope 3 activities
+          </p>
         </Link>
       </div>
     </div>

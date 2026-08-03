@@ -8,6 +8,7 @@ const NOTIFICATION_TYPES = [
   { label: "Audit complete", value: "audit_complete" },
   { label: "Alert triggered", value: "alert_triggered" },
   { label: "Supplier response", value: "supplier_response" },
+  { label: "Request escalated", value: "request_escalated" },
 ] as const;
 
 /** Own notifications only — never cross-user via Payload access. */

@@ -20,7 +20,7 @@ export default async function OrgHierarchySettingsPage() {
     <PageFrame
       eyebrow="Settings"
       title="Org hierarchy"
-      help="Link subsidiaries for consolidated emissions reporting. Parent must be set explicitly. Circular hierarchies are rejected. Only organisations you have Membership on appear here."
+      help="Link subsidiaries for consolidated emissions reporting. Parent must be set explicitly. Missing subsidiary data stays quality missing — never a silent zero roll-up. Circular hierarchies are rejected. Only organisations you have Membership on appear here."
     >
       <OrgHierarchyClient
         activeOrgId={ctx.activeOrg.id}

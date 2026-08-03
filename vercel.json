@@ -25,6 +25,10 @@
       "schedule": "0 10 * * *"
     },
     {
+      "path": "/api/cron/internal-requests/escalate",
+      "schedule": "30 10 * * *"
+    },
+    {
       "path": "/api/cron/alerts/evaluate",
       "schedule": "0 * * * *"
     },

@@ -381,6 +381,33 @@ export const REGULATORY_DEADLINE_SEEDS: DeadlineSeed[] = [
     ],
   },
   {
+    catalogKey: "uk-secr-directors-report-2026",
+    name: "UK SECR — directors' report energy and carbon disclosure",
+    type: "Other",
+    framework: "OTHER",
+    jurisdiction: "GB",
+    country: "GB",
+    dueDate: "2026-09-30",
+    scope: "country",
+    severity: "high",
+    description:
+      "Streamlined Energy and Carbon Reporting (SECR): disclose UK energy use (kWh), Scope 1/2 GHG, intensity ratio, methodology, and energy efficiency actions in the annual directors' report for large UK companies and LLPs (quoted companies also report global energy). Calendar placeholder — align to financial year end and filing date.",
+    documentationUrl:
+      "https://www.gov.uk/government/publications/environmental-reporting-guidelines-including-mandatory-greenhouse-gas-emissions-reporting-guidance",
+    organisationApplicability: {
+      appliesTo: "country",
+      countries: [{ code: "GB" }],
+      requireLargeUndertaking: true,
+    },
+    prerequisiteTasks: [
+      { task: "Compile UK energy use (kWh)", done: false },
+      { task: "Calculate Scope 1 and Scope 2 GHG", done: false },
+      { task: "Select and disclose intensity ratio", done: false },
+      { task: "Draft methodology and efficiency narrative", done: false },
+      { task: "Include SECR section in directors' report", done: false },
+    ],
+  },
+  {
     catalogKey: "sec-climate-us-2026",
     name: "US climate disclosure (SEC calendar placeholder)",
     type: "Other",
@@ -414,7 +441,7 @@ export const REGULATORY_DEADLINE_SEEDS: DeadlineSeed[] = [
     scope: "country",
     severity: "critical",
     description:
-      "California Climate Corporate Data Accountability Act (SB 253) — Scope 1 and 2 reporting for large companies doing business in California (placeholder timing).",
+      "California Climate Corporate Data Accountability Act (SB 253) — Scope 1 and 2 reporting for large companies doing business in California (placeholder timing). Track checklist coverage at /compliance/california.",
     documentationUrl: "https://www.carb.ca.gov/",
     organisationApplicability: {
       appliesTo: "country",
@@ -423,7 +450,9 @@ export const REGULATORY_DEADLINE_SEEDS: DeadlineSeed[] = [
     },
     prerequisiteTasks: [
       { task: "Confirm California nexus", done: false },
+      { task: "Close Scope 1–2 activity metrics in ClearESG", done: false },
       { task: "Scope 1–2 assurance readiness", done: false },
+      { task: "Review SB 253 pack gaps at /compliance/california", done: false },
     ],
   },
   {
@@ -437,14 +466,18 @@ export const REGULATORY_DEADLINE_SEEDS: DeadlineSeed[] = [
     scope: "country",
     severity: "high",
     description:
-      "California Climate-Related Financial Risk Act (SB 261) — biennial climate risk report (placeholder).",
+      "California Climate-Related Financial Risk Act (SB 261) — biennial climate risk report mapped to TCFD pillars in ClearESG (placeholder). Track checklist at /compliance/california.",
     documentationUrl: "https://www.carb.ca.gov/",
     organisationApplicability: {
       appliesTo: "country",
       countries: [{ code: "US" }],
       revenueBands: ["50_250m", "gt_250m"],
     },
-    prerequisiteTasks: [{ task: "Draft climate risk narrative", done: false }],
+    prerequisiteTasks: [
+      { task: "Complete TCFD governance / strategy / risk answers", done: false },
+      { task: "Draft climate risk narrative", done: false },
+      { task: "Review SB 261 pack gaps at /compliance/california", done: false },
+    ],
   },
   {
     catalogKey: "gri-universal-update",
@@ -568,7 +601,15 @@ export const REGULATORY_DEADLINE_SEEDS: DeadlineSeed[] = [
       industries: [{ nacePrefix: "K" }],
       euOperatingOnly: true,
     },
-    prerequisiteTasks: [{ task: "Compile PAI indicators", done: false }],
+    prerequisiteTasks: [
+      { task: "Open SFDR PAI coverage pack (/compliance/sfdr)", done: false },
+      { task: "Fill mapped GHG and energy metrics for PAI 1, 5, 6", done: false },
+      {
+        task: "Document unmapped PAI gaps (biodiversity, water, waste, pay gap, weapons)",
+        done: false,
+      },
+      { task: "Compile PAI indicators into entity-level statement draft", done: false },
+    ],
   },
   {
     catalogKey: "nl-csrd-transposition",

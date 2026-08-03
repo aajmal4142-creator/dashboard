@@ -1,0 +1,87 @@
+import { getPayload } from "payload";
+import { NextResponse } from "next/server";
+
+import { getCurrentContext } from "@/lib/auth";
+import {
+  assembleEvidencePack,
+  type EvidencePackFormat,
+} from "@/lib/assurance/assembleEvidencePack";
+import type { AssuranceLevel } from "@/lib/assurance/types";
+import { requirePermission } from "@/lib/policy/protect";
+import config from "@/payload.config";
+
+function parseFormat(value: unknown): EvidencePackFormat {
+  if (value === "pdf" || value === "csv" || value === "zip") return value;
+  return "zip";
+}
+
+function parseLevel(value: unknown): AssuranceLevel | null {
+  if (value === "limited" || value === "reasonable") return value;
+  return null;
+}
+
+/**
+ * POST /api/app/assurance/evidence-pack
+ * Body: { periodId?, reportId?, format?: "zip"|"pdf"|"csv", assuranceLevel?: "limited"|"reasonable" }
+ * Assembles an assurance-ready evidence pack (not an audience report pack).
+ */
+export async function POST(req: Request) {
+  const auth = await getCurrentContext();
+  if (!auth.activeOrg) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const allowed = await requirePermission(
+    auth.user.id,
+    auth.activeOrg.id,
+    "view",
+    "report",
+    auth.activeOrg.id,
+    "organisation",
+  );
+  if (!allowed) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  let body: Record<string, unknown> = {};
+  try {
+    body = (await req.json()) as Record<string, unknown>;
+  } catch {
+    body = {};
+  }
+
+  const format = parseFormat(body.format);
+  const periodId =
+    typeof body.periodId === "string" && body.periodId.trim()
+      ? body.periodId.trim()
+      : null;
+  const reportId =
+    typeof body.reportId === "string" && body.reportId.trim()
+      ? body.reportId.trim()
+      : null;
+  const assuranceLevel = parseLevel(body.assuranceLevel);
+
+  const payload = await getPayload({ config });
+  const assembled = await assembleEvidencePack({
+    payload,
+    organisationId: auth.activeOrg.id,
+    periodId,
+    reportId,
+    format,
+    assuranceLevel,
+  });
+
+  if (!assembled.ok) {
+    return NextResponse.json({ error: assembled.error }, { status: assembled.status });
+  }
+
+  const { result } = assembled;
+  return new NextResponse(Buffer.from(result.buffer), {
+    status: 200,
+    headers: {
+      "Content-Type": result.contentType,
+      "Content-Disposition": `attachment; filename="${result.filename}"`,
+      "Cache-Control": "no-store",
+    },
+  });
+}

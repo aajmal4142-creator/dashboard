@@ -1,6 +1,7 @@
 import type { Payload } from "payload";
 
 import { calculate } from "@/lib/calc";
+import { loadActiveScope2Instruments } from "@/lib/certificates";
 import { loadOrgEmissionFactors, resolveOrgEmissionsStandard } from "@/lib/factors";
 import { metricsAndCompositionFromDatapoints } from "@/lib/suppliers";
 
@@ -89,6 +90,7 @@ export async function resolveOrgBaselineByScope(
   const region = org.country || "GB";
   const emissionsStandard = resolveOrgEmissionsStandard(org);
   const { factors } = await loadOrgEmissionFactors(payload, {
+    id: organisationId,
     settings: { emissionsStandard },
   });
 
@@ -103,7 +105,15 @@ export async function resolveOrgBaselineByScope(
   }
 
   try {
-    const calc = calculate({ metrics, context: { region, year } }, factors);
+    const scope2Instruments = await loadActiveScope2Instruments(
+      payload,
+      organisationId,
+      String(baselinePeriod.id),
+    );
+    const calc = calculate(
+      { metrics, context: { region, year, scope2Instruments } },
+      factors,
+    );
     return {
       baseline: {
         scope1: calc.emissions.scope1.value,

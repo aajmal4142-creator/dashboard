@@ -5,12 +5,23 @@ import { authenticated, denyAll } from "@/lib/access";
 /**
  * Versioned factor registry. NEVER hardcode factors in calc code.
  * licence + attributionText required — OGL and similar demand visible attribution.
+ *
+ * Global seed rows have organisation unset. Org-scoped custom rows are created via
+ * app factor-admin APIs (overrideAccess) — Payload admin create/update stays denied.
  */
 export const EmissionFactors: CollectionConfig = {
   slug: "emission-factors",
   admin: {
     useAsTitle: "label",
-    defaultColumns: ["key", "region", "publicationYear", "standard", "source", "licence"],
+    defaultColumns: [
+      "key",
+      "region",
+      "publicationYear",
+      "standard",
+      "source",
+      "status",
+      "licence",
+    ],
   },
   access: {
     read: authenticated,
@@ -19,6 +30,16 @@ export const EmissionFactors: CollectionConfig = {
     delete: denyAll,
   },
   fields: [
+    {
+      name: "organisation",
+      type: "relationship",
+      relationTo: "organisations",
+      index: true,
+      admin: {
+        description:
+          "Unset for global seed factors. Set for organisation-owned custom registry rows.",
+      },
+    },
     { name: "key", type: "text", required: true, index: true },
     { name: "label", type: "text", required: true },
     { name: "value", type: "number", required: true },
@@ -52,6 +73,7 @@ export const EmissionFactors: CollectionConfig = {
         { label: "IPCC", value: "IPCC" },
         { label: "EEA", value: "EEA" },
         { label: "National inventory", value: "NationalInventory" },
+        { label: "Organisation custom", value: "Custom" },
       ],
       admin: {
         description:
@@ -94,6 +116,21 @@ export const EmissionFactors: CollectionConfig = {
     },
     { name: "validFrom", type: "date", required: true },
     { name: "validUntil", type: "date" },
+    {
+      name: "status",
+      type: "select",
+      required: true,
+      defaultValue: "active",
+      index: true,
+      options: [
+        { label: "Active", value: "active" },
+        { label: "Deactivated", value: "deactivated" },
+      ],
+      admin: {
+        description:
+          "Deactivated custom rows stay in the registry for audit but are not injected into calc.",
+      },
+    },
     {
       name: "supersededBy",
       type: "relationship",

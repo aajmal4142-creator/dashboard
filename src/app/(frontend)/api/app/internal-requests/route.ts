@@ -6,11 +6,19 @@ import { getCurrentContext } from "@/lib/auth";
 import { writeAuditLog } from "@/lib/audit/write";
 import { writeDatapoint } from "@/lib/data";
 import { sendTransactionalEmail } from "@/lib/email/send";
+import { serializeInternalRequest, slaTone } from "@/lib/internal-requests";
+import { createNotification } from "@/lib/notifications/createNotification";
 import { ensureOpenPeriod } from "@/lib/org/period";
 import config from "@/payload.config";
 
-/** List internal data requests for the active org. */
-export async function GET() {
+function relId(value: string | { id?: string } | null | undefined): string | null {
+  if (value == null) return null;
+  if (typeof value === "string") return value;
+  return value.id ? String(value.id) : null;
+}
+
+/** List internal data requests for the active org (filters via query). */
+export async function GET(req: Request) {
   const ctx = await getCurrentContext();
   if (!ctx.activeOrg) {
     return NextResponse.json(
@@ -20,42 +28,70 @@ export async function GET() {
       { status: 403 },
     );
   }
+
+  const url = new URL(req.url);
+  const requestStatus = url.searchParams.get("requestStatus");
+  const reviewStatus = url.searchParams.get("reviewStatus");
+  const sla = url.searchParams.get("sla"); // overdue | escalated | due_soon | open
+  const assigneeId = url.searchParams.get("assigneeId");
+  const q = url.searchParams.get("q")?.trim();
+
   const payload = await getPayload({ config });
-  const where: Where =
+  const clauses: Where[] =
     ctx.role === "owner" || ctx.role === "admin"
-      ? { organisation: { equals: ctx.activeOrg.id } }
-      : {
-          and: [
-            { organisation: { equals: ctx.activeOrg.id } },
-            { assignee: { equals: ctx.user.id } },
-          ],
-        };
+      ? [{ organisation: { equals: ctx.activeOrg.id } }]
+      : [
+          { organisation: { equals: ctx.activeOrg.id } },
+          { assignee: { equals: ctx.user.id } },
+        ];
+
+  if (requestStatus) {
+    clauses.push({ requestStatus: { equals: requestStatus } });
+  }
+  if (reviewStatus) {
+    clauses.push({ reviewStatus: { equals: reviewStatus } });
+  }
+  if (assigneeId && (ctx.role === "owner" || ctx.role === "admin")) {
+    clauses.push({ assignee: { equals: assigneeId } });
+  }
+  if (q) {
+    clauses.push({ title: { contains: q } });
+  }
+  if (sla === "escalated") {
+    clauses.push({ escalatedAt: { exists: true } });
+  } else if (sla === "overdue") {
+    clauses.push({
+      and: [
+        { dueDate: { less_than: new Date().toISOString() } },
+        { requestStatus: { not_equals: "submitted" } },
+      ],
+    });
+  } else if (sla === "open") {
+    clauses.push({ requestStatus: { not_equals: "submitted" } });
+  }
+
+  const where: Where = clauses.length === 1 ? clauses[0]! : { and: clauses };
 
   const rows = await payload.find({
     collection: "internal-data-requests",
     where,
     sort: "-updatedAt",
-    limit: 50,
+    limit: 100,
     depth: 1,
     overrideAccess: true,
   });
 
-  return NextResponse.json({
-    requests: rows.docs.map((r) => ({
-      id: r.id,
-      title: r.title,
-      requestStatus: r.requestStatus,
-      dueDate: r.dueDate,
-      metricKeys: (r.metricKeys ?? []).map((m) => m.key),
-      assignee:
-        typeof r.assignee === "object" && r.assignee && "email" in r.assignee
-          ? { id: r.assignee.id, email: r.assignee.email }
-          : null,
-    })),
-  });
+  const nowMs = Date.now();
+  let requests = rows.docs.map((r) => serializeInternalRequest(r, nowMs));
+
+  if (sla === "due_soon") {
+    requests = requests.filter((r) => r.sla === "due_soon");
+  }
+
+  return NextResponse.json({ requests });
 }
 
-/** Create + send an internal data request. §18.1.1 */
+/** Create + send a multi-metric pack request. §18.1.1 / F14 */
 export async function POST(req: Request) {
   const ctx = await getCurrentContext();
   if (!ctx.activeOrg || !ctx.role) {
@@ -75,8 +111,12 @@ export async function POST(req: Request) {
     assigneeId?: string;
     metricKeys?: string[];
     dueDate?: string;
+    dueAt?: string;
   };
-  if (!body.title?.trim() || !body.assigneeId || !body.metricKeys?.length) {
+  const dueAt = body.dueAt ?? body.dueDate;
+  const keys = (body.metricKeys ?? []).map((k) => k.trim()).filter(Boolean);
+
+  if (!body.title?.trim() || !body.assigneeId || keys.length === 0) {
     return NextResponse.json(
       { error: "title, assigneeId, and metricKeys required" },
       { status: 400 },
@@ -97,9 +137,10 @@ export async function POST(req: Request) {
       period: periodId,
       title: body.title.trim(),
       assignee: body.assigneeId,
-      metricKeys: body.metricKeys.map((key) => ({ key })),
-      dueDate: body.dueDate,
+      metricKeys: keys.map((key) => ({ key })),
+      dueDate: dueAt || undefined,
       requestStatus: "sent",
+      reviewStatus: "pending",
       sentAt: new Date().toISOString(),
       createdBy: ctx.user.id,
     },
@@ -116,7 +157,7 @@ export async function POST(req: Request) {
   await sendTransactionalEmail({
     to: assignee.email,
     subject: `Data request: ${body.title.trim()}`,
-    html: `<p>You have been asked to complete a data request for <strong>${ctx.activeOrg.name}</strong>.</p><p><a href="${origin}/requests">Open requests</a></p>`,
+    html: `<p>You have been asked to complete a data request for <strong>${ctx.activeOrg.name}</strong>.</p><p>Metrics: ${keys.join(", ")}</p><p><a href="${origin}/requests">Open requests</a></p>`,
   });
 
   await writeAuditLog(payload, {
@@ -125,13 +166,17 @@ export async function POST(req: Request) {
     action: "internal_request.create",
     entityType: "internal-data-requests",
     entityId: created.id,
-    after: { title: created.title, assigneeId: body.assigneeId },
+    after: { title: created.title, assigneeId: body.assigneeId, metricKeys: keys },
   });
 
-  return NextResponse.json({ ok: true, id: created.id });
+  return NextResponse.json({
+    ok: true,
+    id: created.id,
+    request: serializeInternalRequest(created),
+  });
 }
 
-/** Update request status (admin) or submit values (assignee). */
+/** Update status (admin), submit values + evidence (assignee), or open mark. */
 export async function PATCH(req: Request) {
   const ctx = await getCurrentContext();
   if (!ctx.activeOrg) {
@@ -147,6 +192,8 @@ export async function PATCH(req: Request) {
     id?: string;
     requestId?: string;
     requestStatus?: string;
+    markOpened?: boolean;
+    evidenceIds?: string[];
     values?: Array<{
       metricKey: string;
       value: number;
@@ -167,10 +214,30 @@ export async function PATCH(req: Request) {
     depth: 0,
     overrideAccess: true,
   });
-  const orgId =
-    typeof row.organisation === "string" ? row.organisation : row.organisation.id;
+  const orgId = relId(row.organisation);
   if (orgId !== ctx.activeOrg.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const assigneeId = relId(row.assignee);
+
+  // Assignee marks opened
+  if (body.markOpened === true) {
+    if (assigneeId !== ctx.user.id) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    if (row.requestStatus === "sent") {
+      await payload.update({
+        collection: "internal-data-requests",
+        id: row.id,
+        data: {
+          requestStatus: "opened",
+          openedAt: new Date().toISOString(),
+        },
+        overrideAccess: true,
+      });
+    }
+    return NextResponse.json({ ok: true });
   }
 
   // Admin/owner status-only update
@@ -193,16 +260,28 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "requestId and values required" }, { status: 400 });
   }
 
-  const assigneeId = typeof row.assignee === "string" ? row.assignee : row.assignee.id;
   if (assigneeId !== ctx.user.id) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const periodId = typeof row.period === "string" ? row.period : String(row.period.id);
+  const periodId = relId(row.period);
+  if (!periodId) {
+    return NextResponse.json({ error: "Period missing on request" }, { status: 400 });
+  }
+
+  const allowedKeys = new Set((row.metricKeys ?? []).map((m) => m.key).filter(Boolean));
+  for (const v of body.values) {
+    if (!allowedKeys.has(v.metricKey)) {
+      return NextResponse.json(
+        { error: `metricKey ${v.metricKey} is not part of this pack` },
+        { status: 400 },
+      );
+    }
+  }
 
   for (const v of body.values) {
     await writeDatapoint(payload, {
-      organisationId: orgId,
+      organisationId: orgId!,
       periodId,
       metricKey: v.metricKey,
       value: v.value,
@@ -214,15 +293,56 @@ export async function PATCH(req: Request) {
     });
   }
 
-  await payload.update({
+  const existingEvidence = (row.evidence ?? []).map((e) =>
+    typeof e === "string" ? e : e.id,
+  );
+  const mergedEvidence = [...new Set([...(body.evidenceIds ?? []), ...existingEvidence])];
+
+  const updated = await payload.update({
     collection: "internal-data-requests",
     id: row.id,
     data: {
       requestStatus: "submitted",
+      reviewStatus: "submitted",
       submittedAt: new Date().toISOString(),
+      evidence: mergedEvidence,
     },
     overrideAccess: true,
   });
 
-  return NextResponse.json({ ok: true });
+  await writeAuditLog(payload, {
+    organisationId: orgId!,
+    actorId: ctx.user.id,
+    action: "internal_request.submit",
+    entityType: "internal-data-requests",
+    entityId: row.id,
+    after: {
+      metricKeys: body.values.map((v) => v.metricKey),
+      evidenceCount: mergedEvidence.length,
+    },
+  });
+
+  const createdBy = relId(row.createdBy);
+  if (createdBy) {
+    await createNotification(payload, {
+      organisationId: orgId!,
+      userId: createdBy,
+      type: "supplier_response",
+      title: "Data request submitted",
+      message: `"${row.title}" was submitted and awaits approval.`,
+      resourceType: "internal-data-request",
+      resourceId: String(row.id),
+    });
+  }
+
+  return NextResponse.json({
+    ok: true,
+    request: serializeInternalRequest(updated),
+    sla: slaTone({
+      dueAt: updated.dueDate,
+      requestStatus: updated.requestStatus,
+      reviewStatus: updated.reviewStatus,
+      escalatedAt: updated.escalatedAt,
+    }),
+  });
 }

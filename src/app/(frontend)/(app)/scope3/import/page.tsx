@@ -304,12 +304,20 @@ export default function Scope3ImportPage() {
               </>
             )}
 
-            <Link
-              href="/scope3"
-              className="inline-block bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-700"
-            >
-              Back to Dashboard
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/scope3/data"
+                className="inline-block bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-700"
+              >
+                View activity records
+              </Link>
+              <Link
+                href="/scope3"
+                className="inline-block border border-gray-300 text-gray-700 px-6 py-2 rounded hover:bg-gray-50"
+              >
+                Back to dashboard
+              </Link>
+            </div>
           </div>
         );
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 
+import { useI18n } from "@/components/i18n/I18nProvider";
 import { EmptyState, PageCard, StatusLine } from "@/components/shell/PageFrame";
 import { Button } from "@/components/ui/button";
 import { AppField, AppSelectNative } from "@/components/ui/AppField";
@@ -33,11 +34,21 @@ type PreviewOrg = {
 };
 
 type Preview = {
-  total: number;
+  total: number | null;
   by_org: PreviewOrg[];
   warnings: string[];
   footer: string;
   period: string;
+  quality: "measured" | "partial" | "missing";
+  measured_org_count: number;
+  missing_org_count: number;
+  quality_message: string | null;
+  has_subsidiaries: boolean;
+  unconsolidated_child_list: Array<{
+    organisationId: string;
+    organisationName: string;
+    reason: string;
+  }>;
 };
 
 function TreeBranch({ nodes }: { nodes: HierarchyTreeNode[] }) {
@@ -69,6 +80,11 @@ function TreeBranch({ nodes }: { nodes: HierarchyTreeNode[] }) {
   );
 }
 
+function fmt(n: number | null | undefined) {
+  if (n === null || n === undefined || !Number.isFinite(n)) return "—";
+  return n.toFixed(2);
+}
+
 export function OrgHierarchyClient({
   activeOrgId,
   activeOrgName,
@@ -82,6 +98,7 @@ export function OrgHierarchyClient({
   initialForest: HierarchyTreeNode[];
   initialOrgs: OrgOption[];
 }) {
+  const { t } = useI18n();
   const self = initialOrgs.find((o) => o.id === activeOrgId);
   const [parentId, setParentId] = useState(self?.parentId ?? "");
   const [method, setMethod] = useState<ConsolidationMethod>(
@@ -111,7 +128,7 @@ export function OrgHierarchyClient({
 
   function save() {
     if (!canEdit) {
-      setStatus("Only owners and admins can edit organisation hierarchy.");
+      setStatus(t("orgHierarchy.viewOnlyEdit"));
       setStatusTone("error");
       return;
     }
@@ -121,12 +138,12 @@ export function OrgHierarchyClient({
       ownershipPercent < 0 ||
       ownershipPercent > 100
     ) {
-      setStatus("Ownership % must be between 0 and 100.");
+      setStatus(t("orgHierarchy.ownershipRange"));
       setStatusTone("error");
       return;
     }
 
-    setStatus("Saving hierarchy…");
+    setStatus(t("orgHierarchy.saving"));
     setStatusTone("neutral");
     startTransition(async () => {
       try {
@@ -141,15 +158,15 @@ export function OrgHierarchyClient({
         });
         const data = (await res.json()) as { error?: string; note?: string };
         if (!res.ok) {
-          setStatus(data.error ?? "Could not save hierarchy.");
+          setStatus(data.error ?? t("orgHierarchy.errorSave"));
           setStatusTone("error");
           return;
         }
-        setStatus(data.note ?? "Hierarchy saved.");
+        setStatus(data.note ?? t("orgHierarchy.saved"));
         setStatusTone("ok");
         await refreshTree();
       } catch {
-        setStatus("Network error while saving hierarchy.");
+        setStatus(t("orgHierarchy.errorNetworkSave"));
         setStatusTone("error");
       }
     });
@@ -162,13 +179,13 @@ export function OrgHierarchyClient({
         const res = await fetch(`/api/app/reports/consolidated?period=${year}`);
         const data = (await res.json()) as Preview & { error?: string };
         if (!res.ok) {
-          setStatus(data.error ?? "Preview failed.");
+          setStatus(data.error ?? t("orgHierarchy.errorPreview"));
           setStatusTone("error");
           return;
         }
         setPreview(data);
       } catch {
-        setStatus("Network error while loading consolidation preview.");
+        setStatus(t("orgHierarchy.errorNetworkPreview"));
         setStatusTone("error");
       }
     });
@@ -176,28 +193,26 @@ export function OrgHierarchyClient({
 
   useEffect(() => {
     loadPreview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
   }, []);
 
   return (
     <div className="space-y-8">
       {status ? <StatusLine tone={statusTone}>{status}</StatusLine> : null}
 
-      <PageCard title="This organisation">
+      <PageCard title={t("orgHierarchy.thisOrgTitle")}>
         <p className="text-[13px] text-ink-muted">
-          Set an explicit consolidation parent for{" "}
-          <span className="text-ink">{activeOrgName}</span>. Subsidiaries are never
-          included unless a parent is set. Consultancy{" "}
-          <span className="font-data text-[12px]">parentOrg</span> is separate.
+          {t("orgHierarchy.thisOrgHelp", { name: activeOrgName })}
         </p>
 
         <div className="mt-5 grid max-w-xl gap-4">
           <AppSelectNative
-            label="Consolidation parent"
+            label={t("orgHierarchy.parentLabel")}
             value={parentId}
             onChange={(e) => setParentId(e.target.value)}
             disabled={!canEdit || pending}
           >
-            <option value="">None (root)</option>
+            <option value="">{t("orgHierarchy.parentNone")}</option>
             {parentOptions.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.name}
@@ -206,7 +221,7 @@ export function OrgHierarchyClient({
           </AppSelectNative>
 
           <AppSelectNative
-            label="Consolidation method"
+            label={t("orgHierarchy.methodLabel")}
             value={method}
             onChange={(e) => setMethod(e.target.value as ConsolidationMethod)}
             disabled={!canEdit || pending}
@@ -219,7 +234,7 @@ export function OrgHierarchyClient({
           </AppSelectNative>
 
           <AppField
-            label="Ownership % (parent owns this org)"
+            label={t("orgHierarchy.ownershipLabel")}
             type="number"
             min={0}
             max={100}
@@ -230,38 +245,36 @@ export function OrgHierarchyClient({
             className="font-data"
           />
           {method === "full" ? (
-            <p className="text-[12px] text-ink-muted">
-              Full method includes 100% of emissions regardless of ownership %.
-            </p>
+            <p className="text-[12px] text-ink-muted">{t("orgHierarchy.fullHelp")}</p>
           ) : (
             <p className="text-[12px] text-ink-muted">
-              Example: we own {ownership || "70"}% of this branch — emissions are scaled
-              by that share along the hierarchy path.
+              {t("orgHierarchy.proportionalHelp", { pct: ownership || "70" })}
             </p>
           )}
 
           {canEdit ? (
             <Button type="button" size="sm" disabled={pending} onClick={save}>
-              Save hierarchy
+              {t("orgHierarchy.save")}
             </Button>
           ) : (
-            <p className="text-sm text-ink-muted">View only</p>
+            <p className="text-sm text-ink-muted">{t("orgHierarchy.viewOnly")}</p>
           )}
         </div>
       </PageCard>
 
-      <PageCard title="Hierarchy tree">
+      <PageCard title={t("orgHierarchy.treeTitle")}>
         {forest.length === 0 ? (
           <EmptyState
-            title="No organisations"
-            body="Membership-accessible organisations will appear here once loaded."
+            title={t("orgHierarchy.treeEmptyTitle")}
+            body={t("orgHierarchy.treeEmptyBody")}
           />
         ) : (
           <TreeBranch nodes={forest} />
         )}
       </PageCard>
 
-      <PageCard title="Consolidation preview">
+      <PageCard title={t("orgHierarchy.previewTitle")}>
+        <p className="mb-4 text-[12px] text-ink-muted">{t("orgHierarchy.previewHelp")}</p>
         <div className="mb-4">
           <Button
             type="button"
@@ -270,21 +283,49 @@ export function OrgHierarchyClient({
             disabled={previewPending}
             onClick={loadPreview}
           >
-            Refresh preview
+            {t("orgHierarchy.refreshPreview")}
           </Button>
         </div>
         {!preview ? (
           <p className="text-[13px] text-ink-muted">
-            {previewPending ? "Loading preview…" : "No preview yet."}
+            {previewPending
+              ? t("orgHierarchy.previewLoading")
+              : t("orgHierarchy.previewNone")}
           </p>
         ) : (
           <div className="space-y-4">
             <p className="text-[13px] text-ink-muted">
-              Period <span className="font-data text-ink">{preview.period}</span>
+              {t("orgHierarchy.previewPeriod")}{" "}
+              <span className="font-data text-ink">{preview.period}</span>
               {" · "}
-              Consolidated total{" "}
-              <span className="font-data text-ink">{preview.total.toFixed(2)}</span> tCO2e
+              {t("orgHierarchy.previewTotal")}{" "}
+              <span
+                className={cn(
+                  "font-data",
+                  preview.total === null ? "text-amber" : "text-ink",
+                )}
+              >
+                {fmt(preview.total)}
+              </span>{" "}
+              tCO2e
+              {" · "}
+              <span
+                className={cn(
+                  "font-data text-[12px]",
+                  preview.quality === "measured"
+                    ? "text-ink"
+                    : preview.quality === "partial"
+                      ? "text-amber"
+                      : "text-rust",
+                )}
+              >
+                {preview.quality}
+              </span>
             </p>
+
+            {preview.quality_message ? (
+              <p className="text-[12px] text-ink-muted">{preview.quality_message}</p>
+            ) : null}
 
             {preview.warnings.length > 0 ? (
               <ul className="space-y-1 border border-amber/40 bg-amber/10 px-3 py-2 text-[12px] text-ink">
@@ -294,14 +335,38 @@ export function OrgHierarchyClient({
               </ul>
             ) : null}
 
+            {preview.unconsolidated_child_list?.length > 0 ? (
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink">
+                  {t("orgHierarchy.missingEntities")}
+                </p>
+                <ul className="mt-2 space-y-1 text-[13px]">
+                  {preview.unconsolidated_child_list.map((u) => (
+                    <li key={u.organisationId} className="border-b border-rule py-1.5">
+                      <span className="text-ink">{u.organisationName}</span>
+                      <span className="ml-2 text-[12px] text-amber">{u.reason}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
             <div className="overflow-x-auto">
               <table className="w-full min-w-[480px] text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-rule text-[10px] uppercase tracking-[0.06em] text-ink-muted">
-                    <th className="py-2 pr-3 font-medium">Organisation</th>
-                    <th className="py-2 pr-3 font-medium">Ownership</th>
-                    <th className="py-2 pr-3 font-medium">Factor</th>
-                    <th className="py-2 font-medium">Consolidated</th>
+                    <th className="py-2 pr-3 font-medium">
+                      {t("orgHierarchy.colOrganisation")}
+                    </th>
+                    <th className="py-2 pr-3 font-medium">
+                      {t("orgHierarchy.colOwnership")}
+                    </th>
+                    <th className="py-2 pr-3 font-medium">
+                      {t("orgHierarchy.colFactor")}
+                    </th>
+                    <th className="py-2 font-medium">
+                      {t("orgHierarchy.colConsolidated")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -312,8 +377,10 @@ export function OrgHierarchyClient({
                         style={{ paddingLeft: `${row.depth * 12}px` }}
                       >
                         {row.organisationName}
-                        {!row.hasData && row.depth > 0 ? (
-                          <span className="ml-2 text-[11px] text-amber">no data</span>
+                        {!row.hasData ? (
+                          <span className="ml-2 text-[11px] text-amber">
+                            {t("orgHierarchy.noData")}
+                          </span>
                         ) : null}
                       </td>
                       <td className="py-2 pr-3 font-data text-ink-muted">
@@ -322,8 +389,13 @@ export function OrgHierarchyClient({
                       <td className="py-2 pr-3 font-data text-ink-muted">
                         {row.pathFactor.toFixed(2)}
                       </td>
-                      <td className="py-2 font-data text-ink">
-                        {row.consolidated.total.toFixed(2)}
+                      <td
+                        className={cn(
+                          "py-2 font-data",
+                          row.hasData ? "text-ink" : "text-amber",
+                        )}
+                      >
+                        {row.hasData ? fmt(row.consolidated.total) : "—"}
                       </td>
                     </tr>
                   ))}

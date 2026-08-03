@@ -3,11 +3,14 @@
 import { useEffect, useState, useTransition } from "react";
 import { Download } from "lucide-react";
 
-import { PageCard, StatusLine } from "@/components/shell/PageFrame";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { EmptyState, PageCard, StatusLine } from "@/components/shell/PageFrame";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CONSOLIDATION_METHOD_LABELS } from "@/lib/consolidation/consolidate";
 import { cn } from "@/lib/utils";
+
+type ConsolidationQuality = "measured" | "partial" | "missing";
 
 type ConsolidatedOrg = {
   organisationId: string;
@@ -27,8 +30,12 @@ type ConsolidatedOrg = {
 
 type ConsolidatedPayload = {
   period: string;
-  total: number;
-  by_scope: { scope1: number; scope2: number; scope3: number };
+  total: number | null;
+  by_scope: {
+    scope1: number | null;
+    scope2: number | null;
+    scope3: number | null;
+  };
   by_org: ConsolidatedOrg[];
   by_category: Array<{ category: string; emissions: number }>;
   unconsolidated_child_list: Array<{
@@ -40,17 +47,29 @@ type ConsolidatedPayload = {
   warnings: string[];
   footer: string;
   has_subsidiaries: boolean;
+  quality: ConsolidationQuality;
+  measured_org_count: number;
+  missing_org_count: number;
+  quality_message: string | null;
   error?: string;
 };
 
-function fmt(n: number) {
+function fmt(n: number | null | undefined) {
+  if (n === null || n === undefined || !Number.isFinite(n)) return "—";
   return n.toLocaleString(undefined, {
     maximumFractionDigits: 2,
     minimumFractionDigits: 0,
   });
 }
 
+function qualityLabel(quality: ConsolidationQuality, t: (key: string) => string): string {
+  if (quality === "measured") return t("consolidation.qualityMeasured");
+  if (quality === "partial") return t("consolidation.qualityPartial");
+  return t("consolidation.qualityMissing");
+}
+
 export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: number }) {
+  const { t } = useI18n();
   const year = defaultPeriod ?? new Date().getFullYear();
   const [includeSubsidiaries, setIncludeSubsidiaries] = useState(false);
   const [period, setPeriod] = useState(String(year));
@@ -66,7 +85,7 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
         setStatus(null);
         return;
       }
-      setStatus("Loading consolidated report…");
+      setStatus(t("consolidation.loading"));
       setStatusTone("neutral");
       try {
         const res = await fetch(
@@ -74,20 +93,30 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
         );
         const json = (await res.json()) as ConsolidatedPayload;
         if (!res.ok) {
-          setStatus(json.error ?? "Could not load consolidated report.");
+          setStatus(json.error ?? t("consolidation.errorLoad"));
           setStatusTone("error");
           setData(null);
           return;
         }
         setData(json);
-        setStatus(
-          json.has_subsidiaries
-            ? `Consolidated ${json.period}: ${fmt(json.total)} tCO2e`
-            : `No subsidiaries linked under this organisation for ${json.period}. Set a parent on child orgs in Settings → Org hierarchy.`,
-        );
-        setStatusTone(json.has_subsidiaries ? "ok" : "neutral");
+        if (!json.has_subsidiaries) {
+          setStatus(t("consolidation.noSubsidiaries", { period: json.period }));
+          setStatusTone("neutral");
+        } else if (json.quality === "missing") {
+          setStatus(json.quality_message ?? t("consolidation.totalUnavailable"));
+          setStatusTone("neutral");
+        } else {
+          setStatus(
+            t("consolidation.loadedSummary", {
+              period: json.period,
+              total: fmt(json.total),
+              quality: qualityLabel(json.quality, t),
+            }),
+          );
+          setStatusTone(json.quality === "partial" ? "neutral" : "ok");
+        }
       } catch {
-        setStatus("Network error loading consolidated report.");
+        setStatus(t("consolidation.errorNetwork"));
         setStatusTone("error");
       }
     });
@@ -105,7 +134,7 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
       );
       if (!res.ok) {
         const json = (await res.json().catch(() => ({}))) as { error?: string };
-        setStatus(json.error ?? "CSV export failed.");
+        setStatus(json.error ?? t("consolidation.errorCsv"));
         setStatusTone("error");
         return;
       }
@@ -117,23 +146,23 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      setStatus("Network error exporting CSV.");
+      setStatus(t("consolidation.errorCsvNetwork"));
       setStatusTone("error");
     }
   }
 
   return (
-    <PageCard title="Multi-org consolidation">
+    <PageCard title={t("consolidation.title")}>
       <div className="flex flex-wrap items-center gap-4">
         <label className="flex cursor-pointer items-center gap-2 text-[13px] text-ink">
           <Checkbox
             checked={includeSubsidiaries}
             onCheckedChange={(v) => setIncludeSubsidiaries(v === true)}
           />
-          Include subsidiaries
+          {t("consolidation.includeSubsidiaries")}
         </label>
         <label className="flex items-center gap-2 text-[12px] text-ink-muted">
-          Period
+          {t("consolidation.period")}
           <input
             type="number"
             className="w-20 rounded-[4px] border border-rule bg-surface-1 px-2 py-1 font-data text-sm text-ink"
@@ -153,18 +182,26 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
             onClick={() => void downloadCsv()}
           >
             <Download className="mr-1.5 size-3.5" aria-hidden />
-            Export CSV
+            {t("consolidation.exportCsv")}
           </Button>
         ) : null}
       </div>
 
       <p className="mt-3 text-[12px] text-ink-muted">
-        Only organisations with an explicit consolidation parent and Membership access are
-        included.{" "}
+        {t("consolidation.help")}{" "}
         <a href="/settings/org-hierarchy" className="editorial-link text-accent">
-          Manage hierarchy
+          {t("consolidation.manageHierarchy")}
         </a>
       </p>
+
+      {!includeSubsidiaries ? (
+        <div className="mt-5">
+          <EmptyState
+            title={t("consolidation.toggleOffTitle")}
+            body={t("consolidation.toggleOffBody")}
+          />
+        </div>
+      ) : null}
 
       {status ? (
         <div className="mt-3">
@@ -174,20 +211,55 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
 
       {includeSubsidiaries && data ? (
         <div className="mt-5 space-y-5">
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-rule pb-3">
+            <p className="text-[10px] uppercase tracking-[0.06em] text-ink-muted">
+              {t("consolidation.quality")}
+            </p>
+            <p
+              className={cn(
+                "font-data text-sm",
+                data.quality === "measured"
+                  ? "text-ink"
+                  : data.quality === "partial"
+                    ? "text-amber"
+                    : "text-rust",
+              )}
+            >
+              {qualityLabel(data.quality, t)}
+            </p>
+            <p className="font-data text-[12px] text-ink-muted">
+              {t("consolidation.entityCounts", {
+                measured: data.measured_org_count,
+                missing: data.missing_org_count,
+              })}
+            </p>
+          </div>
+
+          {data.quality_message ? (
+            <p className="text-[12px] text-ink-muted">{data.quality_message}</p>
+          ) : null}
+
           <div className="grid gap-3 sm:grid-cols-4">
             {(
               [
-                ["Total", data.total],
-                ["Scope 1", data.by_scope.scope1],
-                ["Scope 2", data.by_scope.scope2],
-                ["Scope 3", data.by_scope.scope3],
+                [t("consolidation.total"), data.total],
+                [t("consolidation.scope1"), data.by_scope.scope1],
+                [t("consolidation.scope2"), data.by_scope.scope2],
+                [t("consolidation.scope3"), data.by_scope.scope3],
               ] as const
             ).map(([label, value]) => (
               <div key={label} className="border-b border-rule pb-2">
                 <p className="text-[10px] uppercase tracking-[0.06em] text-ink-muted">
                   {label}
                 </p>
-                <p className="mt-1 font-data text-lg text-ink">{fmt(value)}</p>
+                <p
+                  className={cn(
+                    "mt-1 font-data text-lg",
+                    value === null ? "text-amber" : "text-ink",
+                  )}
+                >
+                  {fmt(value)}
+                </p>
               </div>
             ))}
           </div>
@@ -200,19 +272,49 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
             </ul>
           ) : null}
 
+          {data.unconsolidated_child_list.length > 0 ? (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink">
+                {t("consolidation.missingEntities")}
+              </p>
+              <ul className="mt-2 space-y-1 text-[13px]">
+                {data.unconsolidated_child_list.map((u) => (
+                  <li
+                    key={u.organisationId}
+                    className="flex justify-between gap-4 border-b border-rule py-1.5"
+                  >
+                    <span className="text-ink">{u.organisationName}</span>
+                    <span className="text-[12px] text-amber">{u.reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink">
-              Breakdown by organisation
+              {t("consolidation.breakdown")}
             </p>
+            {!data.has_subsidiaries && data.by_org.length <= 1 ? (
+              <p className="mt-2 text-[13px] text-ink-muted">
+                {t("consolidation.singleEntityNote")}
+              </p>
+            ) : null}
             <div className="mt-2 overflow-x-auto">
               <table className="w-full min-w-[520px] text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-rule text-[10px] uppercase tracking-[0.06em] text-ink-muted">
-                    <th className="py-2 pr-3 font-medium">Organisation</th>
-                    <th className="py-2 pr-3 font-medium">Method</th>
-                    <th className="py-2 pr-3 font-medium">Own %</th>
-                    <th className="py-2 pr-3 font-medium">Factor</th>
-                    <th className="py-2 font-medium">tCO2e</th>
+                    <th className="py-2 pr-3 font-medium">
+                      {t("consolidation.colOrganisation")}
+                    </th>
+                    <th className="py-2 pr-3 font-medium">
+                      {t("consolidation.colMethod")}
+                    </th>
+                    <th className="py-2 pr-3 font-medium">{t("consolidation.colOwn")}</th>
+                    <th className="py-2 pr-3 font-medium">
+                      {t("consolidation.colFactor")}
+                    </th>
+                    <th className="py-2 font-medium">{t("consolidation.colTco2e")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -223,6 +325,11 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
                         style={{ paddingLeft: `${row.depth * 12}px` }}
                       >
                         {row.organisationName}
+                        {!row.hasData ? (
+                          <span className="ml-2 text-[11px] text-amber">
+                            {t("consolidation.noData")}
+                          </span>
+                        ) : null}
                       </td>
                       <td className="py-2 pr-3 text-[12px] text-ink-muted">
                         {row.depth === 0
@@ -241,7 +348,7 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
                           row.hasData ? "text-ink" : "text-amber",
                         )}
                       >
-                        {fmt(row.consolidated.total)}
+                        {row.hasData ? fmt(row.consolidated.total) : "—"}
                       </td>
                     </tr>
                   ))}
@@ -253,7 +360,7 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
           {data.by_category.length > 0 ? (
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink">
-                By category
+                {t("consolidation.byCategory")}
               </p>
               <ul className="mt-2 space-y-1 text-[13px]">
                 {data.by_category.slice(0, 12).map((c) => (

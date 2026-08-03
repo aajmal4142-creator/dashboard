@@ -33,3 +33,9 @@ export {
   type ProcessInboundResult,
   type ProcessInboundInput,
 } from "./service";
+
+export {
+  getInboundEmailDomain,
+  buildInboundAddress,
+  buildSubjectTokenHint,
+} from "./inboundAddress";

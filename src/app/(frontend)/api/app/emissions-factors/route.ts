@@ -39,7 +39,11 @@ export async function GET(req: Request) {
   }
 
   const payload = await getPayload({ config });
-  let factors = await loadEmissionFactors(payload, { standard, limit: 500 });
+  let factors = await loadEmissionFactors(payload, {
+    standard,
+    limit: 500,
+    organisationId: ctx.activeOrg.id,
+  });
 
   if (scope === "1" || scope === "2" || scope === "3") {
     const scoped = await payload.find({

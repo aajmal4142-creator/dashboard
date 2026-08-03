@@ -12,6 +12,7 @@ export const AssuranceEngagements: CollectionConfig = {
       "reportingPeriod",
       "provider",
       "scope",
+      "assuranceLevel",
       "status",
       "requestedAt",
       "createdAt",
@@ -83,6 +84,46 @@ export const AssuranceEngagements: CollectionConfig = {
         { label: "SASB", value: "sasb" },
       ],
       admin: { description: "Optional framework focus" },
+    },
+    {
+      name: "assuranceLevel",
+      type: "select",
+      required: true,
+      defaultValue: "limited",
+      options: [
+        { label: "Limited", value: "limited" },
+        { label: "Reasonable", value: "reasonable" },
+      ],
+      index: true,
+      admin: {
+        description:
+          "Verification pathway: limited (inquiry/analytical) vs reasonable (substantive).",
+      },
+    },
+    {
+      name: "pathwayCheckpoints",
+      type: "array",
+      admin: {
+        description: "Completed checkpoints for the selected assurance pathway",
+      },
+      fields: [
+        {
+          name: "checkpointId",
+          type: "text",
+          required: true,
+          admin: { description: "Stable id from the pathway template" },
+        },
+        {
+          name: "completedAt",
+          type: "date",
+          admin: { description: "When the checkpoint was marked complete" },
+        },
+        {
+          name: "notes",
+          type: "textarea",
+          admin: { description: "Optional notes for this checkpoint" },
+        },
+      ],
     },
     {
       name: "status",

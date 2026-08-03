@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 
+import { EvidencePackDownloadButton } from "@/components/assurance/EvidencePackDownloadButton";
+import { AudiencePackDownloadButton } from "@/components/reports/AudiencePackDownloadButton";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +39,7 @@ export function ReportExportModal({
   const [pdfSettings, setPdfSettings] = useState<ReportPdfExportSettings>(
     DEFAULT_PDF_EXPORT_SETTINGS,
   );
+  const { t } = useI18n();
 
   function handleOpenChange(next: boolean) {
     if (!next) {
@@ -144,6 +148,25 @@ export function ReportExportModal({
               <span className="label-caps text-accent">XML</span>
               <p className="mt-2 text-ink-muted">Legacy systems, EDI</p>
             </a>
+            <div className="rounded-[6px] border border-rule px-3 py-4 text-center text-sm text-ink sm:col-span-2">
+              <span className="label-caps text-accent">
+                {t("reports.audiencePackDownload")}
+              </span>
+              <p className="mt-2 text-ink-muted">{t("reports.audiencePackHelp")}</p>
+              <div className="mt-3 flex justify-center">
+                <AudiencePackDownloadButton reportId={reportId} />
+              </div>
+            </div>
+            <div className="rounded-[6px] border border-rule px-3 py-4 text-center text-sm text-ink sm:col-span-2">
+              <span className="label-caps text-accent">Evidence pack</span>
+              <p className="mt-2 text-ink-muted">
+                Assurance-ready ZIP (PDF + CSV): emissions, factors, gaps, lineage, lock
+                status. Distinct from audience report packs.
+              </p>
+              <div className="mt-3 flex justify-center">
+                <EvidencePackDownloadButton reportId={reportId} />
+              </div>
+            </div>
           </div>
         ) : null}
 

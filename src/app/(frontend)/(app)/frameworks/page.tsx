@@ -176,6 +176,12 @@ export default async function FrameworksDashboard() {
         </CardHeader>
         <CardContent className="space-y-2">
           <a
+            href="/frameworks/brsr"
+            className="block p-3 rounded border hover:bg-gray-50 text-sm font-medium"
+          >
+            → BRSR Core / Comprehensive coverage
+          </a>
+          <a
             href="/frameworks/targets"
             className="block p-3 rounded border hover:bg-gray-50 text-sm font-medium"
           >

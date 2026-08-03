@@ -134,6 +134,31 @@ export type {
 } from "./compare";
 
 export {
+  HOTSPOT_DIMENSIONS,
+  HOTSPOT_SORT_MODES,
+  CATEGORY_LABELS,
+  accumulateHotspotDimension,
+  categoryFromCalcRole,
+  dimensionKeyFor,
+  dimensionLabelFor,
+  hotspotsToCsv,
+  isHotspotDimension,
+  isHotspotSortMode,
+  isUsableActivityValue,
+  rankHotspots,
+} from "./hotspots";
+
+export type {
+  HotspotActivityRow,
+  HotspotDimension,
+  HotspotPeriodMeta,
+  HotspotQuality,
+  HotspotResult,
+  HotspotRow,
+  HotspotSortMode,
+} from "./hotspots";
+
+export {
   calculateEmissionsIntensity,
   calculateEmissionsPerRevenue,
   calculateEmissionsPerEmployee,
@@ -165,3 +190,74 @@ export type {
   IntensityDenominators,
   CalculateEmissionsIntensityOptions,
 } from "./consumptionIntensity";
+
+export {
+  buildMacc,
+  buildMaccCurvePoints,
+  calculateLeverCost,
+  calculateLeverRoi,
+  isAbatementLeverCategory,
+  sortLeversByCostPerTco2e,
+} from "./macc";
+
+export type {
+  AbatementLeverCategory,
+  AbatementLeverInput,
+  LeverCostResult,
+  LeverRoiResult,
+  MaccBuildResult,
+  MaccCurvePoint,
+  MaccQuality,
+} from "./maccTypes";
+
+export {
+  computeOrgMacc,
+  docToAbatementLever,
+  getOrgAbatementLever,
+  leverDtoToInput,
+  listOrgAbatementLevers,
+} from "./maccService";
+
+export type { AbatementLeverDto } from "./maccService";
+
+export {
+  calculateChildProgress,
+  isAllocationMode,
+  isCascadeStatus,
+  resolveChildBaselineTco2e,
+  resolveChildTargetTco2e,
+  rollupChildProgress,
+  validateAllocationShares,
+  ALLOCATION_MODES,
+  CASCADE_STATUSES,
+} from "./targetCascade";
+
+export type {
+  AllocationMode,
+  CascadeAllocationInput,
+  CascadeProgressRollup,
+  CascadeStatus,
+  ChildProgressInput,
+  ChildProgressRow,
+  ProgressQuality,
+  ShareValidationError,
+  ShareValidationOpts,
+  ShareValidationResult,
+} from "./targetCascade";
+
+export {
+  buildCascadeProgress,
+  createCascadedTarget,
+  deleteCascadedTarget,
+  docToCascadedTarget,
+  getOrgCascadedTarget,
+  listOrgCascadedTargets,
+  parseCascadeWriteBody,
+  updateCascadedTarget,
+} from "./targetCascadeService";
+
+export type {
+  CascadeAllocationDto,
+  CascadedTargetDto,
+  CascadedTargetWriteInput,
+} from "./targetCascadeService";

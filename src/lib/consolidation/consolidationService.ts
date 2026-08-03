@@ -12,6 +12,7 @@ import {
   consolidatedReportToCsv,
   formatConsolidationFooter,
   isConsolidationMethod,
+  recomputeConsolidationAggregates,
   wouldCreateCircularHierarchy,
   type ConsolidationMethod,
   type ConsolidationResult,
@@ -317,29 +318,19 @@ export async function buildConsolidatedReport(
   result.warnings = result.warnings.filter(
     (w) =>
       result.byOrg.some(
-        (r) => r.depth > 0 && !r.hasData && w.includes(r.organisationName),
+        (r) =>
+          !r.hasData &&
+          (r.depth > 0 || r.organisationId === opts.parentOrganisationId) &&
+          w.includes(r.organisationName),
       ) || result.unconsolidatedChildList.some((u) => w.includes(u.organisationName)),
   );
 
-  // Recompute totals from accessible rows only (drop inaccessible intermediates)
-  let scope1 = 0;
-  let scope2 = 0;
-  let scope3 = 0;
-  const methods = new Set<ConsolidationMethod>();
-  for (const row of result.byOrg) {
-    scope1 += row.consolidated.scope1;
-    scope2 += row.consolidated.scope2;
-    scope3 += row.consolidated.scope3;
-    if (row.depth > 0) methods.add(row.consolidationMethod);
-  }
-  result.byScope = { scope1, scope2, scope3 };
-  result.total = scope1 + scope2 + scope3;
-  result.methodsUsed = [...methods];
+  // Recompute measured-only totals + quality after Membership filter
+  const recomputed = recomputeConsolidationAggregates(result);
+  const footer = formatConsolidationFooter(recomputed);
+  const csv = consolidatedReportToCsv(recomputed);
 
-  const footer = formatConsolidationFooter(result);
-  const csv = consolidatedReportToCsv(result);
-
-  return { ...result, footer, csv };
+  return { ...recomputed, footer, csv };
 }
 
 export {

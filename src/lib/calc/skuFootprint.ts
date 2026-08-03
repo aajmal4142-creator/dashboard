@@ -1,7 +1,10 @@
 /**
  * Pure product-level (SKU) footprint math. Zero I/O — all quantities and factors
  * are injected. Missing factor → throw (never silent default).
+ * Empty activity → quality "missing" (never silent zero as measured).
  */
+
+import type { Quality } from "./types";
 
 export type SkuMaterialLine = {
   material: string;
@@ -36,17 +39,23 @@ export type SkuCalcInput = {
   recyclingBenefit: number;
 };
 
+export type SkuStageBreakdown = {
+  materials: number;
+  production: number;
+  packaging: number;
+  transportation: number;
+  endOfLife: number;
+};
+
 export type SkuFootprintResult = {
   sku: string;
   productName: string;
-  totalCarbonFootprint: number; // kg CO2e per unit
-  breakdown: {
-    materials: number;
-    production: number;
-    packaging: number;
-    transportation: number;
-    endOfLife: number;
-  };
+  /** kg CO2e per unit */
+  totalCarbonFootprint: number;
+  /** tCO2e per unit (kg / 1000) */
+  totalTco2e: number;
+  breakdown: SkuStageBreakdown;
+  quality: Quality;
   confidence: "low" | "medium" | "high";
 };
 
@@ -61,6 +70,36 @@ export type BomRollupLine = {
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+function round6(n: number): number {
+  return Math.round(n * 1_000_000) / 1_000_000;
+}
+
+/** Convert kg CO2e to tCO2e. */
+export function kgCo2eToTco2e(kg: number): number {
+  return round6(kg / 1000);
+}
+
+/**
+ * True when the input carries any activity that can produce a footprint.
+ * Empty cradle-to-grave → quality missing (do not treat as measured zero).
+ */
+export function skuInputHasActivity(input: SkuCalcInput): boolean {
+  if (input.billOfMaterials.length > 0) return true;
+  if (input.emissionsSources.length > 0) return true;
+  if (input.primaryWeight + input.secondaryWeight > 0) return true;
+  if (
+    input.packagingEmissionsPrecomputed !== null &&
+    Number.isFinite(input.packagingEmissionsPrecomputed) &&
+    input.packagingEmissionsPrecomputed !== 0
+  ) {
+    return true;
+  }
+  if (input.transportDistance > 0) return true;
+  if (input.emissionsFromDecomposition !== 0) return true;
+  if (input.recyclingBenefit !== 0) return true;
+  return false;
 }
 
 function calculateMaterialsEmissions(lines: SkuMaterialLine[]): number {
@@ -122,7 +161,29 @@ function calculateEndOfLifeEmissions(
   return Math.max(0, emissionsFromDecomposition + recyclingBenefit);
 }
 
+function emptyBreakdown(): SkuStageBreakdown {
+  return {
+    materials: 0,
+    production: 0,
+    packaging: 0,
+    transportation: 0,
+    endOfLife: 0,
+  };
+}
+
 export function calculateSKUFootprint(input: SkuCalcInput): SkuFootprintResult {
+  if (!skuInputHasActivity(input)) {
+    return {
+      sku: input.sku,
+      productName: input.productName,
+      totalCarbonFootprint: 0,
+      totalTco2e: 0,
+      breakdown: emptyBreakdown(),
+      quality: "missing",
+      confidence: "low",
+    };
+  }
+
   const materials = calculateMaterialsEmissions(input.billOfMaterials);
   const production = calculateProductionEmissions(input.emissionsSources);
   const packaging = calculatePackagingEmissions(
@@ -143,11 +204,13 @@ export function calculateSKUFootprint(input: SkuCalcInput): SkuFootprintResult {
 
   const totalCarbonFootprint =
     materials + production + packaging + transportation + endOfLife;
+  const rounded = round2(totalCarbonFootprint);
 
   return {
     sku: input.sku,
     productName: input.productName,
-    totalCarbonFootprint: round2(totalCarbonFootprint),
+    totalCarbonFootprint: rounded,
+    totalTco2e: kgCo2eToTco2e(rounded),
     breakdown: {
       materials: round2(materials),
       production: round2(production),
@@ -155,6 +218,7 @@ export function calculateSKUFootprint(input: SkuCalcInput): SkuFootprintResult {
       transportation: round2(transportation),
       endOfLife: round2(endOfLife),
     },
+    quality: "calculated",
     confidence: "medium",
   };
 }

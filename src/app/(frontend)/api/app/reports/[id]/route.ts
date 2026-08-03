@@ -85,7 +85,19 @@ export async function PATCH(req: Request, ctx: Ctx) {
   }
 
   if (action === "approve") {
+    const { advanceTo, readChainState } = await import("@/lib/approvals");
+    const before = readChainState(report);
+    const advanced = advanceTo(before, "approve", {
+      note: "Approved for final lock",
+    });
+    if (!advanced.ok) {
+      return NextResponse.json({ error: advanced.error }, { status: 409 });
+    }
+
     const now = new Date().toISOString();
+    const priorHistory = Array.isArray(report.approvalHistory)
+      ? report.approvalHistory
+      : [];
     const updated = await payload.update({
       collection: "reports",
       id,
@@ -93,6 +105,19 @@ export async function PATCH(req: Request, ctx: Ctx) {
         approvedBy: auth.user.id,
         approvedAt: now,
         preparerNotes: body.preparerNotes ?? report.preparerNotes ?? undefined,
+        approvalStep: advanced.next.step,
+        approvalChainStatus: advanced.next.status,
+        approvalHistory: [
+          ...priorHistory,
+          {
+            fromStep: advanced.historyEntry.fromStep,
+            toStep: advanced.historyEntry.toStep,
+            action: "advance",
+            at: now,
+            actor: auth.user.id,
+            note: "Approved for final lock",
+          },
+        ],
         versionHistory: [
           ...(report.versionHistory ?? []),
           {
@@ -110,10 +135,19 @@ export async function PATCH(req: Request, ctx: Ctx) {
     await writeAuditLog(payload, {
       organisationId: auth.activeOrg.id,
       actorId: auth.user.id,
-      action: "report.created",
+      action: "report.approval.advance",
       entityType: "reports",
       entityId: id,
-      after: { action: "approve", approvedAt: now },
+      before: {
+        approvalStep: before.step,
+        approvalChainStatus: before.status,
+      },
+      after: {
+        action: "approve",
+        approvedAt: now,
+        approvalStep: advanced.next.step,
+        approvalChainStatus: advanced.next.status,
+      },
     });
 
     return NextResponse.json({
@@ -121,6 +155,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
       status: updated.status,
       approvedBy: updated.approvedBy,
       approvedAt: updated.approvedAt,
+      approvalStep: advanced.next.step,
+      approvalChainStatus: advanced.next.status,
     });
   }
 

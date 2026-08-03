@@ -165,6 +165,8 @@ function actionLabel(t: AutomationActionType): string {
       return "Email";
     case "post_slack":
       return "Slack";
+    case "post_teams":
+      return "Teams";
     case "fire_webhook":
       return "Webhook";
   }

@@ -10,6 +10,7 @@ export const AUTOMATION_ACTION_TYPES = [
   "create_notification",
   "send_email",
   "post_slack",
+  "post_teams",
   "fire_webhook",
 ] as const;
 

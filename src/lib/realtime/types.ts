@@ -32,6 +32,7 @@ export type DashboardUpdate = {
   scopes?: {
     scope1: number;
     scope2: number;
+    scope2MarketBased?: number | null;
     scope3: number;
   };
   /** Recent activity tip (public fields only) */
@@ -95,6 +96,9 @@ export type PublicKpiPayload = {
     total: number;
     scope1: number;
     scope2: number;
+    scope2LocationBased?: number;
+    scope2MarketBased?: number | null;
+    scope2MarketQuality?: "measured" | "calculated" | "estimated" | "missing" | null;
     scope3: number;
     calcOk: boolean;
   };

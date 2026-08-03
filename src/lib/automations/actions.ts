@@ -2,6 +2,7 @@ import type { Payload } from "payload";
 
 import { sendTransactionalEmail } from "@/lib/email/send";
 import { postAlertToSlack } from "@/lib/integrations/slack";
+import { postAlertToTeams } from "@/lib/integrations/teams";
 import { notifyOrganisationMembers } from "@/lib/notifications/createNotification";
 
 import type { ActionRunResult, AutomationAction, AutomationEventContext } from "./types";
@@ -161,6 +162,31 @@ export async function runAutomationActions(args: {
           type: "post_slack",
           ok: false,
           detail: slackResult.reason,
+        });
+      }
+      continue;
+    }
+
+    if (action.type === "post_teams") {
+      const teamsResult = await postAlertToTeams(args.payload, {
+        organisationId: args.organisationId,
+        ruleName: args.automationName,
+        reason: message,
+        ruleId: args.automationId,
+      });
+      if (teamsResult.posted) {
+        run.push({
+          type: "post_teams",
+          ok: true,
+          detail: teamsResult.channelLabel
+            ? `Posted to ${teamsResult.channelLabel}`
+            : "Posted to Teams webhook",
+        });
+      } else {
+        skipped.push({
+          type: "post_teams",
+          ok: false,
+          detail: teamsResult.reason,
         });
       }
       continue;

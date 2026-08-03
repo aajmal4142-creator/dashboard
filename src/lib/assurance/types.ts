@@ -1,20 +1,10 @@
 export type FindingSeverity = "critical" | "major" | "minor" | "info";
 export type FindingCategory =
-  | "data-quality"
-  | "methodology"
-  | "scope"
-  | "calculation"
-  | "completeness"
-  | "other";
+  "data-quality" | "methodology" | "scope" | "calculation" | "completeness" | "other";
 export type FindingStatus = "open" | "acknowledged" | "resolved" | "closed";
 export type AssuranceLevel = "limited" | "reasonable";
 export type EngagementStatus =
-  | "draft"
-  | "submitted"
-  | "reviewing"
-  | "findings_submitted"
-  | "approved"
-  | "signed_off";
+  "draft" | "submitted" | "reviewing" | "findings_submitted" | "approved" | "signed_off";
 
 export interface DataGap {
   metric: string;
@@ -42,6 +32,12 @@ export interface VerificationFinding {
   resolutionNotes?: string;
 }
 
+export interface PathwayCheckpointProgress {
+  checkpointId: string;
+  completedAt?: Date | string | null;
+  notes?: string | null;
+}
+
 export interface AssuranceEngagement {
   id?: string;
   organisation: string;
@@ -54,6 +50,10 @@ export interface AssuranceEngagement {
   };
   scope: "scope1" | "scope2" | "scope3" | "all";
   framework?: string;
+  /** Selected verification pathway (limited vs reasonable). */
+  assuranceLevel?: AssuranceLevel;
+  /** Checkpoint completion for the selected pathway. */
+  pathwayCheckpoints?: PathwayCheckpointProgress[];
   status: EngagementStatus;
   requestedAt: Date;
   submittedAt?: Date;

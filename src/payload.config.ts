@@ -87,13 +87,31 @@ import { DatapointVersions } from "./collections/DatapointVersions";
 import { ScheduledReports } from "./collections/ScheduledReports";
 import { SbtiTargets } from "./collections/SbtiTargets";
 import { GreenTaxonomyAssessments } from "./collections/GreenTaxonomyAssessments";
+import { CbamGoods } from "./collections/CbamGoods";
+import { CbamDeclarations } from "./collections/CbamDeclarations";
+import { EnergyCertificates } from "./collections/EnergyCertificates";
 import { ReportEmbedTokens } from "./collections/ReportEmbedTokens";
 import { Notifications } from "./collections/Notifications";
 import { DashboardLayouts } from "./collections/DashboardLayouts";
 import { AlertRules } from "./collections/AlertRules";
 import { SlackIntegrations } from "./collections/SlackIntegrations";
+import { TeamsIntegrations } from "./collections/TeamsIntegrations";
 import { Automations } from "./collections/Automations";
 import { AutomationRuns } from "./collections/AutomationRuns";
+import { Facilities } from "./collections/Facilities";
+import { Meters } from "./collections/Meters";
+import { ReductionProjects } from "./collections/ReductionProjects";
+import { CascadedTargets } from "./collections/CascadedTargets";
+import { CarbonCredits } from "./collections/CarbonCredits";
+import { BaseYearRestatements } from "./collections/BaseYearRestatements";
+import { AbatementLevers } from "./collections/AbatementLevers";
+import { ProcurementTradeoffs } from "./collections/ProcurementTradeoffs";
+import { SupplierNetworkInvites } from "./collections/SupplierNetworkInvites";
+import { SharedEmissionSnapshots } from "./collections/SharedEmissionSnapshots";
+import { WorkTrackerConnections } from "./collections/WorkTrackerConnections";
+import { Policies } from "./collections/Policies";
+import { TrustControlEvents } from "./collections/TrustControlEvents";
+import { EngagementCampaigns } from "./collections/EngagementCampaigns";
 
 /**
  * Collection registration — APPEND-ONLY for feature chats.
@@ -204,6 +222,9 @@ export default buildConfig({
     ScheduledReports,
     SbtiTargets,
     GreenTaxonomyAssessments,
+    CbamGoods,
+    CbamDeclarations,
+    EnergyCertificates,
     ReportEmbedTokens,
     IoTGateways,
     Notifications,
@@ -212,6 +233,21 @@ export default buildConfig({
     SlackIntegrations,
     Automations,
     AutomationRuns,
+    Facilities,
+    Meters,
+    BaseYearRestatements,
+    AbatementLevers,
+    CarbonCredits,
+    ReductionProjects,
+    CascadedTargets,
+    ProcurementTradeoffs,
+    TeamsIntegrations,
+    SupplierNetworkInvites,
+    SharedEmissionSnapshots,
+    WorkTrackerConnections,
+    Policies,
+    TrustControlEvents,
+    EngagementCampaigns,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,

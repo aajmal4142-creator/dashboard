@@ -314,11 +314,125 @@ export const Datapoints: CollectionConfig = {
         { label: "Approved", value: "approved" },
         { label: "Rejected", value: "rejected" },
       ],
+      admin: {
+        description:
+          "Legacy mirror of the multi-step chain (pending / approved=locked / rejected).",
+      },
     },
     {
       name: "approvalReason",
       type: "textarea",
       admin: { description: "Required when approvalState is rejected." },
+    },
+    {
+      name: "approvalStep",
+      type: "select",
+      defaultValue: "prepare",
+      index: true,
+      options: [
+        { label: "Prepare", value: "prepare" },
+        { label: "Review", value: "review" },
+        { label: "Approve", value: "approve" },
+        { label: "Lock", value: "lock" },
+      ],
+      admin: {
+        description: "Current step in prepare → review → approve → lock.",
+      },
+    },
+    {
+      name: "approvalChainStatus",
+      type: "select",
+      defaultValue: "in_progress",
+      index: true,
+      options: [
+        { label: "In progress", value: "in_progress" },
+        { label: "Rejected", value: "rejected" },
+        { label: "Locked", value: "locked" },
+      ],
+    },
+    {
+      name: "approvalAssigneeRole",
+      type: "select",
+      options: [
+        { label: "Contributor", value: "contributor" },
+        { label: "Admin", value: "admin" },
+        { label: "Owner", value: "owner" },
+      ],
+      admin: {
+        description: "Optional role expected to act on the current step.",
+      },
+    },
+    {
+      name: "approvalAssigneeUser",
+      type: "relationship",
+      relationTo: "users",
+      index: true,
+      admin: {
+        description: "Optional named assignee for the current step.",
+      },
+    },
+    {
+      name: "approvalHistory",
+      type: "array",
+      admin: {
+        description: "Append-only trail of step transitions.",
+        readOnly: true,
+      },
+      fields: [
+        {
+          name: "fromStep",
+          type: "select",
+          required: true,
+          options: [
+            { label: "Prepare", value: "prepare" },
+            { label: "Review", value: "review" },
+            { label: "Approve", value: "approve" },
+            { label: "Lock", value: "lock" },
+          ],
+        },
+        {
+          name: "toStep",
+          type: "select",
+          required: true,
+          options: [
+            { label: "Prepare", value: "prepare" },
+            { label: "Review", value: "review" },
+            { label: "Approve", value: "approve" },
+            { label: "Lock", value: "lock" },
+          ],
+        },
+        {
+          name: "action",
+          type: "select",
+          required: true,
+          options: [
+            { label: "Advance", value: "advance" },
+            { label: "Reject", value: "reject" },
+            { label: "Return", value: "return" },
+          ],
+        },
+        { name: "at", type: "date", required: true },
+        {
+          name: "actor",
+          type: "relationship",
+          relationTo: "users",
+        },
+        { name: "note", type: "textarea" },
+        {
+          name: "assigneeRole",
+          type: "select",
+          options: [
+            { label: "Contributor", value: "contributor" },
+            { label: "Admin", value: "admin" },
+            { label: "Owner", value: "owner" },
+          ],
+        },
+        {
+          name: "assigneeUser",
+          type: "relationship",
+          relationTo: "users",
+        },
+      ],
     },
     {
       name: "assignedTo",
@@ -344,6 +458,16 @@ export const Datapoints: CollectionConfig = {
     },
     { name: "enteredAt", type: "date" },
     { name: "note", type: "textarea" },
+    {
+      name: "facility",
+      type: "relationship",
+      relationTo: "facilities",
+      index: true,
+      admin: {
+        description:
+          "Optional operational facility for this datapoint. Prefer over facility: tags in note.",
+      },
+    },
     {
       name: "lineageSnapshot",
       type: "json",

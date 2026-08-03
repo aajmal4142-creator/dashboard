@@ -2,12 +2,20 @@ import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
+import {
+  applyDatapointTransition,
+  gateTransitionPermission,
+  readChainState,
+} from "@/lib/approvals";
 import { writeAuditLog } from "@/lib/audit/write";
-import { requirePermission } from "@/lib/policy/protect";
 import { datapointDocToRecord, validateDatapoint } from "@/lib/data/validationEngine";
+import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 
-/** Admin/owner approve or reject a datapoint. §15.1.2 */
+/**
+ * Admin/owner approve or reject a datapoint — maps onto the multi-step chain.
+ * approved → advance one step; rejected → reject; pending → return to prepare.
+ */
 export async function POST(req: Request) {
   const ctx = await getCurrentContext();
   if (!ctx.activeOrg || !ctx.role) {
@@ -28,7 +36,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const allowed = await requirePermission(
+  const canApprove = await requirePermission(
     ctx.user.id,
     ctx.activeOrg.id,
     "approve",
@@ -36,9 +44,14 @@ export async function POST(req: Request) {
     body.datapointId,
     "organisation",
   );
-  if (!allowed) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const canEdit = await requirePermission(
+    ctx.user.id,
+    ctx.activeOrg.id,
+    "edit",
+    "datapoint",
+    body.datapointId,
+    "organisation",
+  );
 
   if (body.approvalState === "rejected" && !body.reason?.trim()) {
     return NextResponse.json(
@@ -60,7 +73,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  if (body.approvalState === "approved" && body.skipValidation !== true) {
+  const action =
+    body.approvalState === "approved"
+      ? "advance"
+      : body.approvalState === "rejected"
+        ? "reject"
+        : "return";
+
+  const state = readChainState(dp);
+  const gate = gateTransitionPermission("datapoint", state, action, {
+    canEdit,
+    canApprove,
+    membershipRole: ctx.role,
+  });
+  if (!gate.allowed) {
+    return NextResponse.json({ error: gate.error ?? "Forbidden" }, { status: 403 });
+  }
+
+  if (
+    action === "advance" &&
+    (state.step === "prepare" || state.step === "approve") &&
+    body.skipValidation !== true
+  ) {
     const validation = await validateDatapoint(
       ctx.activeOrg.id,
       datapointDocToRecord(dp),
@@ -80,35 +114,37 @@ export async function POST(req: Request) {
     }
   }
 
-  const before = {
-    approvalState: dp.approvalState,
-    approvalReason: dp.approvalReason,
-  };
-  const updated = await payload.update({
-    collection: "datapoints",
-    id: dp.id,
-    data: {
-      approvalState: body.approvalState,
-      approvalReason: body.approvalState === "rejected" ? body.reason!.trim() : null,
-      taskStatus: body.approvalState === "approved" ? "approved" : dp.taskStatus,
-    },
-    overrideAccess: true,
+  const result = await applyDatapointTransition(payload, body.datapointId, {
+    action,
+    note: body.reason,
+    actorId: ctx.user.id,
+    organisationId: ctx.activeOrg.id,
+    membershipRole: ctx.role,
   });
 
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status ?? 409 });
+  }
+
+  // Retain legacy audit action names for activity feed mappers.
   await writeAuditLog(payload, {
     organisationId: ctx.activeOrg.id,
     actorId: ctx.user.id,
     action: `datapoint.${body.approvalState}`,
     entityType: "datapoints",
     entityId: dp.id,
-    before,
+    before: {
+      approvalState: dp.approvalState,
+      approvalStep: state.step,
+    },
     after: {
-      approvalState: updated.approvalState,
-      approvalReason: updated.approvalReason,
+      approvalState: result.approvalState,
+      approvalStep: result.step,
+      approvalChainStatus: result.status,
     },
   });
 
-  if (body.approvalState === "approved") {
+  if (result.status === "locked") {
     const { createNotification, notifyOrganisationMembers } =
       await import("@/lib/notifications");
     const actorName =
@@ -163,12 +199,7 @@ export async function POST(req: Request) {
 
     const { buildDatapointApprovedEvent, runAutomationsForEvent } =
       await import("@/lib/automations");
-    const numericValue =
-      typeof updated.value === "number"
-        ? updated.value
-        : typeof dp.value === "number"
-          ? dp.value
-          : null;
+    const numericValue = typeof dp.value === "number" ? dp.value : null;
     await runAutomationsForEvent(
       payload,
       buildDatapointApprovedEvent({
@@ -185,7 +216,9 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     ok: true,
-    id: updated.id,
-    approvalState: updated.approvalState,
+    id: result.id,
+    approvalState: result.approvalState,
+    approvalStep: result.step,
+    approvalChainStatus: result.status,
   });
 }

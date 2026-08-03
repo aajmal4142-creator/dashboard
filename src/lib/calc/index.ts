@@ -1,6 +1,7 @@
 export * from "./types";
 export * from "./resolveFactor";
 export * from "./emissions";
+export * from "./wasteWater";
 export * from "./scores";
 export * from "./calculate";
 
@@ -32,7 +33,12 @@ export {
 export {
   calculateSKUFootprint,
   calculateBOMRollup,
+  kgCo2eToTco2e,
+  skuInputHasActivity,
   type SkuCalcInput,
   type SkuFootprintResult,
+  type SkuStageBreakdown,
+  type SkuMaterialLine,
+  type SkuEmissionsSourceLine,
   type BomRollupLine,
 } from "./skuFootprint";

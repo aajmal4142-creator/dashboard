@@ -25,7 +25,12 @@ export type ReportSnapshot = {
   scores: CalcResult["scores"];
   emissions: {
     scope1: number;
+    /** Location-based Scope 2 (canonical; equals scope2LocationBased). */
     scope2: number;
+    scope2LocationBased?: number;
+    scope2MarketBased?: number;
+    scope2LocationQuality?: Quality;
+    scope2MarketQuality?: Quality;
     scope3: number;
     total: number;
     dataQualityPct: number;
@@ -61,6 +66,8 @@ export type ReportSnapshot = {
   scopeBreakdown?: {
     scope1: ScopeBreakdownRow;
     scope2: ScopeBreakdownRow;
+    /** Market-based Scope 2 dual disclosure. */
+    scope2Market?: ScopeBreakdownRow;
     scope3: ScopeBreakdownRow;
   };
   esrsDisclosures?: EsrsDisclosures;
@@ -185,6 +192,8 @@ export function snapshotToCsv(snapshot: ReportSnapshot): string {
     `scores,g,${snapshot.scores.g}`,
     `emissions,scope1,${snapshot.emissions.scope1}`,
     `emissions,scope2,${snapshot.emissions.scope2}`,
+    `emissions,scope2LocationBased,${snapshot.emissions.scope2LocationBased ?? snapshot.emissions.scope2}`,
+    `emissions,scope2MarketBased,${snapshot.emissions.scope2MarketBased ?? ""}`,
     `emissions,scope3,${snapshot.emissions.scope3}`,
     `emissions,total,${snapshot.emissions.total}`,
     `emissions,dataQualityPct,${snapshot.emissions.dataQualityPct}`,

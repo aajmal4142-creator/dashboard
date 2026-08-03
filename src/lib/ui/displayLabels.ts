@@ -24,6 +24,13 @@ const REQUEST_STATUS_LABELS: Record<string, string> = {
   submitted: "Submitted",
 };
 
+const REVIEW_STATUS_LABELS: Record<string, string> = {
+  pending: "Pending review",
+  submitted: "Awaiting approval",
+  approved: "Approved",
+  rejected: "Rejected",
+};
+
 const QUALITY_LABELS: Record<string, string> = {
   measured: "Measured",
   mea: "Measured",
@@ -76,6 +83,10 @@ const SECTOR_LABELS: Record<string, string> = {
 const AUDIT_ACTION_LABELS: Record<string, string> = {
   "report.publish": "Published report",
   "internal_request.create": "Created request",
+  "internal_request.submit": "Submitted request",
+  "internal_request.approve": "Approved request",
+  "internal_request.reject": "Rejected request",
+  "internal_request.escalate": "Escalated request",
   "datapoint.assign": "Assigned datapoint",
   "datapoint.approved": "Approved datapoint",
   "datapoint.rejected": "Rejected datapoint",
@@ -104,6 +115,10 @@ export function subscriptionStatusLabel(status: string | null | undefined): stri
 
 export function requestStatusLabel(status: string): string {
   return REQUEST_STATUS_LABELS[status] ?? titleCaseSegment(status);
+}
+
+export function reviewStatusLabel(status: string): string {
+  return REVIEW_STATUS_LABELS[status] ?? titleCaseSegment(status);
 }
 
 export function auditActionLabel(action: string): string {

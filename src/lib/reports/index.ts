@@ -1,6 +1,24 @@
 export type { ReportSnapshot, ScopeBreakdownRow } from "./types";
 export { REPORT_DISCLAIMER, diffSnapshots, snapshotToCsv } from "./types";
 export {
+  AUDIENCE_PACK_KIND,
+  audiencePackBasename,
+  audiencePackToCsv,
+  buildAudiencePackManifest,
+  type AudiencePackEmissions,
+  type AudiencePackKpi,
+  type AudiencePackManifest,
+  type AudiencePackNarrativePlaceholder,
+  type AudiencePackScores,
+  type AudiencePackYoy,
+  type BuildAudiencePackManifestInput,
+} from "./audiencePack";
+export {
+  assembleAudiencePack,
+  type AssembleAudiencePackResult,
+  type AudiencePackFormat,
+} from "./assembleAudiencePack";
+export {
   ESG_XML_NS,
   MACHINE_EXPORT_FIELDS,
   MACHINE_EXPORT_SCHEMA,

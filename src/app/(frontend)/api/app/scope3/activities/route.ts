@@ -1,53 +1,243 @@
 import { getPayload } from "payload";
 import { NextResponse } from "next/server";
+import type { Where } from "payload";
 
-import { getCurrentContext } from "@/lib/auth";
+import { getCurrentContext, isNextRedirectError } from "@/lib/auth";
 import { requirePermission } from "@/lib/policy/protect";
-import { Scope3Validator } from "@/lib/scope3/validation";
+import {
+  activityQuantitySum,
+  asActivityDataRecord,
+  asActivityFields,
+  asEmissionsFactor,
+  isScope3Category,
+  relId,
+} from "@/lib/scope3/activityHelpers";
 import { EmissionsFactorService } from "@/lib/scope3/emissionsFactorService";
-import type { ActivityDataField, EmissionsFactor } from "@/lib/scope3/types";
+import { Scope3Validator } from "@/lib/scope3/validation";
+import type { Scope3Category } from "@/lib/scope3/types";
+import type { Scope3Activity, Scope3Source } from "@/payload-types";
 import config from "@/payload.config";
 
 interface ImportActivity {
   activityData: Record<string, string | number>;
 }
 
-function asActivityFields(value: unknown): ActivityDataField[] {
-  if (!Array.isArray(value)) return [];
-  const fields = value.filter(
-    (field): field is ActivityDataField =>
-      typeof field === "object" &&
-      field !== null &&
-      "name" in field &&
-      "unit" in field &&
-      "required" in field,
-  );
-  if (fields.length === 0 && Array.isArray(value) && value.length > 0) {
-    throw new Error("No valid activity data fields found in source configuration");
-  }
-  return fields;
+const ACTIVITY_STATUSES = ["draft", "validated", "approved"] as const;
+
+function isActivityStatus(value: string): value is (typeof ACTIVITY_STATUSES)[number] {
+  return (ACTIVITY_STATUSES as readonly string[]).includes(value);
 }
 
-function asEmissionsFactor(value: unknown): EmissionsFactor | null {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return null;
-  }
-  const factor = value as Record<string, unknown>;
-  if (typeof factor.value !== "number" || typeof factor.unit !== "string") {
-    return null;
-  }
+function serializeActivity(doc: Scope3Activity) {
+  const source =
+    typeof doc.source === "object" && doc.source !== null
+      ? (doc.source as Scope3Source)
+      : null;
+  const period =
+    typeof doc.period === "object" && doc.period !== null ? doc.period : null;
+  const category = source && isScope3Category(source.type) ? source.type : null;
+  const emissionsFactor = source ? asEmissionsFactor(source.emissionsFactor) : null;
+  const activityDataFields = source ? asActivityFields(source.activityDataFields) : [];
+
   return {
-    value: factor.value,
-    unit: factor.unit,
-    source: typeof factor.source === "string" ? factor.source : "Custom",
-    year: typeof factor.year === "number" ? factor.year : new Date().getFullYear(),
-    confidence:
-      factor.confidence === "high" ||
-      factor.confidence === "medium" ||
-      factor.confidence === "low"
-        ? factor.confidence
-        : "medium",
+    id: doc.id,
+    sourceId: relId(doc.source) ?? "",
+    sourceName: source?.name ?? "Unknown source",
+    category,
+    periodId: relId(doc.period) ?? "",
+    periodLabel:
+      period && "label" in period && typeof period.label === "string" ? period.label : "",
+    activityData: asActivityDataRecord(doc.activityData),
+    activityDataFields,
+    emissionsFactor,
+    calculatedEmissions: doc.calculatedEmissions,
+    status: doc.status,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
   };
+}
+
+/**
+ * GET /api/app/scope3/activities?periodId=&category=&sourceId=&status=&page=&limit=
+ * Membership-gated list of Scope 3 activity records (CSV-imported / generic).
+ */
+export async function GET(req: Request) {
+  try {
+    const ctx = await getCurrentContext();
+    if (!ctx.user || !ctx.activeOrg) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const allowed = await requirePermission(
+      ctx.user.id,
+      ctx.activeOrg.id,
+      "view",
+      "datapoint",
+      ctx.activeOrg.id,
+      "organisation",
+    );
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const url = new URL(req.url);
+    const requestedPeriodId = url.searchParams.get("periodId");
+    const categoryParam = url.searchParams.get("category");
+    const sourceId = url.searchParams.get("sourceId");
+    const statusParam = url.searchParams.get("status");
+
+    const limitParam = parseInt(url.searchParams.get("limit") || "50", 10);
+    if (!Number.isInteger(limitParam) || limitParam < 1 || limitParam > 200) {
+      return NextResponse.json({ error: "Invalid limit parameter" }, { status: 400 });
+    }
+    const pageParam = parseInt(url.searchParams.get("page") || "1", 10);
+    if (!Number.isInteger(pageParam) || pageParam < 1) {
+      return NextResponse.json({ error: "Invalid page parameter" }, { status: 400 });
+    }
+
+    if (categoryParam && !isScope3Category(categoryParam)) {
+      return NextResponse.json({ error: "Invalid category" }, { status: 400 });
+    }
+    if (statusParam && !isActivityStatus(statusParam)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
+
+    const payload = await getPayload({ config });
+
+    const periods = await payload.find({
+      collection: "reporting-periods",
+      where: { organisation: { equals: ctx.activeOrg.id } },
+      sort: "-endDate",
+      limit: 50,
+      overrideAccess: true,
+    });
+
+    if (periods.docs.length === 0) {
+      return NextResponse.json({
+        periods: [],
+        periodId: null,
+        sources: [],
+        activities: [],
+        pagination: { page: 1, limit: limitParam, totalDocs: 0, totalPages: 0 },
+        canEdit: false,
+        message:
+          "No reporting period. Create one under Metrics before managing activity records.",
+      });
+    }
+
+    const period =
+      (requestedPeriodId ? periods.docs.find((p) => p.id === requestedPeriodId) : null) ??
+      periods.docs.find((p) => p.status === "open") ??
+      periods.docs[0];
+
+    if (!period) {
+      return NextResponse.json({ error: "Period not found" }, { status: 404 });
+    }
+
+    const sourcesResult = await payload.find({
+      collection: "scope3-sources",
+      where: { organisation: { equals: ctx.activeOrg.id } },
+      limit: 500,
+      sort: "name",
+      overrideAccess: true,
+    });
+
+    let sourceIdsForCategory: string[] | null = null;
+    if (categoryParam) {
+      sourceIdsForCategory = sourcesResult.docs
+        .filter((s) => s.type === categoryParam)
+        .map((s) => s.id);
+      if (sourceIdsForCategory.length === 0) {
+        const canEdit =
+          ctx.role === "owner" || ctx.role === "admin" || ctx.role === "contributor";
+        return NextResponse.json({
+          periods: periods.docs.map((p) => ({
+            id: p.id,
+            label: p.label,
+            status: p.status,
+            startDate: p.startDate,
+            endDate: p.endDate,
+          })),
+          periodId: period.id,
+          sources: sourcesResult.docs.map((s) => ({
+            id: s.id,
+            name: s.name,
+            type: s.type as Scope3Category,
+            emissionsFactor: asEmissionsFactor(s.emissionsFactor),
+            activityDataFields: asActivityFields(s.activityDataFields),
+          })),
+          activities: [],
+          pagination: {
+            page: pageParam,
+            limit: limitParam,
+            totalDocs: 0,
+            totalPages: 0,
+          },
+          canEdit,
+        });
+      }
+    }
+
+    const whereAnd: Where[] = [
+      { organisation: { equals: ctx.activeOrg.id } },
+      { period: { equals: period.id } },
+    ];
+
+    if (sourceId) {
+      whereAnd.push({ source: { equals: sourceId } });
+    } else if (sourceIdsForCategory) {
+      whereAnd.push({ source: { in: sourceIdsForCategory } });
+    }
+
+    if (statusParam) {
+      whereAnd.push({ status: { equals: statusParam } });
+    }
+
+    const result = await payload.find({
+      collection: "scope3-activities",
+      where: { and: whereAnd },
+      limit: limitParam,
+      page: pageParam,
+      sort: "-updatedAt",
+      depth: 1,
+      overrideAccess: true,
+    });
+
+    const canEdit =
+      ctx.role === "owner" || ctx.role === "admin" || ctx.role === "contributor";
+
+    return NextResponse.json({
+      periods: periods.docs.map((p) => ({
+        id: p.id,
+        label: p.label,
+        status: p.status,
+        startDate: p.startDate,
+        endDate: p.endDate,
+      })),
+      periodId: period.id,
+      sources: sourcesResult.docs.map((s) => ({
+        id: s.id,
+        name: s.name,
+        type: s.type as Scope3Category,
+        emissionsFactor: asEmissionsFactor(s.emissionsFactor),
+        activityDataFields: asActivityFields(s.activityDataFields),
+      })),
+      activities: (result.docs as Scope3Activity[]).map(serializeActivity),
+      pagination: {
+        page: result.page ?? pageParam,
+        limit: limitParam,
+        totalDocs: result.totalDocs,
+        totalPages: result.totalPages,
+      },
+      canEdit,
+    });
+  } catch (error) {
+    if (isNextRedirectError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
@@ -93,7 +283,6 @@ export async function POST(req: Request) {
 
   const payload = await getPayload({ config });
 
-  // Fetch source
   const source = await payload.findByID({
     collection: "scope3-sources",
     id: sourceId,
@@ -117,7 +306,6 @@ export async function POST(req: Request) {
     );
   }
 
-  // Fetch period
   const period = await payload.findByID({
     collection: "reporting-periods",
     id: periodId,
@@ -132,7 +320,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Period not found" }, { status: 404 });
   }
 
-  // Validate and process activities
   const validator = new Scope3Validator();
   const factorService = new EmissionsFactorService({
     factors: [],
@@ -157,11 +344,10 @@ export async function POST(req: Request) {
       continue;
     }
 
-    // Calculate emissions
     const activityValues = Object.values(validation.normalizedData || {});
     if (activityValues.length === 0) continue;
 
-    const activityValue = activityValues.reduce((a, b) => a + b, 0);
+    const activityValue = activityQuantitySum(validation.normalizedData ?? {});
     const emissions = factorService.calculateEmissions(activityValue, emissionsFactor);
 
     if (!dryRun) {

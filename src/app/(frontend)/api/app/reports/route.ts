@@ -248,6 +248,11 @@ export async function POST(req: Request) {
             preparedBy: ctx.user.id,
             preparerNotes: body.preparerNotes ?? draftDoc.preparerNotes ?? undefined,
             versionHistory: history,
+            // Regenerating resets the approval chain to prepare.
+            approvalStep: "prepare",
+            approvalChainStatus: "in_progress",
+            approvedBy: null,
+            approvedAt: null,
           },
           overrideAccess: true,
         });
@@ -296,6 +301,8 @@ export async function POST(req: Request) {
           preparedBy: ctx.user.id,
           preparerNotes: body.preparerNotes ?? undefined,
           versionHistory: [historyEntry],
+          approvalStep: "prepare",
+          approvalChainStatus: "in_progress",
         },
         overrideAccess: true,
       });
@@ -333,6 +340,18 @@ export async function POST(req: Request) {
           ? draftDoc.approvedBy.id
           : null;
 
+    const { readChainState } = await import("@/lib/approvals");
+    const draftChain = draftDoc ? readChainState(draftDoc) : null;
+    if (draftChain?.status === "rejected") {
+      return NextResponse.json(
+        {
+          error:
+            "Draft approval chain was rejected. Return it to prepare and re-approve before publishing.",
+        },
+        { status: 409 },
+      );
+    }
+
     const snapshot = await buildReportSnapshot({
       organisationId: ctx.activeOrg!.id,
       periodId,
@@ -365,6 +384,11 @@ export async function POST(req: Request) {
       changeSummary: diff,
     };
 
+    const priorApprovalHistory = Array.isArray(draftDoc?.approvalHistory)
+      ? draftDoc.approvalHistory
+      : [];
+    const lockFromStep = draftChain?.step ?? "approve";
+
     const report = await payload.create({
       collection: "reports",
       data: {
@@ -394,6 +418,22 @@ export async function POST(req: Request) {
         preparerNotes: body.preparerNotes ?? draftDoc?.preparerNotes ?? undefined,
         lockedAt: now,
         versionHistory: [...(draftDoc?.versionHistory ?? []), historyEntry],
+        approvalStep: "lock",
+        approvalChainStatus: "locked",
+        approvalHistory: [
+          ...priorApprovalHistory,
+          {
+            fromStep: lockFromStep === "lock" ? "approve" : lockFromStep,
+            toStep: "lock",
+            action: "advance",
+            at: now,
+            actor: ctx.user.id,
+            note:
+              lockFromStep === "approve"
+                ? "Published — chain locked"
+                : `Published from ${lockFromStep} — chain locked`,
+          },
+        ],
       },
       overrideAccess: true,
     });

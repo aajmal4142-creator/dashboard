@@ -53,6 +53,22 @@ export function detectReportDataGaps(input: {
     }
   }
 
+  const market = input.calc.emissions.scope2Methods?.marketBased;
+  if (
+    market &&
+    market.quality === "missing" &&
+    input.calc.emissions.scope2.quality !== "missing"
+  ) {
+    gaps.push({
+      code: "scope2_market_missing",
+      label: "Scope 2 — market-based",
+      severity: "medium",
+      message:
+        "Market-based Scope 2 is incomplete (residual mix or contractual instruments missing). Location-based figure is available.",
+      scope: "scope2",
+    });
+  }
+
   if (input.calc.dataQualityPct < 50) {
     gaps.push({
       code: "data_quality_low",

@@ -146,11 +146,19 @@ async function scope2IntensityMetric(
     kpi.emissions.scope2,
     org.employeeCount,
   );
+  const marketNote =
+    kpi.emissions.scope2MarketQuality === "missing" ||
+    kpi.emissions.scope2MarketBased === null
+      ? " · S2 mkt incomplete"
+      : ` · S2 mkt ${round2(kpi.emissions.scope2MarketBased)} tCO2e`;
   return {
     kind: "metric",
     value: intensity.value !== null ? round2(intensity.value) : null,
     unit: intensity.unit,
-    label: intensity.value === null ? (intensity.explanation ?? undefined) : undefined,
+    label:
+      intensity.value === null
+        ? (intensity.explanation ?? undefined)
+        : `Location-based${marketNote}`,
   };
 }
 

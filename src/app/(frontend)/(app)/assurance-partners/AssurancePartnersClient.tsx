@@ -127,9 +127,14 @@ export function AssurancePartnersClient() {
       title="Partner directory"
       help="Curated ESG assurance firms for orientation only. ClearESG does not provide assurance. Contacts are directory demo placeholders — use the firm website for engagement."
       actions={
-        <Button asChild variant="secondary" size="sm">
-          <Link href="/assurance">Assurance Room</Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/assurance/engagements">Assurance pathways</Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/assurance">Assurance Room</Link>
+          </Button>
+        </div>
       }
       rail={
         <div className="space-y-4 text-[13px] text-ink-muted">

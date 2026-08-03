@@ -54,8 +54,29 @@ export const FAQ_ITEMS: readonly FaqItem[] = [
     id: "assurance",
     question: "Does ClearESG provide assurance?",
     answer:
-      "No. ClearESG is not an assurance provider. Browse assurance partners from Reports or the Assurance nav item when you need an opinion.",
-    tags: ["assurance", "reports"],
+      "No. ClearESG is not an assurance provider. From Assurance or Reports you can download an evidence pack (emissions, factors, gaps, lineage pointers) for your auditor. Browse assurance partners when you need an opinion.",
+    tags: ["assurance", "reports", "evidence"],
+  },
+  {
+    id: "evidence-pack",
+    question: "What is the evidence pack download?",
+    answer:
+      "One-click ZIP of PDF + CSV for board or assurance hand-off: Scope 1/2/3 (dual Scope 2 when present), missing-data register, pinned factor versions, evidence IDs/links, and approval/lock summary. It is not an audience report pack and not an audit opinion.",
+    tags: ["assurance", "evidence", "export"],
+  },
+  {
+    id: "email-import",
+    question: "How do suppliers or site managers email data in?",
+    answer:
+      "Open Integrations → Email import. Create a form, set it active, enable inbound, and whitelist senders. Share the inbound address (import+TOKEN@…) and ask them to put [ClearESG:TOKEN] in the subject with a CSV attachment (metricKey,value,unit,quality). Non-whitelisted mail is rejected. Dry-run from the same page before applying.",
+    tags: ["email", "import", "suppliers", "csv"],
+  },
+  {
+    id: "multi-entity-consolidation",
+    question: "How do I consolidate subsidiary emissions?",
+    answer:
+      "Under Settings → Org hierarchy, set an explicit consolidation parent, method (full / proportional / equity), and ownership %. On Reports, turn on Include subsidiaries. Totals sum measured entities only — missing subsidiaries are listed with quality missing, never rolled up as silent zeros. Single-entity orgs are unchanged when the toggle is off.",
+    tags: ["reports", "consolidation", "subsidiaries", "hierarchy"],
   },
 ] as const;
 

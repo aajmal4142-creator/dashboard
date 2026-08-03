@@ -10,6 +10,7 @@ export type FrameworkId =
   | "CSRD_SET1"
   | "CSRD_SIMPLIFIED"
   | "BRSR"
+  | "SECR"
   | "VSME"
   | "GRI"
   | "ISSB_S1"

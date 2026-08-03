@@ -17,3 +17,42 @@ export {
   resolveMetricGrade,
 } from "./coverage";
 export { FRAMEWORK_DISPLAY, FRAMEWORK_SELECT_OPTIONS } from "./options";
+export {
+  BRSR_DISCLOSURES,
+  BRSR_PRINCIPLES,
+  brsrCatalogAsFrameworkMappings,
+  computeBrsrCoverage,
+} from "./brsr";
+export type {
+  BrsrCoverageResult,
+  BrsrDatapointInput,
+  BrsrDisclosureStatus,
+  BrsrLevelSummary,
+} from "./brsr";
+export {
+  CALIFORNIA_DISCLOSURES,
+  CALIFORNIA_SECTIONS,
+  SB253_DISCLOSURES,
+  SB261_DISCLOSURES,
+  computeCaliforniaCoverage,
+  defaultScope3Required,
+} from "./california";
+export type {
+  CaliforniaCoverageResult,
+  CaliforniaDatapointInput,
+  CaliforniaDisclosureStatus,
+  CaliforniaLaw,
+  CaliforniaLawSummary,
+} from "./california";
+export {
+  SFDR_INDICATORS,
+  SFDR_SECTIONS,
+  computeSfdrCoverage,
+  sfdrMandatoryIndicators,
+} from "./sfdr";
+export type {
+  SfdrCoverageResult,
+  SfdrDatapointInput,
+  SfdrIndicatorStatus,
+  SfdrSummary,
+} from "./sfdr";

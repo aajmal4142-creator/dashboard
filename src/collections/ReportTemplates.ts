@@ -53,10 +53,15 @@ export const ReportTemplates: CollectionConfig = {
         { label: "Manufacturing", value: "manufacturing" },
         { label: "Finance", value: "finance" },
         { label: "Retail", value: "retail" },
+        { label: "Services", value: "services" },
+        { label: "Logistics", value: "logistics" },
+        { label: "Energy", value: "energy" },
       ],
       admin: {
-        description: "Industry starter tag for compliance templates",
-        condition: (_, siblingData) => siblingData?.purpose === "compliance",
+        description:
+          "Industry starter tag for compliance templates and marketplace packs (F33)",
+        condition: (_, siblingData) =>
+          siblingData?.purpose === "compliance" || siblingData?.purpose === "report",
       },
     },
     {

@@ -1,5 +1,6 @@
 "use client";
 
+import { EvidencePackDownloadButton } from "@/components/assurance/EvidencePackDownloadButton";
 import { PageFrame } from "@/components/shell/PageFrame";
 import { Metric } from "@/components/ui/metric";
 import type { FigureLineage, FreshnessResult } from "@/lib/assurance";
@@ -21,6 +22,8 @@ export function AssuranceRoomView({
   versionLabel,
   readOnlyToken,
   sharePath,
+  reportId,
+  periodId,
 }: {
   snapshot: ReportSnapshot;
   figures: AssuranceFigure[];
@@ -29,6 +32,8 @@ export function AssuranceRoomView({
   readOnlyToken?: boolean;
   /** Internal dashboard: path to the public Assurance Room link. */
   sharePath?: string | null;
+  reportId?: string | null;
+  periodId?: string | null;
 }) {
   const body = (
     <AssuranceBody
@@ -36,6 +41,9 @@ export function AssuranceRoomView({
       figures={figures}
       versionLabel={versionLabel}
       sharePath={sharePath}
+      reportId={reportId}
+      periodId={periodId}
+      showDownload={!readOnlyToken}
     />
   );
 
@@ -61,7 +69,15 @@ export function AssuranceRoomView({
     <PageFrame
       eyebrow="Assurance"
       title="Assurance Room"
-      help="Read-only figure lineage for the latest published version. Factors are pinned at publish — never the live registry."
+      help="Read-only figure lineage for the latest published version. Factors are pinned at publish — never the live registry. Download an evidence pack for board or auditor hand-off."
+      actions={
+        <a
+          href="/assurance/engagements"
+          className="editorial-link text-[13px] text-accent"
+        >
+          Assurance pathways
+        </a>
+      }
     >
       {body}
     </PageFrame>
@@ -73,33 +89,44 @@ function AssuranceBody({
   figures,
   versionLabel,
   sharePath,
+  reportId,
+  periodId,
+  showDownload,
 }: {
   snapshot: ReportSnapshot;
   figures: AssuranceFigure[];
   versionLabel: string;
   sharePath?: string | null;
+  reportId?: string | null;
+  periodId?: string | null;
+  showDownload?: boolean;
 }) {
   return (
     <div className="space-y-4">
-      <p className="text-[13px] text-ink-muted">
-        Published snapshot {versionLabel}. Overall{" "}
-        <Metric value={snapshot.scores.overall} size="sm" animate={false} /> ·{" "}
-        <span className="font-data">{snapshot.factorsUsed.length}</span> pinned factors.
-        {sharePath ? (
-          <>
-            {" "}
-            ·{" "}
-            <a
-              className="font-medium text-accent underline-offset-2 hover:underline"
-              href={sharePath}
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open auditor link
-            </a>
-          </>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <p className="text-[13px] text-ink-muted">
+          Published snapshot {versionLabel}. Overall{" "}
+          <Metric value={snapshot.scores.overall} size="sm" animate={false} /> ·{" "}
+          <span className="font-data">{snapshot.factorsUsed.length}</span> pinned factors.
+          {sharePath ? (
+            <>
+              {" "}
+              ·{" "}
+              <a
+                className="font-medium text-accent underline-offset-2 hover:underline"
+                href={sharePath}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Open auditor link
+              </a>
+            </>
+          ) : null}
+        </p>
+        {showDownload ? (
+          <EvidencePackDownloadButton reportId={reportId} periodId={periodId} />
         ) : null}
-      </p>
+      </div>
 
       <section className="rounded-[6px] border border-rule bg-surface-1 p-4 md:p-5">
         <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">

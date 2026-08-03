@@ -63,6 +63,7 @@ export const MetricDefinitions: CollectionConfig = {
             { label: "CSRD Set 1", value: "CSRD_SET1" },
             { label: "CSRD Simplified", value: "CSRD_SIMPLIFIED" },
             { label: "BRSR", value: "BRSR" },
+            { label: "UK SECR", value: "SECR" },
             { label: "VSME", value: "VSME" },
             { label: "GRI", value: "GRI" },
             { label: "ISSB S1", value: "ISSB_S1" },

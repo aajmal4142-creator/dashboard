@@ -4,6 +4,7 @@ export const NOTIFICATION_TYPES = [
   "audit_complete",
   "alert_triggered",
   "supplier_response",
+  "request_escalated",
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

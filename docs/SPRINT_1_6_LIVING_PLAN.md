@@ -225,42 +225,7 @@ Status legend: `pending` | `in_progress` | `done` | `blocked` | `skipped_verifie
 | 2026-07-31 | F24b                | Done — hi catalog + hi-IN formats; Settings en↔hi; Users.language hi; Vitest resolveLocale/t Hindi                                                                   |
 | 2026-07-31 | F25                 | Done — TourProvider + HelpCenter (shortcuts/tours/FAQ); pathname tips; localStorage completions; no new deps                                                         |
 | 2026-07-31 | Sprint 6 gate       | `pnpm build` pass — orchestration complete                                                                                                                           |
-| 2026-07-31 | E2E QA on :3010     | Restarted stale `next start`; full route/API/UI matrix below                                                                                                         |
 | 2026-07-31 | Deferred gap-fill   | Search perf (no cache); saved searches; live dashboard widgets; custom metrics in snapshot; alert+automation crons; email open pixel; i18n palette/alerts/dashboards |
-
----
-
-## E2E QA — localhost:3010 (2026-07-31)
-
-**Precondition fix:** Process on 3010 was an old `next start` (started ~08:28) so new routes 404’d and some pages 500’d. **Restarted** `PORT=3010 pnpm start` against the latest `.next`. Session (Clerk) survived.
-
-| Area                                                                                                                                    | Result      | Notes                                                                  |
-| --------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------- |
-| Session / Runway home                                                                                                                   | **pass**    | Owner, My organisation                                                 |
-| Theme toggle                                                                                                                            | **pass**    | Dark mode applied; sun/moon control                                    |
-| Notifications bell                                                                                                                      | **pass**    | Empty state “No notifications yet”                                     |
-| Help Center                                                                                                                             | **pass**    | Shortcuts / Tours / FAQ tabs + context tips                            |
-| `/data` Metrics                                                                                                                         | **pass**    | Grid, Check rules, Versions/Lineage links, Bulk CSV update             |
-| Lineage panel                                                                                                                           | **pass**    | Opens; JSON/SVG/Print controls present                                 |
-| `/activity`                                                                                                                             | **pass**    | Filters + live poll; activities listed (API total 11)                  |
-| `/dashboards`                                                                                                                           | **pass**    | Empty + “Create Executive view” / New blank                            |
-| `/alerts`                                                                                                                               | **pass**    | Summary counters + New rule / Evaluate now                             |
-| `/automations`                                                                                                                          | **pass**    | Empty + New automation + recent runs                                   |
-| `/settings` Language                                                                                                                    | **pass**    | en↔hi save; nav translated to Hindi; restored to `en` via API          |
-| BI quota UI                                                                                                                             | **pass**    | Shows consultant unlimited (F15)                                       |
-| `/reports`                                                                                                                              | **pass**    | PDF/JSON/XML/CSV/Excel links; Schedule modal opens                     |
-| Export APIs                                                                                                                             | **pass**    | json/xlsx/pdf all HTTP 200 for published report                        |
-| `/analytics/compare`                                                                                                                    | **pass**    | Page 200; presets API has yoy/dept/supplier/multi                      |
-| `/integrations/slack`                                                                                                                   | **pass***   | Page 200; API `configured:false` (needs SLACK_* secrets)               |
-| `/integrations/webhooks`                                                                                                                | **pass**    | Page 200                                                               |
-| `/settings/validation-rules`                                                                                                            | **pass**    | Page 200                                                               |
-| `/settings/custom-metrics`                                                                                                              | **pass**    | Page 200                                                               |
-| Legacy pages (suppliers, billing, assurance, guide, benchmarks, TCFD, ISSB, frameworks, IoT, database, spend, materiality, calendar, …) | **pass**    | All probed routes HTTP 200 after restart                               |
-| Search API                                                                                                                              | **warn**    | Works but `tookMs` ~1.4s (above 200ms target)                          |
-| CRUD create (dashboard/alert/automation/rule via API)                                                                                   | **skipped** | Write batch blocked/rejected in browser safety gate                    |
-| Lineage Download JSON/SVG                                                                                                               | **warn**    | Buttons present but disabled during/after open (possible loading race) |
-
-**Living plan:** `docs/SPRINT_1_6_LIVING_PLAN.md`
 
 ---
 

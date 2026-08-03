@@ -5,6 +5,7 @@ import {
   computeScope1,
   computeScope2,
   computeScope3,
+  type Scope2Computation,
   type ScopeComputation,
 } from "./emissions";
 import {
@@ -71,23 +72,30 @@ function scopeBreakdown(
   });
 }
 
-function collectFactorsUsed(scopes: ScopeComputation[]): FactorUsage[] {
+function collectFactorsUsed(
+  scopes: ScopeComputation[],
+  scope2?: Scope2Computation,
+): FactorUsage[] {
   const seen = new Map<string, FactorUsage>();
-  for (const scope of scopes) {
-    for (const component of scope.components) {
-      const { factor } = component;
-      if (factor.id === "direct-supplier-reported") continue;
-      if (!seen.has(factor.id)) {
-        seen.set(factor.id, {
-          factorId: factor.id,
-          key: factor.key,
-          value: factor.value,
-          source: factor.source,
-          year: factor.publicationYear,
-          standard: factor.standard,
-        });
-      }
+  const push = (component: { factor: FactorRecord }) => {
+    const { factor } = component;
+    if (factor.id === "direct-supplier-reported") return;
+    if (!seen.has(factor.id)) {
+      seen.set(factor.id, {
+        factorId: factor.id,
+        key: factor.key,
+        value: factor.value,
+        source: factor.source,
+        year: factor.publicationYear,
+        standard: factor.standard,
+      });
     }
+  };
+  for (const scope of scopes) {
+    for (const component of scope.components) push(component);
+  }
+  if (scope2) {
+    for (const component of scope2.marketComponents) push(component);
   }
   return Array.from(seen.values());
 }
@@ -115,9 +123,17 @@ export function calculate(input: CalcInput, factors: FactorRecord[]): CalcResult
   const { region, year } = context;
 
   const scope1 = computeScope1(metrics, factors, region, year);
-  const scope2 = computeScope2(metrics, factors, region, year);
+  const scope2 = computeScope2(
+    metrics,
+    factors,
+    region,
+    year,
+    context.scope2Instruments ?? [],
+  );
   const scope3 = computeScope3(metrics, factors, region, year);
-  const total = totalOf(scope1.measured, scope2.measured, scope3.measured);
+  // Inventory total uses location-based Scope 2 (GHG Protocol dual reporting
+  // keeps market-based as a parallel disclosure, not a substitute total).
+  const total = totalOf(scope1.measured, scope2.locationBased, scope3.measured);
 
   const employees =
     valueOf(metrics, SCORE_METRIC_KEYS.employeesTotal) ?? context.employees ?? 0;
@@ -151,9 +167,20 @@ export function calculate(input: CalcInput, factors: FactorRecord[]): CalcResult
   const overall = computeOverall(eResult.score, sResult.score, gResult.score);
   const band = bandOf(overall);
 
+  const marketBreakdown: BreakdownItem[] = scope2.marketComponents.map((c) => {
+    const totalM = scope2.marketComponents.reduce((sum, x) => sum + x.valueTco2e, 0);
+    const pct = totalM > 0 ? (c.valueTco2e / totalM) * 100 : 0;
+    return {
+      component: `scope2_market_${c.key}`,
+      contribution: round2(c.valueTco2e),
+      explanation: `Market-based ${c.label} contributed ${round2(c.valueTco2e)} tCO2e (${round2(pct)}% of Scope 2 market-based).`,
+    };
+  });
+
   const breakdown: BreakdownItem[] = [
     ...scopeBreakdown(scope1, 1),
     ...scopeBreakdown(scope2, 2),
+    ...marketBreakdown,
     ...scopeBreakdown(scope3, 3),
     ...eResult.breakdown,
     ...sResult.breakdown,
@@ -164,12 +191,16 @@ export function calculate(input: CalcInput, factors: FactorRecord[]): CalcResult
     scores: { overall, e: eResult.score, s: sResult.score, g: gResult.score },
     emissions: {
       scope1: scope1.measured,
-      scope2: scope2.measured,
+      scope2: scope2.locationBased,
+      scope2Methods: {
+        locationBased: scope2.locationBased,
+        marketBased: scope2.marketBased,
+      },
       scope3: scope3.measured,
       total,
     },
     dataQualityPct: computeDataQualityPct(metrics),
-    factorsUsed: collectFactorsUsed([scope1, scope2, scope3]),
+    factorsUsed: collectFactorsUsed([scope1, scope2, scope3], scope2),
     breakdown,
     band,
   };

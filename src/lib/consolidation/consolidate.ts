@@ -56,12 +56,23 @@ export type ConsolidatedCategoryRow = {
   emissions: number;
 };
 
+/** Roll-up quality: missing never coerced into silent zeros. */
+export type ConsolidationQuality = "measured" | "partial" | "missing";
+
 export type ConsolidationResult = {
   parentOrganisationId: string;
   parentOrganisationName: string;
   period: string;
-  total: number;
-  byScope: { scope1: number; scope2: number; scope3: number };
+  /**
+   * Sum of measured orgs only (ownership-scaled).
+   * Null when quality is `missing` — never a silent zero roll-up.
+   */
+  total: number | null;
+  byScope: {
+    scope1: number | null;
+    scope2: number | null;
+    scope3: number | null;
+  };
   byOrg: ConsolidatedOrgRow[];
   byCategory: ConsolidatedCategoryRow[];
   /** Subsidiaries with no calculable emissions for the period. */
@@ -73,6 +84,11 @@ export type ConsolidationResult = {
   /** Distinct methods used on included subsidiaries (for report footer). */
   methodsUsed: ConsolidationMethod[];
   warnings: string[];
+  quality: ConsolidationQuality;
+  measuredOrgCount: number;
+  missingOrgCount: number;
+  /** Human-readable quality note for UI / footer. */
+  qualityMessage: string | null;
 };
 
 export type HierarchyTreeNode = {
@@ -236,8 +252,93 @@ function depthFromRoot(orgs: HierarchyOrg[], rootId: string, orgId: string): num
 }
 
 /**
+ * Derive roll-up quality from measured vs missing org rows.
+ * Missing never treated as zero in the aggregate.
+ */
+export function deriveConsolidationQuality(args: {
+  measuredOrgCount: number;
+  missingOrgCount: number;
+  orgCount: number;
+}): { quality: ConsolidationQuality; qualityMessage: string | null } {
+  const { measuredOrgCount, missingOrgCount, orgCount } = args;
+  if (orgCount === 0) {
+    return {
+      quality: "missing",
+      qualityMessage: "No organisations in the consolidation set.",
+    };
+  }
+  if (measuredOrgCount === 0) {
+    return {
+      quality: "missing",
+      qualityMessage:
+        "No measured emissions in the roll-up — missing subsidiaries are not treated as zero.",
+    };
+  }
+  if (missingOrgCount > 0) {
+    return {
+      quality: "partial",
+      qualityMessage: `${missingOrgCount} of ${orgCount} organisations missing emissions; total sums measured entities only.`,
+    };
+  }
+  return { quality: "measured", qualityMessage: null };
+}
+
+/**
+ * Recompute aggregate totals from byOrg rows (Membership filter / post-process).
+ * Sums measured only; missing propagates as quality. Leaves byCategory when partial/measured
+ * (caller already scoped emissions); clears it when quality is missing.
+ */
+export function recomputeConsolidationAggregates(
+  result: ConsolidationResult,
+): ConsolidationResult {
+  let scope1 = 0;
+  let scope2 = 0;
+  let scope3 = 0;
+  let measuredOrgCount = 0;
+  let missingOrgCount = 0;
+  const methodsUsed = new Set<ConsolidationMethod>();
+
+  for (const row of result.byOrg) {
+    if (row.depth > 0) methodsUsed.add(row.consolidationMethod);
+    if (!row.hasData) {
+      missingOrgCount += 1;
+      continue;
+    }
+    measuredOrgCount += 1;
+    scope1 += row.consolidated.scope1;
+    scope2 += row.consolidated.scope2;
+    scope3 += row.consolidated.scope3;
+  }
+
+  const { quality, qualityMessage } = deriveConsolidationQuality({
+    measuredOrgCount,
+    missingOrgCount,
+    orgCount: result.byOrg.length,
+  });
+
+  const totalsNull = quality === "missing";
+
+  return {
+    ...result,
+    total: totalsNull ? null : scope1 + scope2 + scope3,
+    byScope: {
+      scope1: totalsNull ? null : scope1,
+      scope2: totalsNull ? null : scope2,
+      scope3: totalsNull ? null : scope3,
+    },
+    byCategory: totalsNull ? [] : result.byCategory,
+    methodsUsed: [...methodsUsed],
+    quality,
+    measuredOrgCount,
+    missingOrgCount,
+    qualityMessage,
+  };
+}
+
+/**
  * Consolidate emissions for a parent and all explicitly linked descendants.
- * Parent own emissions always included at 100%. Children scaled by path factor.
+ * Parent own emissions included at 100% when measured. Children scaled by path factor.
+ * Missing orgs are listed but never summed as zero — quality propagates.
  * Orgs without Membership should be filtered out by the caller before calling.
  */
 export function consolidateEmissions(input: {
@@ -262,6 +363,8 @@ export function consolidateEmissions(input: {
   let scope1 = 0;
   let scope2 = 0;
   let scope3 = 0;
+  let measuredOrgCount = 0;
+  let missingOrgCount = 0;
 
   for (const org of included) {
     const factor = pathOwnershipFactor(orgs, parentId, org.id);
@@ -270,7 +373,7 @@ export function consolidateEmissions(input: {
     const rawScope2 = slice?.scope2 ?? 0;
     const rawScope3 = slice?.scope3 ?? 0;
     const rawTotal = rawScope1 + rawScope2 + rawScope3;
-    const hasData = Boolean(slice?.hasData && rawTotal > 0);
+    const hasData = Boolean(slice?.hasData);
 
     if (org.id !== parentId) {
       methodsUsed.add(org.consolidationMethod);
@@ -281,19 +384,28 @@ export function consolidateEmissions(input: {
           reason: "No calculable emissions for this period",
         });
         warnings.push(
-          `${org.name} has no data for ${period} and cannot contribute to consolidation.`,
+          `${org.name} has no data for ${period} — excluded from the measured total (not treated as zero).`,
         );
       }
+    } else if (!hasData) {
+      warnings.push(
+        `${org.name} (parent) has no data for ${period} — excluded from the measured total (not treated as zero).`,
+      );
     }
 
-    const cScope1 = rawScope1 * factor;
-    const cScope2 = rawScope2 * factor;
-    const cScope3 = rawScope3 * factor;
+    const cScope1 = hasData ? rawScope1 * factor : 0;
+    const cScope2 = hasData ? rawScope2 * factor : 0;
+    const cScope3 = hasData ? rawScope3 * factor : 0;
     const cTotal = cScope1 + cScope2 + cScope3;
 
-    scope1 += cScope1;
-    scope2 += cScope2;
-    scope3 += cScope3;
+    if (hasData) {
+      measuredOrgCount += 1;
+      scope1 += cScope1;
+      scope2 += cScope2;
+      scope3 += cScope3;
+    } else {
+      missingOrgCount += 1;
+    }
 
     byOrg.push({
       organisationId: org.id,
@@ -318,13 +430,15 @@ export function consolidateEmissions(input: {
       hasData,
     });
 
+    if (!hasData) continue;
+
     const cats = slice?.byCategory ?? [];
     for (const row of cats) {
       const key = row.category || "uncategorised";
       categoryMap.set(key, (categoryMap.get(key) ?? 0) + row.emissions * factor);
     }
     // If no category rows but scopes exist, synthesise scope buckets
-    if (cats.length === 0 && hasData) {
+    if (cats.length === 0) {
       if (rawScope1 > 0) {
         categoryMap.set(
           "Scope 1",
@@ -353,17 +467,33 @@ export function consolidateEmissions(input: {
     }))
     .sort((a, b) => b.emissions - a.emissions);
 
+  const { quality, qualityMessage } = deriveConsolidationQuality({
+    measuredOrgCount,
+    missingOrgCount,
+    orgCount: included.length,
+  });
+
+  const totalsNull = quality === "missing";
+
   return {
     parentOrganisationId: parentId,
     parentOrganisationName: parentName,
     period,
-    total: scope1 + scope2 + scope3,
-    byScope: { scope1, scope2, scope3 },
+    total: totalsNull ? null : scope1 + scope2 + scope3,
+    byScope: {
+      scope1: totalsNull ? null : scope1,
+      scope2: totalsNull ? null : scope2,
+      scope3: totalsNull ? null : scope3,
+    },
     byOrg,
-    byCategory,
+    byCategory: totalsNull ? [] : byCategory,
     unconsolidatedChildList,
     methodsUsed: [...methodsUsed],
     warnings,
+    quality,
+    measuredOrgCount,
+    missingOrgCount,
+    qualityMessage,
   };
 }
 
@@ -489,10 +619,23 @@ export function consolidatedReportToCsv(result: ConsolidationResult): string {
 
   lines.push("");
   lines.push(
-    `total,${result.total},period,${esc(result.period)},methods,${esc(
-      result.methodsUsed.map((m) => CONSOLIDATION_METHOD_LABELS[m]).join("; ") ||
-        "Parent only",
-    )}`,
+    [
+      "total",
+      result.total ?? "",
+      "quality",
+      result.quality,
+      "measured_orgs",
+      result.measuredOrgCount,
+      "missing_orgs",
+      result.missingOrgCount,
+      "period",
+      esc(result.period),
+      "methods",
+      esc(
+        result.methodsUsed.map((m) => CONSOLIDATION_METHOD_LABELS[m]).join("; ") ||
+          "Parent only",
+      ),
+    ].join(","),
   );
 
   return `${lines.join("\n")}\n`;
@@ -503,5 +646,10 @@ export function formatConsolidationFooter(result: ConsolidationResult): string {
     result.methodsUsed.length > 0
       ? result.methodsUsed.map((m) => CONSOLIDATION_METHOD_LABELS[m]).join("; ")
       : "Parent only (no subsidiaries)";
-  return `Consolidation method(s): ${methods}. Ownership applied along the hierarchy path. Subsidiaries without data are listed but contribute zero.`;
+  const qualityNote =
+    result.qualityMessage ??
+    (result.quality === "measured"
+      ? "All entities in the roll-up have measured emissions."
+      : "");
+  return `Consolidation method(s): ${methods}. Ownership applied along the hierarchy path. Quality: ${result.quality}. ${qualityNote}`.trim();
 }

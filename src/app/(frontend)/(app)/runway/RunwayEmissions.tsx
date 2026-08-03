@@ -8,6 +8,8 @@ type RunwayEmissionsProps = {
   totalEmissions: number;
   scope1: number;
   scope2: number;
+  scope2MarketBased: number | null;
+  scope2MarketQuality: "measured" | "calculated" | "estimated" | "missing" | null;
   scope3: number;
   s1Pct: number;
   s2Pct: number;
@@ -20,6 +22,8 @@ export function RunwayEmissions({
   totalEmissions,
   scope1,
   scope2,
+  scope2MarketBased,
+  scope2MarketQuality,
   scope3,
   s1Pct,
   s2Pct,
@@ -118,6 +122,31 @@ export function RunwayEmissions({
               </div>
             ))}
           </div>
+          <p className="mt-4 text-xs text-ink-muted">
+            Scope 2 dual · loc{" "}
+            <span className="font-data text-ink">
+              {scope2.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+            </span>
+            {" · mkt "}
+            {scope2MarketBased !== null ? (
+              <span
+                className={
+                  scope2MarketQuality === "missing"
+                    ? "font-data text-ink-muted"
+                    : "font-data text-ink"
+                }
+              >
+                {scope2MarketBased.toLocaleString(undefined, {
+                  maximumFractionDigits: 1,
+                })}
+              </span>
+            ) : (
+              <span className="font-data text-ink-muted">—</span>
+            )}
+            {scope2MarketQuality === "missing" ? (
+              <span> (residual / instruments incomplete)</span>
+            ) : null}
+          </p>
           {hasScope3Composition ? (
             <p className="mt-4 text-xs text-ink-muted">
               <Metric

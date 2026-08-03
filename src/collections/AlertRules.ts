@@ -50,6 +50,7 @@ export const AlertRules: CollectionConfig = {
         { label: "In-app notification", value: "notify_user" },
         { label: "Email", value: "send_email" },
         { label: "Slack", value: "post_slack" },
+        { label: "Teams", value: "post_teams" },
       ],
     },
     {

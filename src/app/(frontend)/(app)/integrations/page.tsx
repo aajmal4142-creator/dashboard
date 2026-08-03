@@ -129,6 +129,48 @@ export default function IntegrationsPage() {
       </div>
 
       <div className="panel p-6">
+        <h2 className="text-lg font-semibold text-ink">Microsoft Teams</h2>
+        <p className="mt-2 mb-4 text-sm text-ink-muted">
+          Post alert thresholds into a Teams channel via Incoming Webhook URL. No Graph or
+          Bot Framework fees. Webhook encrypted at rest.
+        </p>
+        <Link
+          href="/integrations/teams"
+          className="inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover"
+        >
+          Configure Teams
+        </Link>
+      </div>
+
+      <div className="panel p-6">
+        <h2 className="text-lg font-semibold text-ink">Jira / Linear</h2>
+        <p className="mt-2 mb-4 text-sm text-ink-muted">
+          Push internal requests and compliance obligations to Jira or Linear with your
+          own API token. Encrypted at rest. No marketplace apps.
+        </p>
+        <Link
+          href="/integrations/work-trackers"
+          className="inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover"
+        >
+          Configure work trackers
+        </Link>
+      </div>
+
+      <div className="panel p-6">
+        <h2 className="text-lg font-semibold text-ink">Email data collection</h2>
+        <p className="mt-2 mb-4 text-sm text-ink-muted">
+          Inbound CSV from suppliers and site managers. Configure address, whitelist,
+          dry-run, and review import logs — no AI.
+        </p>
+        <Link
+          href="/integrations/email-import"
+          className="inline-block rounded-md bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-hover"
+        >
+          Open email import
+        </Link>
+      </div>
+
+      <div className="panel p-6">
         <h2 className="text-lg font-semibold text-ink">Accounting Software</h2>
         <p className="mt-2 mb-4 text-sm text-ink-muted">
           Connect QuickBooks, Xero, or Wave for automated spend-based emissions (sandbox

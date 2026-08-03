@@ -46,10 +46,37 @@ export function LivingReportView({ snapshot }: { snapshot: ReportSnapshot }) {
         <p className="label-caps mb-3">Emissions tCO2e</p>
         <div className="flex flex-wrap gap-4 text-ink-muted">
           <Metric value={snapshot.emissions.scope1} unit="S1" size="sm" decimals={2} />
-          <Metric value={snapshot.emissions.scope2} unit="S2" size="sm" decimals={2} />
+          <Metric
+            value={snapshot.emissions.scope2}
+            unit="S2 loc"
+            size="sm"
+            decimals={2}
+          />
+          {typeof snapshot.emissions.scope2MarketBased === "number" ? (
+            <Metric
+              value={snapshot.emissions.scope2MarketBased}
+              unit="S2 mkt"
+              size="sm"
+              decimals={2}
+              tone={
+                snapshot.emissions.scope2MarketQuality === "missing" ? "muted" : undefined
+              }
+            />
+          ) : null}
           <Metric value={snapshot.emissions.scope3} unit="S3" size="sm" decimals={2} />
           <Metric value={snapshot.emissions.total} unit="total" size="sm" decimals={2} />
         </div>
+        {typeof snapshot.emissions.scope2MarketBased === "number" ? (
+          <p className="mt-2 text-xs text-ink-muted">
+            Scope 2 dual reporting — location-based and market-based. District heat,
+            steam, and cooling use the registry location factor in both totals;
+            contractual instruments apply to electricity only
+            {snapshot.emissions.scope2MarketQuality === "missing"
+              ? " (market incomplete: residual mix or instruments missing)"
+              : null}
+            .
+          </p>
+        ) : null}
         {typeof snapshot.emissions.scope3PrimarySharePct === "number" &&
         (snapshot.emissions.scope3PrimaryTco2e ?? 0) +
           (snapshot.emissions.scope3EstimateTco2e ?? 0) >

@@ -94,6 +94,10 @@ export type MachineExportDocument = {
     emissions: {
       scope1: number;
       scope2: number;
+      scope2LocationBased: number;
+      scope2MarketBased: number | null;
+      scope2LocationQuality: string | null;
+      scope2MarketQuality: string | null;
       scope3: number;
       total: number;
       dataQualityPct: number;
@@ -103,6 +107,7 @@ export type MachineExportDocument = {
       scopes: {
         scope1: ScopeBreakdownRow | null;
         scope2: ScopeBreakdownRow | null;
+        scope2Market: ScopeBreakdownRow | null;
         scope3: ScopeBreakdownRow | null;
       };
     };
@@ -163,6 +168,11 @@ export function buildMachineExportDocument(
       emissions: {
         scope1: snapshot.emissions.scope1,
         scope2: snapshot.emissions.scope2,
+        scope2LocationBased:
+          snapshot.emissions.scope2LocationBased ?? snapshot.emissions.scope2,
+        scope2MarketBased: snapshot.emissions.scope2MarketBased ?? null,
+        scope2LocationQuality: snapshot.emissions.scope2LocationQuality ?? null,
+        scope2MarketQuality: snapshot.emissions.scope2MarketQuality ?? null,
         scope3: snapshot.emissions.scope3,
         total: snapshot.emissions.total,
         dataQualityPct: snapshot.emissions.dataQualityPct,
@@ -172,6 +182,7 @@ export function buildMachineExportDocument(
         scopes: {
           scope1: snapshot.scopeBreakdown?.scope1 ?? null,
           scope2: snapshot.scopeBreakdown?.scope2 ?? null,
+          scope2Market: snapshot.scopeBreakdown?.scope2Market ?? null,
           scope3: snapshot.scopeBreakdown?.scope3 ?? null,
         },
       },

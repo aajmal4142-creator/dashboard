@@ -40,6 +40,8 @@ export type RunwayViewProps = {
   overall: number;
   scope1: number;
   scope2: number;
+  scope2MarketBased: number | null;
+  scope2MarketQuality: "measured" | "calculated" | "estimated" | "missing" | null;
   scope3: number;
   s1Pct: number;
   s2Pct: number;

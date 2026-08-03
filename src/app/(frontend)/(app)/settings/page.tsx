@@ -81,6 +81,20 @@ export default async function SettingsPage() {
         <section className="mt-10 border-t border-rule pt-8">
           <div className="max-w-xl">
             <h2 className="font-display text-xl text-ink">
+              {t("settings.facilities.title")}
+            </h2>
+            <div className="title-rule mt-2" />
+            <p className="mt-3 text-sm text-ink-muted">{t("settings.facilities.help")}</p>
+            <p className="mt-4">
+              <a href="/facilities" className="editorial-link text-accent">
+                {t("settings.facilities.link")}
+              </a>
+            </p>
+          </div>
+        </section>
+        <section className="mt-10 border-t border-rule pt-8">
+          <div className="max-w-xl">
+            <h2 className="font-display text-xl text-ink">
               {t("settings.customMetrics.title")}
             </h2>
             <div className="title-rule mt-2" />
@@ -90,6 +104,20 @@ export default async function SettingsPage() {
             <p className="mt-4">
               <a href="/settings/custom-metrics" className="editorial-link text-accent">
                 {t("settings.customMetrics.link")}
+              </a>
+            </p>
+          </div>
+        </section>
+        <section className="mt-10 border-t border-rule pt-8">
+          <div className="max-w-xl">
+            <h2 className="font-display text-xl text-ink">
+              {t("settings.factors.title")}
+            </h2>
+            <div className="title-rule mt-2" />
+            <p className="mt-3 text-sm text-ink-muted">{t("settings.factors.help")}</p>
+            <p className="mt-4">
+              <a href="/settings/factors" className="editorial-link text-accent">
+                {t("settings.factors.link")}
               </a>
             </p>
           </div>
@@ -122,6 +150,18 @@ export default async function SettingsPage() {
             <p className="mt-4">
               <a href="/alerts" className="editorial-link text-accent">
                 {t("settings.alertThresholds.link")}
+              </a>
+            </p>
+          </div>
+        </section>
+        <section className="mt-10 border-t border-rule pt-8">
+          <div className="max-w-xl">
+            <h2 className="font-display text-xl text-ink">{t("settings.trust.title")}</h2>
+            <div className="title-rule mt-2" />
+            <p className="mt-3 text-sm text-ink-muted">{t("settings.trust.help")}</p>
+            <p className="mt-4">
+              <a href="/trust" className="editorial-link text-accent">
+                {t("settings.trust.link")}
               </a>
             </p>
           </div>

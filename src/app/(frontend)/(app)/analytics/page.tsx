@@ -115,6 +115,13 @@ export default function AnalyticsPage() {
             >
               Comparison tools
             </Link>
+            . For cost-ranked abatement levers, open{" "}
+            <Link
+              href="/analytics/macc"
+              className="font-medium text-accent underline-offset-2 hover:underline"
+            >
+              MACC / abatement ROI
+            </Link>
             .
           </AlertDescription>
         </Alert>

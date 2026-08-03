@@ -40,6 +40,11 @@ export const Reports: CollectionConfig = {
           "approvedAt",
           "preparerNotes",
           "versionHistory",
+          "approvalStep",
+          "approvalChainStatus",
+          "approvalHistory",
+          "approvalAssigneeRole",
+          "approvalAssigneeUser",
         ] as const;
 
         // Payload may include unchanged locked fields on update. Reject only when
@@ -99,8 +104,113 @@ export const Reports: CollectionConfig = {
       ],
       index: true,
       admin: {
-        description: "Draft is regenerable. Published is final and immutable.",
+        description:
+          "Draft is regenerable. Published is final and immutable (chain lock).",
       },
+    },
+    {
+      name: "approvalStep",
+      type: "select",
+      defaultValue: "prepare",
+      index: true,
+      options: [
+        { label: "Prepare", value: "prepare" },
+        { label: "Review", value: "review" },
+        { label: "Approve", value: "approve" },
+        { label: "Lock", value: "lock" },
+      ],
+      admin: {
+        description: "Publish path: prepare → review → approve → lock (published).",
+      },
+    },
+    {
+      name: "approvalChainStatus",
+      type: "select",
+      defaultValue: "in_progress",
+      index: true,
+      options: [
+        { label: "In progress", value: "in_progress" },
+        { label: "Rejected", value: "rejected" },
+        { label: "Locked", value: "locked" },
+      ],
+    },
+    {
+      name: "approvalAssigneeRole",
+      type: "select",
+      options: [
+        { label: "Contributor", value: "contributor" },
+        { label: "Admin", value: "admin" },
+        { label: "Owner", value: "owner" },
+      ],
+    },
+    {
+      name: "approvalAssigneeUser",
+      type: "relationship",
+      relationTo: "users",
+      index: true,
+    },
+    {
+      name: "approvalHistory",
+      type: "array",
+      admin: {
+        description: "Append-only trail of report approval-chain transitions.",
+        readOnly: true,
+      },
+      fields: [
+        {
+          name: "fromStep",
+          type: "select",
+          required: true,
+          options: [
+            { label: "Prepare", value: "prepare" },
+            { label: "Review", value: "review" },
+            { label: "Approve", value: "approve" },
+            { label: "Lock", value: "lock" },
+          ],
+        },
+        {
+          name: "toStep",
+          type: "select",
+          required: true,
+          options: [
+            { label: "Prepare", value: "prepare" },
+            { label: "Review", value: "review" },
+            { label: "Approve", value: "approve" },
+            { label: "Lock", value: "lock" },
+          ],
+        },
+        {
+          name: "action",
+          type: "select",
+          required: true,
+          options: [
+            { label: "Advance", value: "advance" },
+            { label: "Reject", value: "reject" },
+            { label: "Return", value: "return" },
+          ],
+        },
+        { name: "at", type: "date", required: true },
+        {
+          name: "actor",
+          type: "relationship",
+          relationTo: "users",
+        },
+        { name: "note", type: "textarea" },
+        {
+          name: "assigneeRole",
+          type: "select",
+          options: [
+            { label: "Contributor", value: "contributor" },
+            { label: "Admin", value: "admin" },
+            { label: "Owner", value: "owner" },
+          ],
+        },
+        {
+          name: "assigneeUser",
+          type: "relationship",
+          relationTo: "users",
+        },
+      ],
     },
     {
       name: "scores",

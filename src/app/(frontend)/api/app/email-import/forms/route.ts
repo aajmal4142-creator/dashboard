@@ -2,7 +2,12 @@ import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 import { getCurrentContext, isNextRedirectError } from "@/lib/auth";
 import { requirePermission } from "@/lib/policy/protect";
-import { generateInboundToken, normalizeEmailAddress } from "@/lib/emailImport";
+import {
+  buildInboundAddress,
+  buildSubjectTokenHint,
+  generateInboundToken,
+  normalizeEmailAddress,
+} from "@/lib/emailImport";
 import config from "@/payload.config";
 import type { EmailDataCollectionForm } from "@/payload-types";
 
@@ -99,12 +104,16 @@ export async function POST(request: Request) {
       },
     });
 
+    const token = form.inboundToken ?? inboundToken;
+
     return NextResponse.json(
       {
         formId: form.id,
         message: "Email collection form created",
         status: form.status ?? "draft",
-        inboundToken: form.inboundToken ?? inboundToken,
+        inboundToken: token,
+        inboundAddress: buildInboundAddress(token),
+        subjectTokenHint: buildSubjectTokenHint(token),
         inboundEnabled: body.inboundEnabled === true,
       },
       { status: 201 },

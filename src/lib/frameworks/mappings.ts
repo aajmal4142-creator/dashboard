@@ -2,8 +2,11 @@
  * Reviewable framework ↔ metric mappings (Phase 3).
  *
  * Citations are placeholders for counsel — do not treat labels as legal determinations.
- * BRSR rows are stubs only (hooks); depth pending India GTM.
+ * BRSR rows come from the principle Core / Comprehensive catalog.
+ * SECR rows come from the UK SECR Core / Supporting catalog.
  */
+import { brsrCatalogAsFrameworkMappings } from "./brsr/catalog";
+import { secrCatalogAsFrameworkMappings } from "./secr/catalog";
 import type { FrameworkMappingRow } from "./types";
 
 const EFRAG = {
@@ -129,16 +132,10 @@ export const FRAMEWORK_MAPPINGS: FrameworkMappingRow[] = [
     contributionOnly: true,
     metricKeys: ["electricity_kwh", "derived.energy_total_mwh"],
   },
-  // BRSR — stub hooks only (pending).
-  {
-    framework: "BRSR",
-    datapointRef: "BRSR-P6-energy",
-    label: "Energy (BRSR Principle 6 — stub)",
-    required: false,
-    contributionOnly: true,
-    metricKeys: ["electricity_kwh"],
-    note: "BRSR disclosure depth pending — hook only.",
-  },
+  // BRSR — principle Core / Comprehensive beachhead (see lib/frameworks/brsr).
+  ...brsrCatalogAsFrameworkMappings(),
+  // UK SECR — Core / Supporting beachhead (see lib/frameworks/secr).
+  ...secrCatalogAsFrameworkMappings(),
 ];
 
 /** Raw metric keys that contribute to each derived energy figure (for chip resolution). */

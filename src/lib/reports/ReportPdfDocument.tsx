@@ -732,9 +732,28 @@ export function ReportPdfDocument({
             <Text style={styles.colValue}>{scope?.scope1.quality ?? "—"}</Text>
           </View>
           <View style={styles.tableRow}>
-            <Text style={styles.colLabel}>Scope 2 — purchased energy</Text>
-            <Text style={styles.colValue}>{formatTco2e(snapshot.emissions.scope2)}</Text>
-            <Text style={styles.colValue}>{scope?.scope2.quality ?? "—"}</Text>
+            <Text style={styles.colLabel}>Scope 2 — location-based</Text>
+            <Text style={styles.colValue}>
+              {formatTco2e(
+                snapshot.emissions.scope2LocationBased ?? snapshot.emissions.scope2,
+              )}
+            </Text>
+            <Text style={styles.colValue}>
+              {snapshot.emissions.scope2LocationQuality ?? scope?.scope2.quality ?? "—"}
+            </Text>
+          </View>
+          <View style={styles.tableRow}>
+            <Text style={styles.colLabel}>Scope 2 — market-based</Text>
+            <Text style={styles.colValue}>
+              {typeof snapshot.emissions.scope2MarketBased === "number"
+                ? formatTco2e(snapshot.emissions.scope2MarketBased)
+                : "—"}
+            </Text>
+            <Text style={styles.colValue}>
+              {snapshot.emissions.scope2MarketQuality ??
+                scope?.scope2Market?.quality ??
+                "—"}
+            </Text>
           </View>
           <View style={styles.tableRow}>
             <Text style={styles.colLabel}>Scope 3 — value chain</Text>
@@ -761,10 +780,16 @@ export function ReportPdfDocument({
         ) : null}
 
         {scope
-          ? (["scope1", "scope2", "scope3"] as const).map((key, i) => {
+          ? (
+              [
+                ["scope1", "Scope 1"],
+                ["scope2", "Scope 2 (location-based)"],
+                ["scope2Market", "Scope 2 (market-based)"],
+                ["scope3", "Scope 3"],
+              ] as const
+            ).map(([key, title], i) => {
               const row = scope[key];
-              const title =
-                key === "scope1" ? "Scope 1" : key === "scope2" ? "Scope 2" : "Scope 3";
+              if (!row) return null;
               return (
                 <View key={key} style={{ marginTop: i === 0 ? 16 : 12 }}>
                   <Text style={styles.cardLabel}>{title}</Text>

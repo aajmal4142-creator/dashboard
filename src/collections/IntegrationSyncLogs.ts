@@ -50,6 +50,8 @@ export const IntegrationSyncLogs: CollectionConfig = {
         { label: "Wave", value: "wave" },
         { label: "CSV", value: "csv" },
         { label: "Webhook", value: "webhook" },
+        { label: "Jira", value: "jira" },
+        { label: "Linear", value: "linear" },
       ],
     },
     {

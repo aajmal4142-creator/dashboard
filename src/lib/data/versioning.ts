@@ -8,6 +8,8 @@ export const DATAPOINT_VERSION_FIELDS = [
   "provenance",
   "approvalState",
   "approvalReason",
+  "approvalStep",
+  "approvalChainStatus",
   "note",
   "assignedTo",
   "factorId",
@@ -28,6 +30,8 @@ export type DatapointSnapshot = {
   provenance: string | null;
   approvalState: string | null;
   approvalReason: string | null;
+  approvalStep: string | null;
+  approvalChainStatus: string | null;
   note: string | null;
   assignedTo: string | null;
   factorId: string | null;
@@ -104,6 +108,8 @@ export function snapshotDatapoint(
     provenance: asStringOrNull(doc.provenance),
     approvalState: asStringOrNull(doc.approvalState),
     approvalReason: asStringOrNull(doc.approvalReason),
+    approvalStep: asStringOrNull(doc.approvalStep),
+    approvalChainStatus: asStringOrNull(doc.approvalChainStatus),
     note: asStringOrNull(doc.note),
     assignedTo: relationId(doc.assignedTo),
     factorId: asStringOrNull(doc.factorId),
@@ -181,6 +187,8 @@ export function restoreDataFromSnapshot(
     provenance: snap.provenance ?? undefined,
     approvalState: snap.approvalState ?? "pending",
     approvalReason: snap.approvalReason ?? undefined,
+    approvalStep: snap.approvalStep ?? "prepare",
+    approvalChainStatus: snap.approvalChainStatus ?? "in_progress",
     note: snap.note ?? undefined,
     assignedTo: snap.assignedTo ?? undefined,
     factorId: snap.factorId ?? undefined,

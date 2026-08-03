@@ -287,6 +287,49 @@ export const Organisations: CollectionConfig = {
       },
     },
     {
+      name: "appliedMarketplaceTemplates",
+      type: "array",
+      admin: {
+        description:
+          "Append-only log of free industry marketplace templates applied to this org (F33). Never delete rows in product flows.",
+        readOnly: true,
+      },
+      fields: [
+        { name: "templateKey", type: "text", required: true },
+        { name: "templateName", type: "text", required: true },
+        {
+          name: "kind",
+          type: "select",
+          required: true,
+          options: [
+            { label: "Questionnaire", value: "questionnaire" },
+            { label: "Report pack", value: "report_pack" },
+            { label: "Metric set", value: "metric_set" },
+          ],
+        },
+        {
+          name: "industry",
+          type: "select",
+          required: true,
+          options: [
+            { label: "Retail", value: "retail" },
+            { label: "Manufacturing", value: "manufacturing" },
+            { label: "Finance", value: "finance" },
+            { label: "Services", value: "services" },
+            { label: "Logistics", value: "logistics" },
+            { label: "Energy", value: "energy" },
+          ],
+        },
+        { name: "reportTemplateId", type: "text", required: true },
+        { name: "appliedAt", type: "date", required: true },
+        {
+          name: "appliedBy",
+          type: "relationship",
+          relationTo: "users",
+        },
+      ],
+    },
+    {
       name: "sbti",
       type: "group",
       admin: {

@@ -11,3 +11,23 @@ export {
   loadOrgEmissionFactors,
   type LoadEmissionFactorsOpts,
 } from "./loadEmissionFactors";
+export {
+  FACTOR_KEY_PATTERN,
+  validateFactorKey,
+  validateFactorRegion,
+  validateFactorValue,
+  validateFactorYear,
+  type FactorKeyValidation,
+  type FactorRegionValidation,
+  type FactorValueValidation,
+  type FactorYearValidation,
+} from "./validate";
+export {
+  createOrgCustomFactor,
+  deactivateOrgCustomFactor,
+  listOrgFactorAdmin,
+  mapFactorAdminRow,
+  parseCreateOrgFactorBody,
+  type CreateOrgFactorInput,
+  type FactorAdminRow,
+} from "./orgCustom";

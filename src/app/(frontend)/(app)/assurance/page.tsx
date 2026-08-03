@@ -36,14 +36,22 @@ export default async function AssuranceDashboardPage() {
       >
         <EmptyState
           title="No published report yet"
-          body="Publish from Reports, then return here for figure lineage. Meanwhile, browse the curated assurance partner directory."
+          body="Publish from Reports, then return here for figure lineage. Meanwhile, browse the curated assurance partner directory or start a limited/reasonable pathway."
           action={
-            <a
-              href="/assurance-partners"
-              className="editorial-link text-accent text-[13px]"
-            >
-              Browse assurance partners
-            </a>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href="/assurance/engagements"
+                className="editorial-link text-accent text-[13px]"
+              >
+                Assurance pathways
+              </a>
+              <a
+                href="/assurance-partners"
+                className="editorial-link text-accent text-[13px]"
+              >
+                Browse assurance partners
+              </a>
+            </div>
           }
         />
       </PageFrame>
@@ -73,12 +81,16 @@ export default async function AssuranceDashboardPage() {
 
   const assuranceToken = await ensureAssuranceToken(payload, report);
 
+  const periodId = typeof report.period === "string" ? report.period : report.period?.id;
+
   return (
     <AssuranceRoomView
       snapshot={data.snapshot}
       figures={data.figures}
       versionLabel={data.versionLabel}
       sharePath={assuranceToken ? `/a/${assuranceToken}` : null}
+      reportId={report.id}
+      periodId={periodId ?? null}
     />
   );
 }
