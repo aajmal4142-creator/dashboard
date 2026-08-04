@@ -1,4 +1,5 @@
-export type DatabaseEngine = "postgresql" | "mysql" | "bigquery" | "snowflake";
+export type DatabaseEngine =
+  "postgresql" | "mysql" | "bigquery" | "snowflake" | "databricks";
 
 export type SyncFrequency = "manual" | "hourly" | "daily" | "weekly";
 
@@ -31,8 +32,19 @@ export type SnowflakeCredentials = {
   role?: string;
 };
 
+export type DatabricksCredentials = {
+  /** Workspace host, e.g. adb-….azuredatabricks.net */
+  host: string;
+  /** SQL warehouse id */
+  warehouseId: string;
+  /** Personal access token */
+  token: string;
+  catalog?: string;
+  schema?: string;
+};
+
 export type ConnectorCredentials =
-  SqlCredentials | BigQueryCredentials | SnowflakeCredentials;
+  SqlCredentials | BigQueryCredentials | SnowflakeCredentials | DatabricksCredentials;
 
 export type DiscoveredColumn = {
   name: string;
@@ -109,6 +121,13 @@ export function isSnowflakeCredentials(
   engine: DatabaseEngine,
 ): creds is SnowflakeCredentials {
   return engine === "snowflake";
+}
+
+export function isDatabricksCredentials(
+  creds: ConnectorCredentials,
+  engine: DatabaseEngine,
+): creds is DatabricksCredentials {
+  return engine === "databricks";
 }
 
 export function calculateNextSyncAt(

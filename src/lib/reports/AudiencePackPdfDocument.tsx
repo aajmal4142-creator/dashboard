@@ -129,16 +129,22 @@ export function AudiencePackPdfDocument({
 }) {
   const e = manifest.emissions;
   const scores = manifest.scores;
+  const audienceLabel =
+    manifest.audience === "ops"
+      ? "Operations"
+      : manifest.audience === "auditor"
+        ? "Auditor index"
+        : "Board / investor";
 
   return (
     <Document
-      title={`Board / investor pack — ${manifest.organisationName}`}
+      title={`${audienceLabel} pack — ${manifest.organisationName}`}
       author="ClearESG"
-      subject="Audience board pack"
+      subject={`Audience ${manifest.audience} pack`}
     >
       <Page size="A4" style={styles.page}>
         <View style={styles.accentRule} />
-        <Text style={styles.masthead}>ClearESG · Board / investor pack</Text>
+        <Text style={styles.masthead}>ClearESG · {audienceLabel} pack</Text>
         <Text style={styles.title}>{manifest.organisationName}</Text>
         <Text style={styles.meta}>
           {manifest.periodLabel} · {manifest.framework} · {manifest.versionLabel}

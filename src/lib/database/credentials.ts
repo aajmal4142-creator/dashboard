@@ -2,6 +2,7 @@ import type {
   BigQueryCredentials,
   ConnectorCredentials,
   DatabaseEngine,
+  DatabricksCredentials,
   SnowflakeCredentials,
   SqlCredentials,
 } from "./types";
@@ -29,6 +30,13 @@ export type PublicConnectionCredentials =
       schema: string;
       user: string;
       role?: string;
+    }
+  | {
+      engine: "databricks";
+      host: string;
+      warehouseId: string;
+      catalog?: string;
+      schema?: string;
     };
 
 export function parseCredentialsInput(
@@ -94,6 +102,42 @@ export function parseCredentialsInput(
     };
   }
 
+  if (engine === "databricks") {
+    const host = typeof body.host === "string" ? body.host.trim() : "";
+    const warehouseId =
+      typeof body.warehouseId === "string"
+        ? body.warehouseId.trim()
+        : typeof body.warehouse === "string"
+          ? body.warehouse.trim()
+          : "";
+    const token =
+      typeof body.token === "string"
+        ? body.token
+        : typeof body.passwordOrToken === "string"
+          ? body.passwordOrToken
+          : typeof body.password === "string"
+            ? body.password
+            : "";
+    const catalog =
+      typeof body.catalog === "string" && body.catalog.trim()
+        ? body.catalog.trim()
+        : undefined;
+    const schema =
+      typeof body.schema === "string" && body.schema.trim()
+        ? body.schema.trim()
+        : "default";
+    if (!host) throw new Error("host is required for Databricks");
+    if (!warehouseId) throw new Error("warehouseId is required for Databricks");
+    if (!token) throw new Error("token is required for Databricks");
+    return {
+      host,
+      warehouseId,
+      token,
+      catalog,
+      schema,
+    };
+  }
+
   const host = typeof body.host === "string" ? body.host.trim() : "";
   const database = typeof body.database === "string" ? body.database.trim() : "";
   const user = typeof body.user === "string" ? body.user.trim() : "";
@@ -153,6 +197,14 @@ export function credentialsDisplay(
       sslEnabled: true,
     };
   }
+  if (engine === "databricks") {
+    const c = credentials as DatabricksCredentials;
+    return {
+      displayHost: c.host.replace(/^https?:\/\//i, "").replace(/\/$/, ""),
+      displayDatabase: `${c.catalog ?? "hive_metastore"}.${c.schema ?? "default"}`,
+      sslEnabled: true,
+    };
+  }
   const c = credentials as SqlCredentials;
   return {
     displayHost: c.host,
@@ -183,6 +235,16 @@ export function publicCredentialsShape(
       schema: c.schema,
       user: c.user,
       role: c.role,
+    };
+  }
+  if (engine === "databricks") {
+    const c = credentials as DatabricksCredentials;
+    return {
+      engine: "databricks",
+      host: c.host,
+      warehouseId: c.warehouseId,
+      catalog: c.catalog,
+      schema: c.schema,
     };
   }
   const c = credentials as SqlCredentials;

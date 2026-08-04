@@ -35,6 +35,7 @@ export const DatabaseConnections: CollectionConfig = {
         { label: "MySQL", value: "mysql" },
         { label: "Google BigQuery", value: "bigquery" },
         { label: "Snowflake", value: "snowflake" },
+        { label: "Databricks", value: "databricks" },
       ],
     },
     {

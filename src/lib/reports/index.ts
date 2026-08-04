@@ -5,6 +5,8 @@ export {
   audiencePackBasename,
   audiencePackToCsv,
   buildAudiencePackManifest,
+  isAudienceKind,
+  type AudienceKind,
   type AudiencePackEmissions,
   type AudiencePackKpi,
   type AudiencePackManifest,

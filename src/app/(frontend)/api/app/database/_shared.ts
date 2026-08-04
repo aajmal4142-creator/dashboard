@@ -21,7 +21,13 @@ export function requireOrgMember(ctx: AuthContext): Response | null {
   return null;
 }
 
-const ENGINES = new Set<string>(["postgresql", "mysql", "bigquery", "snowflake"]);
+const ENGINES = new Set<string>([
+  "postgresql",
+  "mysql",
+  "bigquery",
+  "snowflake",
+  "databricks",
+]);
 
 export function parseEngine(value: unknown): DatabaseEngine | null {
   if (typeof value !== "string") return null;

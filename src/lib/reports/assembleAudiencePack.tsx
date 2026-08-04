@@ -11,6 +11,7 @@ import {
   audiencePackBasename,
   audiencePackToCsv,
   buildAudiencePackManifest,
+  type AudienceKind,
   type AudiencePackManifest,
 } from "./audiencePack";
 
@@ -43,7 +44,7 @@ function asSnapshot(value: unknown): ReportSnapshot | null {
 }
 
 /**
- * Load published report snapshot and assemble board/investor pack bytes.
+ * Load published report snapshot and assemble audience pack bytes (board / ops / auditor).
  * Distinct from F17 assurance evidence pack — no lineage, factors, or evidence index.
  */
 export async function assembleAudiencePack(opts: {
@@ -52,6 +53,7 @@ export async function assembleAudiencePack(opts: {
   periodId?: string | null;
   reportId?: string | null;
   format: AudiencePackFormat;
+  audience?: AudienceKind | null;
 }): Promise<
   | { ok: true; result: AssembleAudiencePackResult }
   | { ok: false; status: number; error: string }
@@ -130,6 +132,11 @@ export async function assembleAudiencePack(opts: {
     };
   }
 
+  const audience = opts.audience ?? "board_investor";
+  const gapSummaries = (snapshot.dataGaps ?? []).map(
+    (g) => `${g.severity}: ${g.code} — ${g.message}`,
+  );
+
   const manifest = buildAudiencePackManifest({
     organisationId: opts.organisationId,
     organisationName: snapshot.organisationName,
@@ -140,13 +147,16 @@ export async function assembleAudiencePack(opts: {
     generatedAt: new Date().toISOString(),
     disclaimer: snapshot.disclaimer || REPORT_DISCLAIMER,
     reportId: report.id,
+    audience,
     band: snapshot.band,
     scores: snapshot.scores,
     emissions: snapshot.emissions,
     yoy: snapshot.yoy ?? null,
     materialityNarrative: snapshot.materiality?.narrative ?? null,
     gapCount: snapshot.dataGaps?.length ?? 0,
-    highlights: buildExecutiveHighlights(snapshot),
+    gapSummaries,
+    highlights:
+      audience === "board_investor" ? buildExecutiveHighlights(snapshot) : undefined,
   });
 
   const basename = audiencePackBasename(manifest);

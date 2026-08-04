@@ -16,6 +16,7 @@
 | ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-08-03 | P01–P05 | IoT protocol honesty UI; Snowflake connector; BOM registry Suggest; multi-metric benchmarks; `/frameworks/csrd` coverage loop                |
 | 2026-08-04 | P06–P10 | CT evidence upload API + auditor attach; SFDR PAI pack export; supplier documents UI; scorecard + txt/csv; pathway checklist in evidence ZIP |
+| 2026-08-04 | P11–P15 | CSRD/ESRS filing PDF; board/ops/auditor audience packs; CSRD gap pack; Databricks connector; BI recipe surfacing                             |
 
 ---
 
@@ -27,7 +28,7 @@
 | Partial — extras outside spreadsheet                  | **14** | Yes                |
 | Buildable — gaps #1–#91                               | **6**  | Yes                |
 | Buildable — extras outside spreadsheet                | **10** | Yes                |
-| **Total remaining (non-AI, non-pay)**                 | **51** | Next: **P11**      |
+| **Total remaining (non-AI, non-pay)**                 | **51** | Next: **P16**      |
 | Already SHIPPED (of 91)                               | 50     | Done               |
 | Duplicates in 91                                      | 5      | Ignore             |
 | AI related                                            | 8      | Later → AI backlog |
@@ -44,29 +45,29 @@
 
 ## Table A — Partial from gaps #1–#91 (21)
 
-| ID  | Gap# | Feature                            | Status                     | Current anchor                                            | What to finish                                                                                | Wave | Effort |
-| --- | ---- | ---------------------------------- | -------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ---- | ------ |
-| P01 | 2    | IoT protocol depth                 | Done*                      | `protocolSupport.ts`, `/iot`                              | Honest native vs gateway-push; utility still unsupported. Native Modbus/OPC client = later L. | 3    | L      |
-| P02 | 3    | DB / warehouse connector depth     | Done*                      | `connectors/snowflake.ts`                                 | Snowflake live. Databricks still open (P14/Y10).                                              | 3    | L      |
-| P03 | 11   | Product footprints depth           | Done*                      | Suggest + `resolveBomFactor…`                             | Registry Suggest on BOM. Charts/compare optional polish.                                      | 3    | M      |
-| P04 | 15   | Industry benchmarking depth        | Done*                      | `BenchmarksClient` metric picker                          | Multi-metric load. Consent gate unchanged.                                                    | 2    | M      |
-| P05 | 18   | CSRD / ESRS reporting depth        | Done*                      | `/frameworks/csrd`                                        | Coverage + Gaps→Metrics→Publish beachhead. Full EFRAG expands later.                          | 1    | L      |
-| P06 | 21   | Carbon Trust / certification depth | Done*                      | `/api/.../documents` + auditor UI                         | Evidence upload + checklist attach. Deeper auditor polish later.                              | 3    | M      |
-| P07 | 25   | SFDR PAI depth                     | Done*                      | `sfdr/pack.ts` + coverage `?pack=1`                       | PAI pack copy/download. Filing narrative still later.                                         | 2    | M      |
-| P08 | 31   | Supplier document repository       | Done*                      | `/suppliers/[id]/documents`                               | Upload/list UX on existing APIs. Real virus scanner still open.                               | 1    | M      |
-| P09 | 35   | Supplier ESG Scorecard             | Done*                      | `scorecard.ts` + `/suppliers/[id]/scorecard`              | Quality score + txt/csv. Formal PDF optional polish.                                          | 1    | M      |
-| P10 | 41   | Assurance evidence / audit packs   | Done*                      | `pathwayChecklistToCsv` in ZIP                            | Pathway checklist CSV in evidence ZIP. Sampling/opinion still X06.                            | 1    | M      |
-| P11 | 43   | CSRD/ESRS PDF automation           | Reports PDF                | Filing-oriented framework PDF from snapshot (light theme) | 2                                                                                             | M    |
-| P12 | 48   | Stakeholder-specific report views  | `assembleAudiencePack`     | Board vs ops vs auditor views                             | 2                                                                                             | M    |
-| P13 | 51   | Compliance gap analysis reports    | Framework coverage         | Exportable gap report                                     | 2                                                                                             | S    |
-| P14 | 66   | Warehouse connectors (beyond BQ)   | Database connectors        | Databricks remaining (Snowflake done in P02)              | 3                                                                                             | L    |
-| P15 | 69   | Power BI / Tableau depth           | BI REST + keys             | Documented connector recipes via existing BI API          | 3                                                                                             | S    |
-| P16 | 75   | White-label / portal branding      | Settings portal            | Stronger `/s/*` and `/s/q/*` chrome                       | 3                                                                                             | S    |
-| P17 | 83   | Multi-language                     | `lib/i18n` en+hi           | Add ≥1 locale (fr or de) + Settings                       | 3                                                                                             | M    |
-| P18 | 84   | Annual billing + discount UX       | Billing `switch-cycle`     | Primary billing UI for annual + discount                  | 4                                                                                             | S    |
-| P19 | 86   | Usage-based pricing depth          | `/billing/usage`           | True metered add-on plans                                 | 4                                                                                             | M    |
-| P20 | 89   | Volume discounts UX                | `volumeDiscountCalculator` | Surface in main billing UX                                | 4                                                                                             | S    |
-| P21 | 90   | Dunning orchestration              | `dunningService`           | Full failed-payment campaign (not only `past_due`)        | 4                                                                                             | M    |
+| ID  | Gap# | Feature                            | Status                     | Current anchor                                     | What to finish                                                                                | Wave | Effort |
+| --- | ---- | ---------------------------------- | -------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------- | ---- | ------ |
+| P01 | 2    | IoT protocol depth                 | Done*                      | `protocolSupport.ts`, `/iot`                       | Honest native vs gateway-push; utility still unsupported. Native Modbus/OPC client = later L. | 3    | L      |
+| P02 | 3    | DB / warehouse connector depth     | Done*                      | `connectors/snowflake.ts`                          | Snowflake live. Databricks shipped in P14.                                                    | 3    | L      |
+| P03 | 11   | Product footprints depth           | Done*                      | Suggest + `resolveBomFactor…`                      | Registry Suggest on BOM. Charts/compare optional polish.                                      | 3    | M      |
+| P04 | 15   | Industry benchmarking depth        | Done*                      | `BenchmarksClient` metric picker                   | Multi-metric load. Consent gate unchanged.                                                    | 2    | M      |
+| P05 | 18   | CSRD / ESRS reporting depth        | Done*                      | `/frameworks/csrd`                                 | Coverage + Gaps→Metrics→Publish beachhead. Full EFRAG expands later.                          | 1    | L      |
+| P06 | 21   | Carbon Trust / certification depth | Done*                      | `/api/.../documents` + auditor UI                  | Evidence upload + checklist attach. Deeper auditor polish later.                              | 3    | M      |
+| P07 | 25   | SFDR PAI depth                     | Done*                      | `sfdr/pack.ts` + coverage `?pack=1`                | PAI pack copy/download. Filing narrative still later.                                         | 2    | M      |
+| P08 | 31   | Supplier document repository       | Done*                      | `/suppliers/[id]/documents`                        | Upload/list UX on existing APIs. Real virus scanner still open.                               | 1    | M      |
+| P09 | 35   | Supplier ESG Scorecard             | Done*                      | `scorecard.ts` + `/suppliers/[id]/scorecard`       | Quality score + txt/csv. Formal PDF optional polish.                                          | 1    | M      |
+| P10 | 41   | Assurance evidence / audit packs   | Done*                      | `pathwayChecklistToCsv` in ZIP                     | Pathway checklist CSV in evidence ZIP. Sampling/opinion still X06.                            | 1    | M      |
+| P11 | 43   | CSRD/ESRS PDF automation           | Done*                      | `CsrdEsrsPdfDocument` + `/reports/[id]/csrd-pdf`   | Filing-oriented light PDF from snapshot + coverage checklist.                                 | 2    | M      |
+| P12 | 48   | Stakeholder-specific report views  | Done*                      | `audiencePack` board/ops/auditor                   | Audience select on pack download. Auditor still points to evidence ZIP for depth.             | 2    | M      |
+| P13 | 51   | Compliance gap analysis reports    | Done*                      | `csrd/draft.ts` gap pack                           | CSRD gap pack copy/download (+ SECR/SFDR already shipped).                                    | 2    | S      |
+| P14 | 66   | Warehouse connectors (beyond BQ)   | Done*                      | `connectors/databricks.ts`                         | Databricks SQL Statement API wired like Snowflake.                                            | 3    | L      |
+| P15 | 69   | Power BI / Tableau depth           | Done*                      | Settings BI + Developers notes                     | Recipes surfaced; REST-only (no native .mez/.taco).                                           | 3    | S      |
+| P16 | 75   | White-label / portal branding      | Settings portal            | Stronger `/s/*` and `/s/q/*` chrome                | 3                                                                                             | S    |
+| P17 | 83   | Multi-language                     | `lib/i18n` en+hi           | Add ≥1 locale (fr or de) + Settings                | 3                                                                                             | M    |
+| P18 | 84   | Annual billing + discount UX       | Billing `switch-cycle`     | Primary billing UI for annual + discount           | 4                                                                                             | S    |
+| P19 | 86   | Usage-based pricing depth          | `/billing/usage`           | True metered add-on plans                          | 4                                                                                             | M    |
+| P20 | 89   | Volume discounts UX                | `volumeDiscountCalculator` | Surface in main billing UX                         | 4                                                                                             | S    |
+| P21 | 90   | Dunning orchestration              | `dunningService`           | Full failed-payment campaign (not only `past_due`) | 4                                                                                             | M    |
 
 ---
 
@@ -117,7 +118,7 @@
 | Y07 | Open Supply Hub OS ID             | OS ID on supplier/facility + map link                                | 1    | S      | Free                     |
 | Y08 | Public-registry risk enrichment   | SBTi / enforcement flags into risk (documented; no invented scores)  | 1    | M      | Free                     |
 | Y09 | PCAF financed emissions           | In-house Cat 15-style module                                         | 4    | L      |                          |
-| Y10 | Snowflake / Databricks connectors | Databricks remaining (Snowflake shipped in P02)                      | 3    | L      |                          |
+| Y10 | Snowflake / Databricks connectors | Done* — Databricks in P14 (Snowflake in P02)                         | 3    | L      |                          |
 
 \*Done = ship-today depth landed; starred items may still have L follow-ups noted in Status/What to finish.
 

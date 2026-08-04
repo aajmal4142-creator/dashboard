@@ -20,3 +20,10 @@ export {
 } from "./catalog";
 
 export { computeCsrdCoverage } from "./coverage";
+export {
+  buildCsrdGapPack,
+  csrdGapPackToCsv,
+  csrdGapPackToPlainText,
+  type CsrdGapPack,
+} from "./draft";
+export { CsrdEsrsPdfDocument } from "./CsrdEsrsPdfDocument";

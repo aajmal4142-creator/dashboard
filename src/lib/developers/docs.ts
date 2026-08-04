@@ -41,7 +41,8 @@ export const API_DOC_GROUPS: readonly ApiDocGroupMeta[] = [
   {
     id: "bi",
     label: "BI",
-    blurb: "Read-only extracts for dashboards and warehouses.",
+    blurb:
+      "Read-only extracts for Power BI and Tableau. Recipes: docs/bi/POWER_BI.md, docs/bi/TABLEAU.md.",
   },
   {
     id: "webhooks",
@@ -94,6 +95,10 @@ export const API_ENDPOINT_CATALOG: readonly ApiEndpointDoc[] = [
     description: "Period-scoped scope 1/2/3 totals for BI tools (read-only).",
     group: "bi",
     auth: "BI API key via Authorization: Bearer <key> or X-ClearESG-Api-Key.",
+    notes: [
+      "Recipes: docs/bi/POWER_BI.md and docs/bi/TABLEAU.md (Get Data → Web + Bearer header).",
+      "No native .mez/.taco — REST only. Manage keys in Settings → BI connectors.",
+    ],
   },
   {
     id: "bi-datapoints",
@@ -103,6 +108,7 @@ export const API_ENDPOINT_CATALOG: readonly ApiEndpointDoc[] = [
     description: "Paginated org datapoints for BI tools (read-only).",
     group: "bi",
     auth: "BI API key via Authorization: Bearer <key> or X-ClearESG-Api-Key.",
+    notes: ["See docs/bi/POWER_BI.md and docs/bi/TABLEAU.md."],
     query: [
       { name: "limit", description: "Page size." },
       { name: "page", description: "Page number (1-based)." },

@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getCurrentContext, isNextRedirectError } from "@/lib/auth";
 import {
+  buildCsrdGapPack,
   computeCsrdCoverage,
+  csrdGapPackToPlainText,
   type CsrdDatapointInput,
 } from "@/lib/frameworks/csrd";
 import { ensureOpenPeriod } from "@/lib/org/period";
@@ -45,7 +47,7 @@ function asProvenance(value: unknown): CsrdDatapointInput["provenance"] {
   return null;
 }
 
-/** GET /api/app/frameworks/csrd/coverage?periodId= */
+/** GET /api/app/frameworks/csrd/coverage?periodId=&pack= */
 export async function GET(req: NextRequest) {
   try {
     const ctx = await getCurrentContext();
@@ -115,10 +117,25 @@ export async function GET(req: NextRequest) {
       datapoints: inputs,
     });
 
+    const periodLabel =
+      typeof period.label === "string" ? period.label : periodId;
+
+    const includePack =
+      params.pack === "1" || params.pack === "true" || params.pack === "yes";
+    const pack = includePack
+      ? buildCsrdGapPack({ coverage, periodLabel })
+      : null;
+
     return NextResponse.json({
       success: true,
-      periodLabel: typeof period.label === "string" ? period.label : periodId,
+      periodLabel,
       coverage,
+      pack: pack
+        ? {
+            ...pack,
+            plainText: csrdGapPackToPlainText(pack),
+          }
+        : undefined,
     });
   } catch (error) {
     if (isNextRedirectError(error)) {

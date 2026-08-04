@@ -1,9 +1,11 @@
 /**
- * Pure audience / board report-pack manifest (F36).
+ * Pure audience report-pack manifest (F36).
  * Distinct from assurance evidence packs (F17, kind assurance_evidence). No I/O. No AI.
  */
 
-export const AUDIENCE_PACK_KIND = "audience_board" as const;
+export const AUDIENCE_PACK_KIND = "audience_pack" as const;
+
+export type AudienceKind = "board_investor" | "ops" | "auditor";
 
 export type AudiencePackKpi = {
   key: string;
@@ -54,7 +56,7 @@ export type AudiencePackManifest = {
   periodLabel: string;
   framework: string;
   versionLabel: string;
-  audience: "board_investor";
+  audience: AudienceKind;
   reportId: string | null;
   disclaimer: string;
   band: string;
@@ -78,6 +80,7 @@ export type BuildAudiencePackManifestInput = {
   generatedAt: string;
   disclaimer: string;
   reportId?: string | null;
+  audience?: AudienceKind;
   band: string;
   scores: AudiencePackScores;
   emissions: {
@@ -98,9 +101,11 @@ export type BuildAudiencePackManifestInput = {
   gapCount?: number;
   /** Optional pre-built highlight lines; otherwise derived from emissions/scores. */
   highlights?: string[];
+  /** Optional ops/auditor gap lines from snapshot.dataGaps */
+  gapSummaries?: string[];
 };
 
-const DEFAULT_NARRATIVE_PLACEHOLDERS: AudiencePackNarrativePlaceholder[] = [
+const BOARD_NARRATIVES: AudiencePackNarrativePlaceholder[] = [
   {
     id: "strategic_context",
     title: "Strategic context",
@@ -131,6 +136,44 @@ const DEFAULT_NARRATIVE_PLACEHOLDERS: AudiencePackNarrativePlaceholder[] = [
   },
 ];
 
+const OPS_NARRATIVES: AudiencePackNarrativePlaceholder[] = [
+  {
+    id: "data_ops",
+    title: "Data operations focus",
+    prompt: "List metric owners and next actions for open data gaps this period.",
+    body: "",
+  },
+  {
+    id: "quality_plan",
+    title: "Quality uplift plan",
+    prompt:
+      "Which estimated metrics move to measured next period, and which evidence packs are outstanding?",
+    body: "",
+  },
+];
+
+const AUDITOR_NARRATIVES: AudiencePackNarrativePlaceholder[] = [
+  {
+    id: "assurance_scope",
+    title: "Assurance scope notes",
+    prompt:
+      "Confirm limited vs reasonable pathway, materiality memo status, and evidence pack ZIP reference.",
+    body: "",
+  },
+  {
+    id: "exceptions",
+    title: "Exceptions and restatements",
+    prompt: "Record known exceptions, restatements, and unresolved high-severity gaps.",
+    body: "",
+  },
+];
+
+function narrativesFor(audience: AudienceKind): AudiencePackNarrativePlaceholder[] {
+  if (audience === "ops") return OPS_NARRATIVES;
+  if (audience === "auditor") return AUDITOR_NARRATIVES;
+  return BOARD_NARRATIVES;
+}
+
 function formatTco2eDisplay(value: number): string {
   if (!Number.isFinite(value)) return "—";
   if (value === 0) return "0.00";
@@ -152,7 +195,31 @@ function formatScoreDisplay(value: number): string {
   return String(Math.round(value));
 }
 
-function defaultHighlights(input: BuildAudiencePackManifestInput): string[] {
+function defaultHighlights(
+  input: BuildAudiencePackManifestInput,
+  audience: AudienceKind,
+): string[] {
+  const gaps = input.gapCount ?? 0;
+  if (audience === "ops") {
+    const lines = [
+      `Data quality ${formatPctDisplay(input.emissions.dataQualityPct)} for ${input.periodLabel}.`,
+      `${gaps} data gap(s) open on this snapshot.`,
+      `Total inventory ${formatTco2eDisplay(input.emissions.total)} tCO₂e (ops view — focus on gaps, not board narrative).`,
+    ];
+    for (const g of (input.gapSummaries ?? []).slice(0, 8)) {
+      lines.push(g);
+    }
+    return lines;
+  }
+  if (audience === "auditor") {
+    return [
+      `Auditor index for ${input.periodLabel} (${input.organisationName}).`,
+      `Report ${input.reportId ?? "—"} · framework ${input.framework} · ${input.versionLabel}.`,
+      `Data quality ${formatPctDisplay(input.emissions.dataQualityPct)} · ${gaps} gap(s).`,
+      "Download the assurance evidence ZIP for lineage, factors, evidence links, and pathway checklist.",
+      "This audience pack is an index only — not an assurance opinion.",
+    ];
+  }
   const lines: string[] = [
     `Total GHG emissions ${formatTco2eDisplay(input.emissions.total)} tCO₂e for ${input.periodLabel}.`,
     `Overall score ${formatScoreDisplay(input.scores.overall)} of 100 (${input.band}).`,
@@ -171,24 +238,69 @@ function defaultHighlights(input: BuildAudiencePackManifestInput): string[] {
       );
     }
   }
-  const gaps = input.gapCount ?? 0;
   if (gaps > 0) {
     lines.push(`${gaps} data gap(s) flagged on this snapshot.`);
   }
   return lines;
 }
 
-/** Build a deterministic board/investor audience-pack manifest. Pure. */
-export function buildAudiencePackManifest(
+function kpisFor(
   input: BuildAudiencePackManifestInput,
-): AudiencePackManifest {
-  const scope2Location = input.emissions.scope2LocationBased ?? input.emissions.scope2;
-  const scope2Market =
-    input.emissions.scope2MarketBased === undefined
-      ? null
-      : input.emissions.scope2MarketBased;
+  audience: AudienceKind,
+  scope2Location: number,
+  scope2Market: number | null,
+): AudiencePackKpi[] {
+  const quality: AudiencePackKpi = {
+    key: "data_quality_pct",
+    label: "Data quality",
+    value: input.emissions.dataQualityPct,
+    unit: "%",
+    display: formatPctDisplay(input.emissions.dataQualityPct),
+  };
+  const gapKpi: AudiencePackKpi = {
+    key: "gap_count",
+    label: "Open data gaps",
+    value: input.gapCount ?? 0,
+    unit: "gaps",
+    display: String(input.gapCount ?? 0),
+  };
 
-  const kpis: AudiencePackKpi[] = [
+  if (audience === "ops") {
+    return [
+      quality,
+      gapKpi,
+      {
+        key: "total_tco2e",
+        label: "Total emissions",
+        value: input.emissions.total,
+        unit: "tCO₂e",
+        display: formatTco2eDisplay(input.emissions.total),
+      },
+    ];
+  }
+
+  if (audience === "auditor") {
+    return [
+      quality,
+      gapKpi,
+      {
+        key: "overall_score",
+        label: "Overall ESG score",
+        value: input.scores.overall,
+        unit: "/100",
+        display: formatScoreDisplay(input.scores.overall),
+      },
+      {
+        key: "total_tco2e",
+        label: "Total emissions",
+        value: input.emissions.total,
+        unit: "tCO₂e",
+        display: formatTco2eDisplay(input.emissions.total),
+      },
+    ];
+  }
+
+  return [
     {
       key: "total_tco2e",
       label: "Total emissions",
@@ -231,14 +343,24 @@ export function buildAudiencePackManifest(
       unit: "/100",
       display: formatScoreDisplay(input.scores.overall),
     },
-    {
-      key: "data_quality_pct",
-      label: "Data quality",
-      value: input.emissions.dataQualityPct,
-      unit: "%",
-      display: formatPctDisplay(input.emissions.dataQualityPct),
-    },
+    quality,
   ];
+}
+
+export function isAudienceKind(value: unknown): value is AudienceKind {
+  return value === "board_investor" || value === "ops" || value === "auditor";
+}
+
+/** Build a deterministic audience-pack manifest. Pure. */
+export function buildAudiencePackManifest(
+  input: BuildAudiencePackManifestInput,
+): AudiencePackManifest {
+  const audience = input.audience ?? "board_investor";
+  const scope2Location = input.emissions.scope2LocationBased ?? input.emissions.scope2;
+  const scope2Market =
+    input.emissions.scope2MarketBased === undefined
+      ? null
+      : input.emissions.scope2MarketBased;
 
   const yoy = input.yoy
     ? {
@@ -257,15 +379,13 @@ export function buildAudiencePackManifest(
     periodLabel: input.periodLabel,
     framework: input.framework,
     versionLabel: input.versionLabel,
-    audience: "board_investor",
+    audience,
     reportId: input.reportId ?? null,
     disclaimer: input.disclaimer,
     band: input.band,
     scores: { ...input.scores },
-    kpis,
-    narrativePlaceholders: DEFAULT_NARRATIVE_PLACEHOLDERS.map((n) => ({
-      ...n,
-    })),
+    kpis: kpisFor(input, audience, scope2Location, scope2Market),
+    narrativePlaceholders: narrativesFor(audience).map((n) => ({ ...n })),
     emissions: {
       scope1Tco2e: input.emissions.scope1,
       scope2LocationTco2e: scope2Location,
@@ -275,11 +395,12 @@ export function buildAudiencePackManifest(
       dataQualityPct: input.emissions.dataQualityPct,
     },
     highlights:
-      input.highlights && input.highlights.length > 0
+      input.highlights && input.highlights.length > 0 && audience === "board_investor"
         ? [...input.highlights]
-        : defaultHighlights(input),
+        : defaultHighlights(input, audience),
     yoy,
-    materialityNarrative: input.materialityNarrative ?? null,
+    materialityNarrative:
+      audience === "board_investor" ? (input.materialityNarrative ?? null) : null,
     gapCount: input.gapCount ?? 0,
   };
 }
@@ -354,5 +475,11 @@ export function audiencePackBasename(manifest: AudiencePackManifest): string {
     .replace(/[^\w.-]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 24);
-  return `clearesg-board-pack-${org || "org"}-${period || "period"}`;
+  const audienceSlug =
+    manifest.audience === "board_investor"
+      ? "board"
+      : manifest.audience === "ops"
+        ? "ops"
+        : "auditor";
+  return `clearesg-${audienceSlug}-pack-${org || "org"}-${period || "period"}`;
 }

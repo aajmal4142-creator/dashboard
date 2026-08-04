@@ -6,6 +6,7 @@ import {
   assembleAudiencePack,
   type AudiencePackFormat,
 } from "@/lib/reports/assembleAudiencePack";
+import { isAudienceKind } from "@/lib/reports/audiencePack";
 import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
 
@@ -16,8 +17,8 @@ function parseFormat(value: unknown): AudiencePackFormat {
 
 /**
  * POST /api/app/reports/audience-pack
- * Body: { periodId?, reportId?, format?: "zip"|"pdf"|"csv" }
- * Assembles a board/investor audience pack (not an assurance evidence pack).
+ * Body: { periodId?, reportId?, format?, audience?: board_investor|ops|auditor }
+ * Assembles a stakeholder audience pack (not an assurance evidence pack).
  */
 export async function POST(req: Request) {
   const auth = await getCurrentContext();
@@ -53,6 +54,7 @@ export async function POST(req: Request) {
     typeof body.reportId === "string" && body.reportId.trim()
       ? body.reportId.trim()
       : null;
+  const audience = isAudienceKind(body.audience) ? body.audience : "board_investor";
 
   const payload = await getPayload({ config });
   const assembled = await assembleAudiencePack({
@@ -61,6 +63,7 @@ export async function POST(req: Request) {
     periodId,
     reportId,
     format,
+    audience,
   });
 
   if (!assembled.ok) {

@@ -19,6 +19,7 @@ import type {
   CsrdGapKind,
   CsrdLevelSummary,
 } from "@/lib/frameworks/csrd";
+import { buildCsrdGapPack, csrdGapPackToPlainText } from "@/lib/frameworks/csrd";
 
 function gapKindLabel(kind: CsrdGapKind | null): string {
   switch (kind) {
@@ -88,6 +89,8 @@ export function CsrdCoverageClient() {
   const [periodLabel, setPeriodLabel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exportMsg, setExportMsg] = useState<string | null>(null);
+  const [latestReportId, setLatestReportId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -106,6 +109,21 @@ export function CsrdCoverageClient() {
       }
       setCoverage(body.coverage ?? null);
       setPeriodLabel(body.periodLabel ?? null);
+
+      try {
+        const reportsRes = await fetch("/api/app/reports");
+        if (reportsRes.ok) {
+          const reportsBody = (await reportsRes.json()) as {
+            reports?: Array<{ id: string; status?: string }>;
+          };
+          const published = (reportsBody.reports ?? []).find(
+            (r) => r.status === "published",
+          );
+          setLatestReportId(published?.id ?? null);
+        }
+      } catch {
+        setLatestReportId(null);
+      }
     } catch {
       setError("Could not reach the CSRD coverage API");
       setCoverage(null);
@@ -124,6 +142,34 @@ export function CsrdCoverageClient() {
   const gaps =
     coverage?.disclosures.filter((d) => d.state === "gap" || d.state === "partial") ?? [];
 
+  async function copyGapPack() {
+    if (!coverage) return;
+    setExportMsg(null);
+    const pack = buildCsrdGapPack({ coverage, periodLabel });
+    const text = csrdGapPackToPlainText(pack);
+    try {
+      await navigator.clipboard.writeText(text);
+      setExportMsg("Gap pack copied to clipboard.");
+    } catch {
+      setExportMsg("Could not copy. Download the gap pack instead.");
+    }
+  }
+
+  function downloadGapPack() {
+    if (!coverage) return;
+    setExportMsg(null);
+    const pack = buildCsrdGapPack({ coverage, periodLabel });
+    const text = csrdGapPackToPlainText(pack);
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `csrd-gap-pack-${coverage.periodId}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportMsg("Gap pack downloaded.");
+  }
+
   return (
     <PageFrame
       eyebrow="Frameworks"
@@ -131,6 +177,37 @@ export function CsrdCoverageClient() {
       help="ESRS Set 1 beachhead: score climate datapoints, follow gaps into Metrics, then publish. Unmapped topics stay gaps — never silent zeros. Labels are product aids, not legal determinations."
       actions={
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void copyGapPack()}
+            disabled={!coverage}
+            className="inline-flex h-8 items-center rounded-[4px] border border-rule px-3 text-[13px] text-ink hover:border-rule-strong disabled:opacity-50"
+          >
+            Copy gap pack
+          </button>
+          <button
+            type="button"
+            onClick={downloadGapPack}
+            disabled={!coverage}
+            className="inline-flex h-8 items-center rounded-[4px] border border-rule px-3 text-[13px] text-ink hover:border-rule-strong disabled:opacity-50"
+          >
+            Download gap pack
+          </button>
+          {latestReportId ? (
+            <a
+              href={`/api/app/reports/${latestReportId}/csrd-pdf`}
+              className="inline-flex h-8 items-center rounded-[4px] border border-rule px-3 text-[13px] text-ink hover:border-rule-strong"
+            >
+              CSRD filing PDF
+            </a>
+          ) : (
+            <Link
+              href="/reports"
+              className="inline-flex h-8 items-center rounded-[4px] border border-rule px-3 text-[13px] text-ink hover:border-rule-strong"
+            >
+              Publish for PDF
+            </Link>
+          )}
           <Link
             href="/reports"
             className="inline-flex h-8 items-center rounded-[4px] border border-rule px-3 text-[13px] text-ink hover:border-rule-strong"
@@ -148,6 +225,7 @@ export function CsrdCoverageClient() {
     >
       <div className="space-y-4">
         {error ? <StatusLine tone="error">{error}</StatusLine> : null}
+        {exportMsg ? <StatusLine tone="ok">{exportMsg}</StatusLine> : null}
         {loading ? <PageSkeleton /> : null}
         {!loading && !coverage ? (
           <EmptyState

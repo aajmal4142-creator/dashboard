@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-type Engine = "postgresql" | "mysql" | "bigquery" | "snowflake";
+type Engine = "postgresql" | "mysql" | "bigquery" | "snowflake" | "databricks";
 type WizardStep = "connect" | "map" | "schedule" | "history";
 
 type PeriodOption = { id: string; label: string; status: string };
@@ -117,6 +117,9 @@ export function DatabaseWizardClient({
   const [sfAccount, setSfAccount] = useState("");
   const [sfWarehouse, setSfWarehouse] = useState("");
   const [sfRole, setSfRole] = useState("");
+  const [dbWarehouseId, setDbWarehouseId] = useState("");
+  const [dbCatalog, setDbCatalog] = useState("");
+  const [dbToken, setDbToken] = useState("");
 
   // Mapping form
   const [sourceTable, setSourceTable] = useState("");
@@ -169,6 +172,9 @@ export function DatabaseWizardClient({
       setSchema("");
     } else if (next === "snowflake") {
       setSchema("PUBLIC");
+    } else if (next === "databricks") {
+      setSchema("default");
+      setHost("");
     }
   }
 
@@ -191,6 +197,16 @@ export function DatabaseWizardClient({
         user,
         passwordOrToken: password,
         role: sfRole || undefined,
+      };
+    }
+    if (engine === "databricks") {
+      return {
+        engine,
+        host,
+        warehouseId: dbWarehouseId,
+        token: dbToken || password,
+        catalog: dbCatalog || undefined,
+        schema: schema || "default",
       };
     }
     return {
@@ -257,6 +273,7 @@ export function DatabaseWizardClient({
         }
         setPassword("");
         setServiceAccountJson("");
+        setDbToken("");
         setStatusMsg("Connection saved. Credentials encrypted at rest.");
         if (data.connection) {
           setSelectedId(data.connection.id);
@@ -539,6 +556,7 @@ export function DatabaseWizardClient({
                 <option value="mysql">MySQL</option>
                 <option value="bigquery">Google BigQuery</option>
                 <option value="snowflake">Snowflake</option>
+                <option value="databricks">Databricks</option>
               </select>
             </label>
             <label className="block text-sm">
@@ -654,6 +672,59 @@ export function DatabaseWizardClient({
                   value={sfRole}
                   disabled={!canManage || pending}
                   onChange={(e) => setSfRole(e.target.value)}
+                />
+              </label>
+            </div>
+          ) : engine === "databricks" ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block text-sm sm:col-span-2">
+                <span className="text-ink-muted">Workspace host</span>
+                <input
+                  className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 font-mono text-ink"
+                  value={host}
+                  disabled={!canManage || pending}
+                  onChange={(e) => setHost(e.target.value)}
+                  placeholder="adb-….azuredatabricks.net"
+                  autoComplete="off"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-ink-muted">SQL warehouse id</span>
+                <input
+                  className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 font-mono text-ink"
+                  value={dbWarehouseId}
+                  disabled={!canManage || pending}
+                  onChange={(e) => setDbWarehouseId(e.target.value)}
+                  autoComplete="off"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-ink-muted">Personal access token</span>
+                <input
+                  type="password"
+                  className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 text-ink"
+                  value={dbToken}
+                  disabled={!canManage || pending}
+                  onChange={(e) => setDbToken(e.target.value)}
+                  autoComplete="new-password"
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-ink-muted">Catalog (optional)</span>
+                <input
+                  className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 font-mono text-ink"
+                  value={dbCatalog}
+                  disabled={!canManage || pending}
+                  onChange={(e) => setDbCatalog(e.target.value)}
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-ink-muted">Schema</span>
+                <input
+                  className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 font-mono text-ink"
+                  value={schema}
+                  disabled={!canManage || pending}
+                  onChange={(e) => setSchema(e.target.value)}
                 />
               </label>
             </div>

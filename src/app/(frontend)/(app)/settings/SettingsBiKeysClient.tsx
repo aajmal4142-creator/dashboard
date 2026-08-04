@@ -226,8 +226,26 @@ export function SettingsBiKeysClient({ canEdit }: Props) {
           Read-only API keys for Power BI and Tableau. Keys authenticate{" "}
           <span className="font-mono text-xs">/api/app/bi/*</span> endpoints. Full keys
           are shown once at creation; audit logs store the prefix only. See{" "}
-          <span className="font-mono text-xs">docs/bi/</span> for setup.
+          <a
+            href="/developers"
+            className="text-accent underline-offset-2 hover:underline"
+          >
+            Developers → BI
+          </a>{" "}
+          and repo files <span className="font-mono text-xs">docs/bi/POWER_BI.md</span>,{" "}
+          <span className="font-mono text-xs">docs/bi/TABLEAU.md</span>.
         </p>
+        <ul className="mt-3 list-inside list-disc text-[12px] text-ink-muted">
+          <li>
+            Power BI Desktop: Get Data → Web → add{" "}
+            <span className="font-mono">Authorization: Bearer bi_…</span> header.
+          </li>
+          <li>
+            Tableau: Web Data Connector or Scripts with the same Bearer header on{" "}
+            <span className="font-mono">/api/app/bi/emissions</span>.
+          </li>
+          <li>Rate limit 120 req/min/key. Mutations are rejected on BI keys.</li>
+        </ul>
 
         {quota ? (
           <div className="mt-5 border-y border-rule py-3">

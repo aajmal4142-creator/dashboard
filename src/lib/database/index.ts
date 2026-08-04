@@ -18,6 +18,7 @@ export type {
   SqlCredentials,
   BigQueryCredentials,
   SnowflakeCredentials,
+  DatabricksCredentials,
   FieldMappings,
   DiscoveredTable,
   DatabaseConnector,
