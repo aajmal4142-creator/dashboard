@@ -101,6 +101,15 @@ export {
   isHighRiskTier,
 } from "./riskFormula";
 export {
+  composeSupplierScorecard,
+  riskToQualityScore,
+  supplierScorecardToCsv,
+  supplierScorecardToPlainText,
+  type ScorecardRiskInput,
+  type SupplierScorecard,
+  type SupplierScorecardInput,
+} from "./scorecard";
+export {
   applyTierUpdates,
   clampTier,
   estimateDownstreamTiers,

@@ -158,12 +158,26 @@ export function RiskBreakdownClient({
       title={supplier.name}
       help="Pillar breakdown for the ESG risk score (higher = worse)."
       actions={
-        <Link
-          href="/suppliers/risk-dashboard"
-          className="text-[13px] text-accent hover:text-accent-hover"
-        >
-          Back to dashboard
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/suppliers/${supplier.id}/scorecard`}
+            className="inline-flex h-8 items-center rounded-[4px] border border-rule bg-surface-1 px-3 text-[12px] text-ink hover:border-rule-strong"
+          >
+            ESG scorecard
+          </Link>
+          <Link
+            href={`/suppliers/${supplier.id}/documents`}
+            className="inline-flex h-8 items-center rounded-[4px] border border-rule bg-surface-1 px-3 text-[12px] text-ink hover:border-rule-strong"
+          >
+            Documents
+          </Link>
+          <Link
+            href="/suppliers/risk-dashboard"
+            className="text-[13px] text-accent hover:text-accent-hover"
+          >
+            Back to dashboard
+          </Link>
+        </div>
       }
     >
       {breakdown.highRiskAlert ||

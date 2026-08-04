@@ -12,6 +12,7 @@ import {
   buildEvidencePackManifest,
   evidencePackBasename,
   evidencePackToCsv,
+  pathwayChecklistToCsv,
   type EvidencePackManifest,
 } from "./evidencePack";
 import { loadAssurancePayload } from "./loadAssurance";
@@ -165,7 +166,8 @@ export async function assembleEvidencePack(opts: {
   }
 
   let assuranceLevel = opts.assuranceLevel ?? null;
-  if (!assuranceLevel) {
+  let pathwayCompletedIds: string[] = [];
+  {
     const engagements = await opts.payload.find({
       collection: "assurance-engagements",
       where: {
@@ -180,9 +182,21 @@ export async function assembleEvidencePack(opts: {
       overrideAccess: true,
     });
     const eng = engagements.docs[0] as
-      { assuranceLevel?: unknown; pathwayLevel?: unknown } | undefined;
-    const fromEng = eng?.assuranceLevel ?? eng?.pathwayLevel;
-    if (isAssuranceLevel(fromEng)) assuranceLevel = fromEng;
+      | {
+          assuranceLevel?: unknown;
+          pathwayLevel?: unknown;
+          pathwayCheckpoints?: Array<{ checkpointId?: string }>;
+        }
+      | undefined;
+    if (!assuranceLevel) {
+      const fromEng = eng?.assuranceLevel ?? eng?.pathwayLevel;
+      if (isAssuranceLevel(fromEng)) assuranceLevel = fromEng;
+    }
+    if (Array.isArray(eng?.pathwayCheckpoints)) {
+      pathwayCompletedIds = eng.pathwayCheckpoints
+        .map((c) => (typeof c.checkpointId === "string" ? c.checkpointId : ""))
+        .filter((id) => id.length > 0);
+    }
   }
 
   const manifest = buildEvidencePackManifest({
@@ -257,9 +271,19 @@ export async function assembleEvidencePack(opts: {
     };
   }
 
+  const pathwayCsv = pathwayChecklistToCsv({
+    assuranceLevel,
+    completedIds: pathwayCompletedIds,
+  });
+  const pathwayBytes = new TextEncoder().encode(pathwayCsv);
+
   const zip = buildStoreZip([
     { name: `${basename}.pdf`, data: pdfBytes },
     { name: `${basename}.csv`, data: csvBytes },
+    {
+      name: `${basename}.pathway-checklist.csv`,
+      data: pathwayBytes,
+    },
     {
       name: `${basename}.manifest.json`,
       data: new TextEncoder().encode(JSON.stringify(manifest, null, 2)),

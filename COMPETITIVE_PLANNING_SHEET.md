@@ -12,9 +12,10 @@
 
 ## Progress log
 
-| Date       | IDs     | Notes                                                                                                                         |
-| ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| 2026-08-03 | P01–P05 | IoT protocol honesty UI; Snowflake connector; BOM registry Suggest; multi-metric benchmarks; `/frameworks/csrd` coverage loop |
+| Date       | IDs     | Notes                                                                                                                                        |
+| ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-03 | P01–P05 | IoT protocol honesty UI; Snowflake connector; BOM registry Suggest; multi-metric benchmarks; `/frameworks/csrd` coverage loop                |
+| 2026-08-04 | P06–P10 | CT evidence upload API + auditor attach; SFDR PAI pack export; supplier documents UI; scorecard + txt/csv; pathway checklist in evidence ZIP |
 
 ---
 
@@ -26,7 +27,7 @@
 | Partial — extras outside spreadsheet                  | **14** | Yes                |
 | Buildable — gaps #1–#91                               | **6**  | Yes                |
 | Buildable — extras outside spreadsheet                | **10** | Yes                |
-| **Total remaining (non-AI, non-pay)**                 | **51** | Next: **P06**      |
+| **Total remaining (non-AI, non-pay)**                 | **51** | Next: **P11**      |
 | Already SHIPPED (of 91)                               | 50     | Done               |
 | Duplicates in 91                                      | 5      | Ignore             |
 | AI related                                            | 8      | Later → AI backlog |
@@ -50,11 +51,11 @@
 | P03 | 11   | Product footprints depth           | Done*                      | Suggest + `resolveBomFactor…`                             | Registry Suggest on BOM. Charts/compare optional polish.                                      | 3    | M      |
 | P04 | 15   | Industry benchmarking depth        | Done*                      | `BenchmarksClient` metric picker                          | Multi-metric load. Consent gate unchanged.                                                    | 2    | M      |
 | P05 | 18   | CSRD / ESRS reporting depth        | Done*                      | `/frameworks/csrd`                                        | Coverage + Gaps→Metrics→Publish beachhead. Full EFRAG expands later.                          | 1    | L      |
-| P06 | 21   | Carbon Trust / certification depth | Partial                    | `/carbon-trust/auditor`                                   | Auditor pipeline + evidence handoff                                                           | 3    | M      |
-| P07 | 25   | SFDR PAI depth                     | `/compliance/sfdr`         | Usable PAI pack export beyond checklist                   | 2                                                                                             | M    |
-| P08 | 31   | Supplier document repository       | `SupplierDocuments`        | Attach/store UX + virus-scan placeholder → real path      | 1                                                                                             | M    |
-| P09 | 35   | Supplier ESG Scorecard             | Risk + engagement          | Formal score + PDF from risk/questionnaire/carbon quality | 1                                                                                             | M    |
-| P10 | 41   | Assurance evidence / audit packs   | `/assurance`               | Deeper ZIP/PDF (lineage, factors, gaps, checklist)        | 1                                                                                             | M    |
+| P06 | 21   | Carbon Trust / certification depth | Done*                      | `/api/.../documents` + auditor UI                         | Evidence upload + checklist attach. Deeper auditor polish later.                              | 3    | M      |
+| P07 | 25   | SFDR PAI depth                     | Done*                      | `sfdr/pack.ts` + coverage `?pack=1`                       | PAI pack copy/download. Filing narrative still later.                                         | 2    | M      |
+| P08 | 31   | Supplier document repository       | Done*                      | `/suppliers/[id]/documents`                               | Upload/list UX on existing APIs. Real virus scanner still open.                               | 1    | M      |
+| P09 | 35   | Supplier ESG Scorecard             | Done*                      | `scorecard.ts` + `/suppliers/[id]/scorecard`              | Quality score + txt/csv. Formal PDF optional polish.                                          | 1    | M      |
+| P10 | 41   | Assurance evidence / audit packs   | Done*                      | `pathwayChecklistToCsv` in ZIP                            | Pathway checklist CSV in evidence ZIP. Sampling/opinion still X06.                            | 1    | M      |
 | P11 | 43   | CSRD/ESRS PDF automation           | Reports PDF                | Filing-oriented framework PDF from snapshot (light theme) | 2                                                                                             | M    |
 | P12 | 48   | Stakeholder-specific report views  | `assembleAudiencePack`     | Board vs ops vs auditor views                             | 2                                                                                             | M    |
 | P13 | 51   | Compliance gap analysis reports    | Framework coverage         | Exportable gap report                                     | 2                                                                                             | S    |

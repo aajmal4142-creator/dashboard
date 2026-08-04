@@ -23,3 +23,9 @@ export {
 } from "./catalog";
 
 export { computeSfdrCoverage } from "./coverage";
+export {
+  buildSfdrPaiPack,
+  sfdrPaiPackToCsv,
+  sfdrPaiPackToPlainText,
+  type SfdrPaiPack,
+} from "./pack";

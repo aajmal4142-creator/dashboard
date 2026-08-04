@@ -19,6 +19,7 @@ import type {
   SfdrIndicatorStatus,
   SfdrSummary,
 } from "@/lib/frameworks/sfdr";
+import { buildSfdrPaiPack, sfdrPaiPackToPlainText } from "@/lib/frameworks/sfdr";
 
 function gapKindLabel(kind: SfdrGapKind | null): string {
   switch (kind) {
@@ -149,6 +150,7 @@ export function SfdrCoverageClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>("climate_ghg");
+  const [exportMsg, setExportMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -182,6 +184,34 @@ export function SfdrCoverageClient() {
     return () => window.clearTimeout(id);
   }, [load]);
 
+  async function copyPack() {
+    if (!coverage) return;
+    setExportMsg(null);
+    const pack = buildSfdrPaiPack({ coverage, periodLabel });
+    const text = sfdrPaiPackToPlainText(pack);
+    try {
+      await navigator.clipboard.writeText(text);
+      setExportMsg("PAI pack copied to clipboard.");
+    } catch {
+      setExportMsg("Could not copy. Download the pack file instead.");
+    }
+  }
+
+  function downloadPack() {
+    if (!coverage) return;
+    setExportMsg(null);
+    const pack = buildSfdrPaiPack({ coverage, periodLabel });
+    const text = sfdrPaiPackToPlainText(pack);
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sfdr-pai-pack-${coverage.periodId}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportMsg("PAI pack downloaded.");
+  }
+
   return (
     <PageFrame
       eyebrow="Compliance"
@@ -190,6 +220,22 @@ export function SfdrCoverageClient() {
       context={periodLabel ? { period: periodLabel } : undefined}
       actions={
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => void copyPack()}
+            disabled={!coverage}
+            className="inline-flex h-8 items-center rounded-[4px] border border-rule bg-surface-1 px-3 text-[12px] text-ink hover:border-rule-strong disabled:opacity-50"
+          >
+            Copy PAI pack
+          </button>
+          <button
+            type="button"
+            onClick={downloadPack}
+            disabled={!coverage}
+            className="inline-flex h-8 items-center rounded-[4px] border border-rule bg-surface-1 px-3 text-[12px] text-ink hover:border-rule-strong disabled:opacity-50"
+          >
+            Download PAI pack
+          </button>
           <Link
             href={METRICS_HREF}
             className="inline-flex h-8 items-center rounded-[4px] border border-rule bg-surface-1 px-3 text-[12px] text-ink hover:border-rule-strong"
@@ -229,6 +275,8 @@ export function SfdrCoverageClient() {
       }
     >
       {loading ? <PageSkeleton rows={6} /> : null}
+
+      {exportMsg ? <StatusLine tone="ok">{exportMsg}</StatusLine> : null}
 
       {!loading && error ? (
         <StatusLine tone="error">

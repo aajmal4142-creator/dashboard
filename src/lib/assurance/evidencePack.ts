@@ -6,7 +6,7 @@
 import type { AssuranceLevel } from "./types";
 import type { EvidenceLinkState } from "./lineage";
 import type { AssuranceEvidenceType } from "./pathways";
-import { getPathway } from "./pathways";
+import { getPathway, coverageForPathway } from "./pathways";
 
 export const EVIDENCE_PACK_KIND = "assurance_evidence" as const;
 
@@ -324,6 +324,37 @@ export function evidencePackToCsv(manifest: EvidencePackManifest): string {
     );
   }
 
+  return lines.join("\n");
+}
+
+/** Flatten pathway checklist for ZIP companion file. */
+export function pathwayChecklistToCsv(input: {
+  assuranceLevel: AssuranceLevel | null;
+  completedIds: string[];
+}): string {
+  const lines: string[] = ["checkpointId,label,required,completed,evidenceTypes"];
+  if (!input.assuranceLevel) {
+    lines.push(",(no assurance level on engagement),,,");
+    return lines.join("\n");
+  }
+  const pathway = getPathway(input.assuranceLevel);
+  const done = new Set(input.completedIds);
+  for (const cp of pathway.checkpoints) {
+    lines.push(
+      [
+        csvEscape(cp.id),
+        csvEscape(cp.label),
+        cp.required ? "yes" : "no",
+        done.has(cp.id) ? "yes" : "no",
+        csvEscape(cp.evidenceTypes.join("|")),
+      ].join(","),
+    );
+  }
+  const coverage = coverageForPathway(input.assuranceLevel, input.completedIds);
+  lines.push("");
+  lines.push(
+    `coverage,completed=${coverage.completed},total=${coverage.total},percent=${coverage.percent}`,
+  );
   return lines.join("\n");
 }
 

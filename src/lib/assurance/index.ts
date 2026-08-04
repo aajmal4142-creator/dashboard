@@ -20,6 +20,7 @@ export {
   buildEvidencePackManifest,
   evidencePackToCsv,
   evidencePackBasename,
+  pathwayChecklistToCsv,
   type EvidencePackManifest,
   type BuildEvidencePackManifestInput,
   type EvidencePackEmissions,

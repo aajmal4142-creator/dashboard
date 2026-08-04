@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getCurrentContext, isNextRedirectError } from "@/lib/auth";
 import {
+  buildSfdrPaiPack,
   computeSfdrCoverage,
+  sfdrPaiPackToPlainText,
   type SfdrDatapointInput,
   type SfdrOrgProfileInput,
 } from "@/lib/frameworks/sfdr";
@@ -52,8 +54,9 @@ function asStringOrNull(value: unknown): string | null {
 }
 
 /**
- * GET /api/app/frameworks/sfdr/coverage?periodId=
+ * GET /api/app/frameworks/sfdr/coverage?periodId=&pack=
  * Deterministic SFDR PAI Table 1 coverage for the active org.
+ * Pass pack=1 to include a plain-text PAI readiness pack.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -144,10 +147,23 @@ export async function GET(req: NextRequest) {
     const periodLabel =
       typeof period.label === "string" ? period.label : periodId;
 
+    const includePack =
+      params.pack === "1" || params.pack === "true" || params.pack === "yes";
+
+    const pack = includePack
+      ? buildSfdrPaiPack({ coverage, periodLabel })
+      : null;
+
     return NextResponse.json({
       success: true,
       periodLabel,
       coverage,
+      pack: pack
+        ? {
+            ...pack,
+            plainText: sfdrPaiPackToPlainText(pack),
+          }
+        : undefined,
     });
   } catch (error) {
     if (isNextRedirectError(error)) {

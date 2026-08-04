@@ -50,23 +50,104 @@ export default function AuditorReviewPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [feedbackMap, setFeedbackMap] = useState<Record<string, string>>({});
+  const [documents, setDocuments] = useState<
+    Array<{
+      id: string;
+      fileName: string;
+      version: number;
+      sha256Hash: string;
+      uploadedAt: string;
+      description: string;
+    }>
+  >([]);
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docItemId, setDocItemId] = useState("");
+  const [docUploading, setDocUploading] = useState(false);
+  const [docMsg, setDocMsg] = useState<string | null>(null);
+
+  async function loadDocuments() {
+    try {
+      const res = await fetch(`/api/app/carbon-trust/${certId}/documents`);
+      if (!res.ok) return;
+      const result = (await res.json()) as {
+        documents?: Array<{
+          id: string;
+          fileName: string;
+          version: number;
+          sha256Hash: string;
+          uploadedAt: string | Date;
+          description: string;
+        }>;
+      };
+      setDocuments(
+        (result.documents ?? []).map((d) => ({
+          id: d.id,
+          fileName: d.fileName,
+          version: d.version,
+          sha256Hash: d.sha256Hash,
+          uploadedAt:
+            typeof d.uploadedAt === "string"
+              ? d.uploadedAt
+              : new Date(d.uploadedAt).toISOString(),
+          description: d.description ?? "",
+        })),
+      );
+    } catch {
+      /* non-blocking */
+    }
+  }
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch(`/api/app/carbon-trust/${certId}/auditor`);
-        if (!res.ok) throw new Error("Failed to fetch certification");
-        const result = await res.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    const id = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch(`/api/app/carbon-trust/${certId}/auditor`);
+          if (!res.ok) throw new Error("Failed to fetch certification");
+          const result = await res.json();
+          setData(result);
+          await loadDocuments();
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Unknown error");
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }, 0);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per cert
   }, [certId]);
+
+  async function uploadEvidence(e: React.FormEvent) {
+    e.preventDefault();
+    if (!docFile) {
+      setDocMsg("Choose a file before uploading.");
+      return;
+    }
+    setDocUploading(true);
+    setDocMsg(null);
+    try {
+      const form = new FormData();
+      form.set("file", docFile);
+      form.set("description", "Auditor evidence");
+      if (docItemId) form.set("checklistItemId", docItemId);
+      const res = await fetch(`/api/app/carbon-trust/${certId}/documents`, {
+        method: "POST",
+        body: form,
+      });
+      const body = (await res.json()) as { error?: string; success?: boolean };
+      if (!res.ok || !body.success) {
+        setDocMsg(body.error ?? "Upload failed.");
+        return;
+      }
+      setDocMsg("Evidence uploaded.");
+      setDocFile(null);
+      await loadDocuments();
+    } catch {
+      setDocMsg("Network error during upload.");
+    } finally {
+      setDocUploading(false);
+    }
+  }
 
   const handleAction = async (action: string, itemId?: string, feedback?: string) => {
     if (!data) return;
@@ -177,6 +258,67 @@ export default function AuditorReviewPage() {
           </button>
         </div>
       )}
+
+      {/* Evidence documents */}
+      <div className="space-y-3 rounded-lg border border-gray-200 bg-white p-4">
+        <h2 className="text-xl font-semibold">Evidence documents</h2>
+        <p className="text-sm text-gray-600">
+          Upload SHA-256 versioned evidence and optionally attach to a checklist item.
+        </p>
+        <form
+          onSubmit={(e) => void uploadEvidence(e)}
+          className="flex flex-wrap items-end gap-3"
+        >
+          <label className="text-sm">
+            File
+            <input
+              type="file"
+              className="mt-1 block text-sm"
+              onChange={(e) => setDocFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          <label className="text-sm">
+            Checklist item (optional)
+            <select
+              value={docItemId}
+              onChange={(e) => setDocItemId(e.target.value)}
+              className="mt-1 block rounded border border-gray-300 px-2 py-1 text-sm"
+            >
+              <option value="">— none —</option>
+              {checklistItems.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.requirementId} — {item.requirementName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="submit"
+            disabled={docUploading}
+            className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 disabled:bg-gray-400"
+          >
+            {docUploading ? "Uploading…" : "Upload evidence"}
+          </button>
+        </form>
+        {docMsg ? <p className="text-sm text-gray-700">{docMsg}</p> : null}
+        {documents.length === 0 ? (
+          <p className="text-sm text-gray-500">No evidence documents yet.</p>
+        ) : (
+          <ul className="divide-y divide-gray-100 text-sm">
+            {documents.map((d) => (
+              <li key={d.id} className="flex flex-wrap justify-between gap-2 py-2">
+                <span className="font-medium">
+                  {d.fileName}{" "}
+                  <span className="font-mono text-xs text-gray-500">v{d.version}</span>
+                </span>
+                <span className="font-mono text-xs text-gray-500">
+                  sha256:{d.sha256Hash.slice(0, 12)}…
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {/* Checklist Items */}
       <div className="space-y-3">
