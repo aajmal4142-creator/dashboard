@@ -19,12 +19,28 @@ export async function GET(request: Request) {
     const period = url.searchParams.get("period") || "current";
     const startDate = url.searchParams.get("startDate");
     const endDate = url.searchParams.get("endDate");
+    const metersOnly =
+      url.searchParams.get("meters") === "1" || url.searchParams.get("legacy") === "1";
 
-    // Try new usage metrics collection first
-    let usage;
+    if (metersOnly) {
+      const org = await payload.findByID({
+        collection: "organisations",
+        id: ctx.activeOrg.id,
+        depth: 0,
+        overrideAccess: true,
+      });
+      const meters = await getUsageMeters(org.id, org.plan);
+      return NextResponse.json({
+        plan: org.plan ?? "free",
+        subscriptionStatus: org.subscriptionStatus ?? "none",
+        stripeCustomerId: org.stripeCustomerId ?? null,
+        usage: meters,
+        catalog: PLAN_LIMITS,
+      });
+    }
+
     if (period === "current") {
-      usage = await tracker.getCurrentMonthUsage(ctx.activeOrg.id);
-
+      const usage = await tracker.getCurrentMonthUsage(ctx.activeOrg.id);
       return NextResponse.json({
         period: "current_month",
         usage,
@@ -35,7 +51,7 @@ export async function GET(request: Request) {
       if (!startDate || !endDate) {
         return NextResponse.json(
           { error: "startDate and endDate required for history period" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -45,7 +61,7 @@ export async function GET(request: Request) {
       if (start >= end) {
         return NextResponse.json(
           { error: "startDate must be before endDate" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -60,7 +76,6 @@ export async function GET(request: Request) {
       });
     }
 
-    // Fallback to old usage meters if not found
     const org = await payload.findByID({
       collection: "organisations",
       id: ctx.activeOrg.id,

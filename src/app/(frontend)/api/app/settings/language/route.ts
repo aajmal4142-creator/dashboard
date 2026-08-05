@@ -31,7 +31,7 @@ export async function GET() {
 
 /**
  * PUT /api/app/settings/language — persist UI language on the Users row.
- * Body: `{ language: "en" | "hi" }`.
+ * Body: `{ language: "en" | "hi" | "fr" }`.
  */
 export async function PUT(req: Request) {
   const result = await getApiContext();
@@ -42,7 +42,7 @@ export async function PUT(req: Request) {
   } | null;
   if (!body || !isSupportedLocale(body.language)) {
     return NextResponse.json(
-      { error: "Unsupported language. Supported: en, hi." },
+      { error: "Unsupported language. Supported: en, hi, fr." },
       { status: 400 },
     );
   }

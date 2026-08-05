@@ -284,6 +284,64 @@ export async function cancelSubscriptionDueToDunning(
   }
 }
 
+export async function processDueDunningRetries(): Promise<{
+  processed: number;
+  succeeded: number;
+  failed: number;
+  suspended: number;
+}> {
+  const payload = await getPayload({ config });
+  const nowIso = new Date().toISOString();
+  const due = await payload.find({
+    collection: "dunning-management",
+    where: {
+      and: [
+        { status: { equals: "retrying" } },
+        { nextRetryAt: { less_than_equal: nowIso } },
+      ],
+    },
+    limit: 50,
+    depth: 0,
+  });
+
+  const summary = { processed: 0, succeeded: 0, failed: 0, suspended: 0 };
+
+  for (const campaign of due.docs) {
+    summary.processed += 1;
+    const subscriptionId =
+      typeof campaign.subscription === "string"
+        ? campaign.subscription
+        : String((campaign.subscription as { id: string }).id);
+    const attempts = Array.isArray(campaign.retryAttempts)
+      ? campaign.retryAttempts.length
+      : 0;
+    const attemptNumber = attempts + 1;
+    const result = await executeRetryAttempt(subscriptionId, attemptNumber);
+
+    if (result.success) {
+      summary.succeeded += 1;
+      continue;
+    }
+
+    summary.failed += 1;
+    const schedule = (campaign.retrySchedule ?? "stripe_default") as RetrySchedule;
+    const delays =
+      schedule === "custom"
+        ? RETRY_SCHEDULES.stripe_default
+        : (RETRY_SCHEDULES[schedule] ?? RETRY_SCHEDULES.stripe_default);
+
+    if (attemptNumber >= delays.length) {
+      await suspendSubscriptionDueToDunning(subscriptionId);
+      summary.suspended += 1;
+    } else {
+      const delayDays = delays[attemptNumber] ?? delays[delays.length - 1]!;
+      await scheduleRetryAttempt(subscriptionId, attemptNumber + 1, delayDays);
+    }
+  }
+
+  return summary;
+}
+
 export async function generateManualPaymentLink(subscriptionId: string): Promise<string> {
   const payload = await getPayload({ config });
   const stripe = await getStripe();

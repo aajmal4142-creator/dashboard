@@ -33,9 +33,10 @@ export const Users: CollectionConfig = {
       options: [
         { label: "English", value: "en" },
         { label: "Hindi", value: "hi" },
+        { label: "French", value: "fr" },
       ],
       admin: {
-        description: "UI language preference (en | hi)",
+        description: "UI language preference (en | hi | fr)",
       },
     },
   ],

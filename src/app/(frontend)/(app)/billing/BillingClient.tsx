@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { PageCard, PageFrame, StatusLine } from "@/components/shell/PageFrame";
@@ -13,6 +14,25 @@ type BillingState = {
   plan: PlanId;
   subscriptionStatus: string;
   usage: UsageMeters;
+};
+
+type PlanPricing = {
+  planId: string;
+  displayName: string;
+  monthlyPrice: number;
+  annualPrice: number;
+  annualDiscountPercentage: number;
+  seats: number;
+  billingCycle: "monthly" | "annual";
+  volumeTiers: Array<{ minSeats: number; discountPercent: number; label: string }>;
+  volumeDiscountPercent: number;
+};
+
+type DunningState = {
+  status: string;
+  nextRetryAt: string | null;
+  failureReason: string | null;
+  manualPaymentLink: string | null;
 };
 
 function Meter({
@@ -49,14 +69,26 @@ function Meter({
 export function BillingClient({
   initial,
   role = null,
+  planPricing = null,
+  dunning = null,
 }: {
   initial: BillingState;
   role?: MembershipRole | null;
+  planPricing?: PlanPricing | null;
+  dunning?: DunningState | null;
 }) {
   const [state, setState] = useState(initial);
+  const [cycle, setCycle] = useState<"monthly" | "annual">(
+    planPricing?.billingCycle ?? "monthly",
+  );
   const [status, setStatus] = useState<string | null>(null);
   const [statusTone, setStatusTone] = useState<"neutral" | "error" | "ok">("neutral");
   const [busy, setBusy] = useState(false);
+  const [prorataConfirm, setProrataConfirm] = useState<{
+    amount: number;
+    message: string;
+    newBillingCycle: "monthly" | "annual";
+  } | null>(null);
   const canManage = role === null ? true : role === "owner" || role === "admin";
   const readOnlyNonOwner = role !== null && role !== "owner" && role !== "admin";
 
@@ -118,12 +150,69 @@ export function BillingClient({
     }
   }
 
+  async function switchCycle(
+    newBillingCycle: "monthly" | "annual",
+    confirmProrata = false,
+  ) {
+    if (!canManage) {
+      setStatusTone("error");
+      setStatus("Only an owner or admin can switch billing cycle.");
+      return;
+    }
+    setBusy(true);
+    setStatus(null);
+    try {
+      const res = await fetch("/api/app/billing/subscriptions/switch-cycle", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newBillingCycle, confirmProrata }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        confirmationRequired?: boolean;
+        prorataAmount?: number;
+        message?: string;
+        billingCycle?: string;
+      };
+      if (res.status === 200 && data.confirmationRequired) {
+        setProrataConfirm({
+          amount: data.prorataAmount ?? 0,
+          message: data.message ?? "Confirm prorata charge to switch cycle.",
+          newBillingCycle,
+        });
+        setStatusTone("neutral");
+        setStatus(data.message ?? "Confirm prorata to continue.");
+        return;
+      }
+      if (!res.ok) {
+        setStatusTone("error");
+        setStatus(data.error ?? "Could not switch billing cycle.");
+        return;
+      }
+      setCycle(newBillingCycle);
+      setProrataConfirm(null);
+      setStatusTone("ok");
+      setStatus(`Billing cycle set to ${newBillingCycle}.`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function refresh() {
-    const res = await fetch("/api/app/billing/usage");
+    const res = await fetch("/api/app/billing/usage?legacy=1");
     if (!res.ok) return;
     const data = (await res.json()) as BillingState;
-    setState(data);
+    if (data.plan && data.usage) setState(data);
   }
+
+  const monthlyBase = planPricing?.monthlyPrice ?? 0;
+  const annualBase = planPricing?.annualPrice ?? 0;
+  const seatCount = planPricing?.seats ?? 1;
+  const volPct = planPricing?.volumeDiscountPercent ?? 0;
+  const monthlyAfterVol =
+    Math.round(monthlyBase * seatCount * (1 - volPct / 100) * 100) / 100;
+  const annualAfterVol =
+    Math.round(annualBase * seatCount * (1 - volPct / 100) * 100) / 100;
 
   return (
     <PageFrame
@@ -156,11 +245,48 @@ export function BillingClient({
               PDFs are watermarked on Free. Upgrade to Pro for a clean export.
             </p>
           ) : null}
+          <Link
+            href="/billing/usage"
+            className="inline-block text-accent underline-offset-2 hover:underline"
+          >
+            Metered usage details
+          </Link>
         </div>
       }
     >
       <div className="space-y-4">
         {status ? <StatusLine tone={statusTone}>{status}</StatusLine> : null}
+
+        {dunning || state.subscriptionStatus === "past_due" ? (
+          <StatusLine tone="error">
+            Payment failed
+            {dunning?.failureReason ? ` (${dunning.failureReason})` : ""}.
+            {dunning?.nextRetryAt
+              ? ` Next retry ${new Date(dunning.nextRetryAt).toLocaleDateString()}.`
+              : ""}{" "}
+            {dunning?.manualPaymentLink ? (
+              <a
+                href={dunning.manualPaymentLink}
+                className="underline underline-offset-2"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Pay outstanding balance
+              </a>
+            ) : canManage ? (
+              <button
+                type="button"
+                className="underline underline-offset-2"
+                disabled={busy}
+                onClick={() => void portal()}
+              >
+                Open billing portal
+              </button>
+            ) : (
+              "Ask an owner to update the payment method."
+            )}
+          </StatusLine>
+        ) : null}
 
         {readOnlyNonOwner ? (
           <StatusLine tone="neutral">
@@ -191,6 +317,96 @@ export function BillingClient({
             </Button>
           ) : null}
         </div>
+
+        {planPricing ? (
+          <PageCard title="Billing cycle">
+            <p className="text-[13px] text-ink-muted">
+              {planPricing.displayName} ·{" "}
+              <span className="font-mono tabular-nums">{seatCount}</span> seat
+              {seatCount === 1 ? "" : "s"}
+              {volPct > 0 ? (
+                <>
+                  {" "}
+                  · volume discount{" "}
+                  <span className="font-mono tabular-nums text-ink">{volPct}%</span>
+                </>
+              ) : null}
+            </p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                disabled={busy || !canManage || cycle === "monthly"}
+                onClick={() => void switchCycle("monthly")}
+                className={`rounded-[6px] border px-4 py-3 text-left ${
+                  cycle === "monthly"
+                    ? "border-accent bg-accent-quiet"
+                    : "border-rule bg-surface-1 hover:border-rule-strong"
+                } disabled:opacity-50`}
+              >
+                <p className="text-[12px] font-semibold text-ink">Monthly</p>
+                <p className="mt-1 font-mono text-[18px] tabular-nums text-ink">
+                  ${monthlyAfterVol}
+                  <span className="text-[12px] text-ink-muted">/mo</span>
+                </p>
+              </button>
+              <button
+                type="button"
+                disabled={busy || !canManage || cycle === "annual"}
+                onClick={() => void switchCycle("annual")}
+                className={`rounded-[6px] border px-4 py-3 text-left ${
+                  cycle === "annual"
+                    ? "border-accent bg-accent-quiet"
+                    : "border-rule bg-surface-1 hover:border-rule-strong"
+                } disabled:opacity-50`}
+              >
+                <p className="text-[12px] font-semibold text-ink">
+                  Annual
+                  {planPricing.annualDiscountPercentage > 0 ? (
+                    <span className="ml-2 font-mono text-[11px] text-signal">
+                      save {planPricing.annualDiscountPercentage}%
+                    </span>
+                  ) : null}
+                </p>
+                <p className="mt-1 font-mono text-[18px] tabular-nums text-ink">
+                  ${annualAfterVol}
+                  <span className="text-[12px] text-ink-muted">/yr</span>
+                </p>
+              </button>
+            </div>
+            {prorataConfirm ? (
+              <div className="mt-4 border-t border-rule pt-4">
+                <p className="text-[13px] text-ink-muted">{prorataConfirm.message}</p>
+                <p className="mt-1 font-mono text-[13px] tabular-nums text-ink">
+                  Prorata ${prorataConfirm.amount}
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="mt-3"
+                  disabled={busy}
+                  onClick={() => void switchCycle(prorataConfirm.newBillingCycle, true)}
+                >
+                  Confirm switch
+                </Button>
+              </div>
+            ) : null}
+          </PageCard>
+        ) : null}
+
+        {planPricing && planPricing.volumeTiers.length > 0 ? (
+          <PageCard title="Volume discounts">
+            <ul className="space-y-2 text-[13px] text-ink-muted">
+              {planPricing.volumeTiers.map((t) => (
+                <li key={t.minSeats} className="font-mono tabular-nums">
+                  {t.label}
+                  {seatCount >= t.minSeats ? (
+                    <span className="ml-2 text-signal">applied</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </PageCard>
+        ) : null}
 
         <PageCard title="Usage">
           <Meter

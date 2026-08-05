@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 
+import { brandingCssVarsToInlineStyle, brandingToCssVars } from "@/lib/branding";
+import { DEFAULT_PORTAL_WELCOME, type SupplierPortalConfigView } from "@/lib/portal";
 import type {
   EngagementStatus,
   QuestionnaireQuestion,
@@ -20,6 +22,12 @@ type PublicMeta = {
   responses: Record<string, unknown>;
   completionPercent: number;
   error?: string;
+  branding?: {
+    primaryColor: string | null;
+    logoUrl: string | null;
+  };
+  portal?: SupplierPortalConfigView;
+  portalPaused?: boolean;
 };
 
 function draftKey(token: string) {
@@ -37,6 +45,54 @@ function groupBySection(questions: QuestionnaireQuestion[]) {
     }
   }
   return [...map.entries()];
+}
+
+function PortalChrome({ meta, children }: { meta: PublicMeta; children: ReactNode }) {
+  const brandStyle = brandingCssVarsToInlineStyle(
+    brandingToCssVars({
+      primaryColor: meta.branding?.primaryColor ?? null,
+      secondaryColor: null,
+      fontFamily: null,
+      defaultMode: null,
+      radius: null,
+      logoId: null,
+      logoUrl: meta.branding?.logoUrl ?? null,
+      domain: null,
+    }),
+  );
+
+  return (
+    <div className="min-h-full bg-canvas text-ink" style={brandStyle} data-portal-chrome>
+      <header className="border-b border-rule bg-surface-1">
+        <div className="mx-auto flex max-w-2xl items-center gap-3 px-5 py-4 sm:px-6">
+          {meta.branding?.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={meta.branding.logoUrl}
+              alt=""
+              className="h-9 w-auto max-w-[10rem] object-contain"
+            />
+          ) : (
+            <div className="flex size-9 items-center justify-center rounded-[var(--radius-chip)] bg-accent text-xs font-medium text-on-accent">
+              {(meta.orgName || "?").slice(0, 2).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <p className="label-caps text-ink-muted">{meta.orgName}</p>
+            <p className="text-sm text-ink">
+              {meta.portal?.headline?.trim() || "ESG questionnaire"}
+            </p>
+          </div>
+        </div>
+      </header>
+      {children}
+      {meta.portal?.showPoweredBy !== false ? (
+        <footer className="border-t border-rule py-4 text-center text-[11px] text-ink-muted">
+          Powered by ClearESG
+        </footer>
+      ) : null}
+    </div>
+  );
 }
 
 export function EngagementPublicForm({
@@ -166,49 +222,66 @@ export function EngagementPublicForm({
 
   if (meta.error) {
     return (
-      <div className="mx-auto max-w-lg px-5 py-16 sm:px-6">
-        <h1 className="font-[family-name:var(--font-display)] text-2xl text-[color:var(--ink)]">
-          Link not valid
-        </h1>
-        <p className="mt-2 text-sm text-[color:var(--ink-muted)]">{meta.error}</p>
-      </div>
+      <PortalChrome meta={meta}>
+        <div className="mx-auto max-w-lg px-5 py-16 sm:px-6">
+          <h1 className="font-[family-name:var(--font-display)] text-2xl text-ink">
+            Link not valid
+          </h1>
+          <p className="mt-2 text-sm text-ink-muted">{meta.error}</p>
+        </div>
+      </PortalChrome>
     );
   }
 
-  return (
-    <div className="min-h-full bg-[color:var(--canvas)] text-[color:var(--ink)]">
-      <header className="border-b border-[color:var(--rule)] bg-[color:var(--surface-1)]">
-        <div className="mx-auto flex max-w-2xl items-center gap-3 px-5 py-4 sm:px-6">
-          <div className="flex size-9 items-center justify-center rounded-[2px] bg-[color:var(--accent)] text-xs font-medium text-[color:var(--on-accent)]">
-            {(meta.orgName || "?").slice(0, 2).toUpperCase()}
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[color:var(--ink-muted)]">
-              {meta.orgName}
-            </p>
-            <p className="text-sm text-[color:var(--ink)]">ESG questionnaire</p>
-          </div>
+  if (meta.portalPaused) {
+    return (
+      <PortalChrome meta={meta}>
+        <div className="mx-auto max-w-lg px-5 py-16 sm:px-6">
+          <h1 className="font-[family-name:var(--font-display)] text-2xl text-ink">
+            Portal paused
+          </h1>
+          <p className="mt-2 text-sm text-ink-muted">
+            This organisation has paused supplier questionnaire intake. Contact them
+            directly if you need to submit data.
+          </p>
         </div>
-      </header>
+      </PortalChrome>
+    );
+  }
 
+  const welcome =
+    meta.portal?.welcomeMessage?.trim() ||
+    DEFAULT_PORTAL_WELCOME ||
+    "Share company, emissions, supply-chain, certification, and goals data.";
+
+  return (
+    <PortalChrome meta={meta}>
       <main className="mx-auto max-w-2xl px-5 py-8 sm:px-6">
-        <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-tight text-[color:var(--ink)]">
+        <h1 className="font-[family-name:var(--font-display)] text-3xl tracking-tight text-ink">
           {meta.supplierName}
         </h1>
-        <p className="mt-2 text-sm text-[color:var(--ink-muted)]">
-          Share company, emissions, supply-chain, certification, and goals data. No
-          account required.
-          {meta.expiresAt ? ` Link expires ${meta.expiresAt.slice(0, 10)}.` : null}
-        </p>
+        <p className="mt-2 text-sm text-ink-muted">{welcome}</p>
+
+        {meta.expired ? (
+          <p className="mt-6 text-sm text-rust" role="alert">
+            This questionnaire link has expired.
+          </p>
+        ) : null}
+
+        {meta.alreadySubmitted ? (
+          <p className="mt-6 text-sm text-signal" role="status">
+            Already submitted ({meta.completionPercent}% complete). Thank you.
+          </p>
+        ) : null}
 
         {status ? (
           <p
-            className={`mt-4 border-t border-[color:var(--rule)] pt-3 text-sm ${
+            className={`mt-4 text-sm ${
               statusTone === "error"
-                ? "text-[color:var(--rust)]"
+                ? "text-rust"
                 : statusTone === "ok"
-                  ? "text-[color:var(--signal)]"
-                  : "text-[color:var(--ink-muted)]"
+                  ? "text-signal"
+                  : "text-ink-muted"
             }`}
             role="status"
           >
@@ -216,108 +289,88 @@ export function EngagementPublicForm({
           </p>
         ) : null}
 
-        {meta.expired ? (
-          <p className="mt-6 text-sm text-[color:var(--rust)]">
-            This questionnaire link has expired. Ask {meta.orgName} to resend.
-          </p>
-        ) : null}
-
-        {meta.alreadySubmitted ? (
-          <p className="mt-6 text-sm text-[color:var(--ink-muted)]">
-            Submitted ({meta.completionPercent}% of fields completed). Contact{" "}
-            {meta.orgName} if you need to correct answers.
-          </p>
-        ) : null}
-
         {!meta.expired && !meta.alreadySubmitted ? (
           <form onSubmit={onSubmit} className="mt-8 space-y-8">
-            {sections.map(([sectionKey, section]) => (
-              <section
-                key={sectionKey}
-                className="border-t border-[color:var(--rule)] pt-5"
-              >
-                <h2 className="font-[family-name:var(--font-display)] text-xl text-[color:var(--ink)]">
+            {sections.map(([sectionId, section]) => (
+              <fieldset key={sectionId} className="space-y-4 border-t border-rule pt-6">
+                <legend className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
                   {section.label}
-                </h2>
-                <div className="mt-4 space-y-4">
-                  {section.questions.map((q) => (
-                    <label key={q.id} className="block">
-                      <span className="text-[12px] font-medium text-[color:var(--ink)]">
-                        {q.question}
-                        {q.required ? (
-                          <span className="text-[color:var(--accent)]"> *</span>
-                        ) : null}
-                      </span>
-                      {q.type === "textarea" ? (
-                        <textarea
-                          className="mt-1.5 w-full rounded-[4px] border border-[color:var(--rule)] bg-[color:var(--surface-1)] px-3 py-2 text-sm text-[color:var(--ink)]"
-                          rows={3}
-                          placeholder={q.placeholder}
-                          value={values[q.id] ?? ""}
-                          onChange={(e) => setField(q.id, e.target.value)}
-                        />
-                      ) : q.type === "select" ? (
-                        <select
-                          className="mt-1.5 w-full rounded-[4px] border border-[color:var(--rule)] bg-[color:var(--surface-1)] px-3 py-2 text-sm text-[color:var(--ink)]"
-                          value={values[q.id] ?? ""}
-                          onChange={(e) => setField(q.id, e.target.value)}
-                        >
-                          <option value="">Select…</option>
-                          {(q.options ?? []).map((o) => (
-                            <option key={o.value} value={o.value}>
-                              {o.label}
-                            </option>
-                          ))}
-                        </select>
-                      ) : q.type === "yes_no" ? (
-                        <select
-                          className="mt-1.5 w-full rounded-[4px] border border-[color:var(--rule)] bg-[color:var(--surface-1)] px-3 py-2 text-sm text-[color:var(--ink)]"
-                          value={values[q.id] ?? ""}
-                          onChange={(e) => setField(q.id, e.target.value)}
-                        >
-                          <option value="">Select…</option>
-                          <option value="yes">Yes</option>
-                          <option value="no">No</option>
-                        </select>
-                      ) : (
-                        <input
-                          type={q.type === "number" ? "number" : "text"}
-                          className={`mt-1.5 w-full rounded-[4px] border border-[color:var(--rule)] bg-[color:var(--surface-1)] px-3 py-2 text-sm text-[color:var(--ink)] ${
-                            q.type === "number"
-                              ? "font-[family-name:var(--font-data)]"
-                              : ""
-                          }`}
-                          placeholder={q.placeholder}
-                          value={values[q.id] ?? ""}
-                          onChange={(e) => setField(q.id, e.target.value)}
-                        />
-                      )}
-                    </label>
-                  ))}
-                </div>
-              </section>
+                </legend>
+                {section.questions.map((q) => (
+                  <label key={q.id} className="block text-[13px] text-ink">
+                    <span className="font-semibold">
+                      {q.question}
+                      {q.required ? <span className="text-rust"> *</span> : null}
+                    </span>
+                    {q.type === "yes_no" || q.type === "checkbox" ? (
+                      <select
+                        className="mt-2 h-9 w-full rounded-[4px] border border-rule bg-surface-1 px-2 text-[13px]"
+                        value={values[q.id] ?? ""}
+                        onChange={(e) => setField(q.id, e.target.value)}
+                        required={q.required}
+                      >
+                        <option value="">—</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                      </select>
+                    ) : q.type === "select" ? (
+                      <select
+                        className="mt-2 h-9 w-full rounded-[4px] border border-rule bg-surface-1 px-2 text-[13px]"
+                        value={values[q.id] ?? ""}
+                        onChange={(e) => setField(q.id, e.target.value)}
+                        required={q.required}
+                      >
+                        <option value="">—</option>
+                        {(q.options ?? []).map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : q.type === "textarea" ? (
+                      <textarea
+                        className="mt-2 w-full rounded-[4px] border border-rule bg-surface-1 px-2 py-2 text-[13px]"
+                        rows={3}
+                        placeholder={q.placeholder}
+                        value={values[q.id] ?? ""}
+                        onChange={(e) => setField(q.id, e.target.value)}
+                        required={q.required}
+                      />
+                    ) : (
+                      <input
+                        type={q.type === "number" ? "number" : "text"}
+                        className="mt-2 h-9 w-full rounded-[4px] border border-rule bg-surface-1 px-2 font-mono text-[13px] tabular-nums"
+                        placeholder={q.placeholder}
+                        value={values[q.id] ?? ""}
+                        onChange={(e) => setField(q.id, e.target.value)}
+                        required={q.required}
+                      />
+                    )}
+                  </label>
+                ))}
+              </fieldset>
             ))}
 
-            <div className="flex flex-wrap gap-3 border-t border-[color:var(--rule-strong)] pt-5">
+            <div className="flex flex-wrap gap-2 border-t border-rule pt-6">
               <button
                 type="button"
                 disabled={saving}
                 onClick={() => void save(true)}
-                className="rounded-[4px] border border-[color:var(--rule)] px-4 py-2 text-sm text-[color:var(--ink)] hover:bg-[color:var(--surface-2)]"
+                className="inline-flex h-9 items-center rounded-[4px] border border-rule bg-surface-1 px-4 text-[13px] text-ink hover:border-rule-strong disabled:opacity-50"
               >
                 Save draft
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-[4px] bg-[color:var(--accent)] px-4 py-2 text-sm font-medium text-[color:var(--on-accent)] hover:bg-[color:var(--accent-hover)]"
+                className="inline-flex h-9 items-center rounded-[4px] bg-accent px-4 text-[13px] text-canvas hover:bg-accent-hover disabled:opacity-50"
               >
-                Submit questionnaire
+                {saving ? "Submitting…" : "Submit"}
               </button>
             </div>
           </form>
         ) : null}
       </main>
-    </div>
+    </PortalChrome>
   );
 }

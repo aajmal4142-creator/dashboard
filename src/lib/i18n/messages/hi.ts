@@ -122,6 +122,7 @@ export const hi: MessageTree = {
       label: "भाषा",
       english: "English",
       hindi: "हिन्दी",
+      french: "Français",
       saved: "भाषा सहेजी गई।",
       saving: "सहेजा जा रहा है…",
       error: "भाषा सहेजी नहीं जा सकी। फिर से कोशिश करें।",

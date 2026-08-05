@@ -122,6 +122,7 @@ export const en: MessageTree = {
       label: "Language",
       english: "English",
       hindi: "Hindi",
+      french: "French",
       saved: "Language saved.",
       saving: "Saving…",
       error: "Could not save language. Try again.",

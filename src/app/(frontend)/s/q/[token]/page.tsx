@@ -4,9 +4,30 @@ import {
   loadPublicForm,
   type EngagementStatus,
 } from "@/lib/suppliers";
+import type { SupplierPortalConfigView } from "@/lib/portal";
 
 export const metadata = {
   title: "ESG Questionnaire | ClearESG",
+};
+
+type InitialState = {
+  token: string;
+  orgName: string;
+  supplierName: string;
+  status: EngagementStatus;
+  expired: boolean;
+  alreadySubmitted: boolean;
+  expiresAt: string | null;
+  template: ReturnType<typeof generateQuestionnaireTemplate>;
+  responses: Record<string, unknown>;
+  completionPercent: number;
+  error?: string;
+  branding?: {
+    primaryColor: string | null;
+    logoUrl: string | null;
+  };
+  portal?: SupplierPortalConfigView;
+  portalPaused?: boolean;
 };
 
 export default async function EngagementPublicPage({
@@ -16,19 +37,7 @@ export default async function EngagementPublicPage({
 }) {
   const { token } = await params;
 
-  let initial: {
-    token: string;
-    orgName: string;
-    supplierName: string;
-    status: EngagementStatus;
-    expired: boolean;
-    alreadySubmitted: boolean;
-    expiresAt: string | null;
-    template: ReturnType<typeof generateQuestionnaireTemplate>;
-    responses: Record<string, unknown>;
-    completionPercent: number;
-    error?: string;
-  };
+  let initial: InitialState;
 
   try {
     const form = await loadPublicForm(token);
@@ -58,6 +67,9 @@ export default async function EngagementPublicPage({
         template: form.template,
         responses: form.responses,
         completionPercent: form.completionPercent,
+        branding: form.branding,
+        portal: form.portal,
+        portalPaused: form.portalPaused,
       };
     }
   } catch {

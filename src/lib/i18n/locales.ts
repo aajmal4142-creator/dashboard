@@ -1,5 +1,5 @@
-/** Supported UI locales. F24b: `en` + `hi`. */
-export const SUPPORTED_LOCALES = ["en", "hi"] as const;
+/** Supported UI locales. F24b: `en` + `hi` + `fr`. */
+export const SUPPORTED_LOCALES = ["en", "hi", "fr"] as const;
 
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
@@ -9,6 +9,7 @@ export const DEFAULT_LOCALE: Locale = "en";
 export const LOCALE_OPTIONS: ReadonlyArray<{ value: Locale; labelKey: string }> = [
   { value: "en", labelKey: "settings.language.english" },
   { value: "hi", labelKey: "settings.language.hindi" },
+  { value: "fr", labelKey: "settings.language.french" },
 ];
 
 export function isSupportedLocale(value: unknown): value is Locale {
@@ -33,6 +34,8 @@ export function localeToBcp47(locale: Locale): string {
       return "en";
     case "hi":
       return "hi-IN";
+    case "fr":
+      return "fr-FR";
     default: {
       const _exhaustive: never = locale;
       return _exhaustive;

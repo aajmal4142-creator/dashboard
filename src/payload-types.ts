@@ -344,7 +344,7 @@ export interface User {
   /**
    * UI language preference (en | hi)
    */
-  language?: ('en' | 'hi') | null;
+  language?: ('en' | 'hi' | 'fr') | null;
   updatedAt: string;
   createdAt: string;
   email: string;

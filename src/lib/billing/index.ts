@@ -54,6 +54,7 @@ export {
   createDunningCampaign,
   scheduleRetryAttempt,
   executeRetryAttempt,
+  processDueDunningRetries,
   suspendSubscriptionDueToDunning,
   cancelSubscriptionDueToDunning,
   generateManualPaymentLink,

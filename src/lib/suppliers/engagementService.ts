@@ -8,6 +8,7 @@ import { getPayload, type Payload } from "payload";
 
 import { SUPPLIER_QUESTIONNAIRES_SLUG } from "@/collections/SupplierQuestionnaire";
 import { sendTransactionalEmail } from "@/lib/email/send";
+import { resolvePortalChrome } from "@/lib/portal";
 import config from "@/payload.config";
 
 import {
@@ -347,6 +348,17 @@ export type PublicFormPayload = {
   template: QuestionnaireTemplate;
   responses: Record<string, unknown>;
   completionPercent: number;
+  branding?: {
+    primaryColor: string | null;
+    logoUrl: string | null;
+  };
+  portal?: {
+    enabled: boolean;
+    headline: string;
+    welcomeMessage: string | null;
+    showPoweredBy: boolean;
+  };
+  portalPaused?: boolean;
 };
 
 export async function loadPublicForm(token: string): Promise<PublicFormPayload | null> {
@@ -385,16 +397,40 @@ export async function loadPublicForm(token: string): Promise<PublicFormPayload |
 
   const org =
     doc.organisation && typeof doc.organisation === "object"
-      ? (doc.organisation as { name?: string })
+      ? (doc.organisation as {
+          id?: string;
+          name?: string;
+          brand?: unknown;
+          settings?: unknown;
+        })
       : null;
   const supplier =
     doc.supplier && typeof doc.supplier === "object"
       ? (doc.supplier as { name?: string })
       : null;
 
+  const orgId =
+    org?.id != null
+      ? String(org.id)
+      : typeof doc.organisation === "string"
+        ? doc.organisation
+        : null;
+
+  const chrome = await resolvePortalChrome(
+    payload,
+    orgId
+      ? {
+          id: orgId,
+          name: org?.name ?? null,
+          brand: org?.brand,
+          settings: org?.settings,
+        }
+      : null,
+  );
+
   return {
     token,
-    orgName: org?.name ?? "",
+    orgName: chrome.orgName || org?.name || "",
     supplierName: supplier?.name ?? dto.supplierName,
     status: dto.status,
     expired: isQuestionnaireExpired(dto.expiresAt),
@@ -406,6 +442,9 @@ export async function loadPublicForm(token: string): Promise<PublicFormPayload |
     template: generateQuestionnaireTemplate(dto.customSections),
     responses: dto.responses,
     completionPercent: dto.completionPercent,
+    branding: chrome.branding,
+    portal: chrome.portal,
+    portalPaused: !chrome.portal.enabled,
   };
 }
 

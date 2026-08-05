@@ -162,6 +162,43 @@ export async function POST(req: Request) {
         const organisationId = await orgIdFromCustomer(customerId);
         if (organisationId) {
           await setOrgPlan(organisationId, { subscriptionStatus: "past_due" });
+          try {
+            const payload = await getPayload({ config });
+            const subs = await payload.find({
+              collection: "subscriptions",
+              where: { organisation: { equals: organisationId } },
+              limit: 1,
+              depth: 0,
+              overrideAccess: true,
+            });
+            const sub = subs.docs[0];
+            if (sub) {
+              const existing = await payload.find({
+                collection: "dunning-management",
+                where: {
+                  and: [
+                    { subscription: { equals: sub.id } },
+                    { status: { in: ["retrying", "suspended"] } },
+                  ],
+                },
+                limit: 1,
+                overrideAccess: true,
+              });
+              if (existing.docs.length === 0) {
+                const { createDunningCampaign } =
+                  await import("@/lib/billing/dunningService");
+                await createDunningCampaign(
+                  String(sub.id),
+                  "Invoice payment failed",
+                  typeof invoice.billing_reason === "string"
+                    ? invoice.billing_reason
+                    : undefined,
+                );
+              }
+            }
+          } catch (dunningErr) {
+            console.error("Dunning campaign create failed", dunningErr);
+          }
         }
         break;
       }
