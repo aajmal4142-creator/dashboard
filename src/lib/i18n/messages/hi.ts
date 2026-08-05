@@ -58,6 +58,7 @@ export const hi: MessageTree = {
       restatements: "आधार-वर्ष पुनर्स्थापन",
       residual: "अवशिष्ट और ऑफसेट",
       facilities: "सुविधाएँ",
+      field: "फ़ील्ड",
       policies: "नीति लाइब्रेरी",
       california: "कैलिफ़ोर्निया SB 253/261",
       sfdr: "SFDR PAI",

@@ -20,8 +20,16 @@ function parseQuarter(value: unknown): CbamQuarter | null {
 }
 
 function parseStatus(value: unknown): CbamDeclarationStatus | null {
-  if (value === "draft" || value === "submitted") return value;
+  if (value === "draft" || value === "ready" || value === "submitted") return value;
   return null;
+}
+
+function optionalTrim(value: unknown): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== "string") return undefined;
+  const t = value.trim();
+  return t ? t : null;
 }
 
 /**
@@ -128,6 +136,18 @@ export async function POST(req: Request) {
           ? null
           : undefined;
 
+    const declarantName = optionalTrim(body.declarantName);
+    const declarantEori = optionalTrim(body.declarantEori);
+    const declarantCountry = optionalTrim(body.declarantCountry);
+    const declarantEmail = optionalTrim(body.declarantEmail);
+
+    const declarantPatch = {
+      ...(declarantName !== undefined ? { declarantName } : {}),
+      ...(declarantEori !== undefined ? { declarantEori } : {}),
+      ...(declarantCountry !== undefined ? { declarantCountry } : {}),
+      ...(declarantEmail !== undefined ? { declarantEmail } : {}),
+    };
+
     if (existing) {
       const updated = await payload.update({
         collection: CBAM_DECLARATIONS_SLUG,
@@ -137,6 +157,7 @@ export async function POST(req: Request) {
           status,
           ...(certificatePriceEur !== undefined ? { certificatePriceEur } : {}),
           ...(notes !== undefined ? { notes } : {}),
+          ...declarantPatch,
         },
         overrideAccess: true,
       });
@@ -154,6 +175,7 @@ export async function POST(req: Request) {
         certificatePriceEur:
           certificatePriceEur === undefined ? undefined : certificatePriceEur,
         notes: notes === undefined ? undefined : notes,
+        ...declarantPatch,
       },
       overrideAccess: true,
     });

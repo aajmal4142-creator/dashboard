@@ -12,12 +12,13 @@
 
 ## Progress log
 
-| Date       | IDs     | Notes                                                                                                                                        |
-| ---------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-08-03 | P01–P05 | IoT protocol honesty UI; Snowflake connector; BOM registry Suggest; multi-metric benchmarks; `/frameworks/csrd` coverage loop                |
-| 2026-08-04 | P06–P10 | CT evidence upload API + auditor attach; SFDR PAI pack export; supplier documents UI; scorecard + txt/csv; pathway checklist in evidence ZIP |
-| 2026-08-04 | P11–P15 | CSRD/ESRS filing PDF; board/ops/auditor audience packs; CSRD gap pack; Databricks connector; BI recipe surfacing                             |
-| 2026-08-05 | P16–P21 | Portal chrome on `/s/q/*`; French locale; annual cycle + volume UX; live metered usage; dunning webhook + cron                               |
+| Date       | IDs           | Notes                                                                                                                                        |
+| ---------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-03 | P01–P05       | IoT protocol honesty UI; Snowflake connector; BOM registry Suggest; multi-metric benchmarks; `/frameworks/csrd` coverage loop                |
+| 2026-08-04 | P06–P10       | CT evidence upload API + auditor attach; SFDR PAI pack export; supplier documents UI; scorecard + txt/csv; pathway checklist in evidence ZIP |
+| 2026-08-04 | P11–P15       | CSRD/ESRS filing PDF; board/ops/auditor audience packs; CSRD gap pack; Databricks connector; BI recipe surfacing                             |
+| 2026-08-05 | P16–P21       | Portal chrome on `/s/q/*`; French locale; annual cycle + volume UX; live metered usage; dunning webhook + cron                               |
+| 2026-08-05 | B01–B06 + X01 | Field PWA + offline queue; Zapier/Make recipes; multi-year contracts; trial extend; ASC 606 notes; CBAM filing pack + declarant/ready        |
 
 ---
 
@@ -29,7 +30,7 @@
 | Partial — extras outside spreadsheet                  | **14** | Yes                |
 | Buildable — gaps #1–#91                               | **6**  | Yes                |
 | Buildable — extras outside spreadsheet                | **10** | Yes                |
-| **Total remaining (non-AI, non-pay)**                 | **51** | Next: **B01**      |
+| **Total remaining (non-AI, non-pay)**                 | **44** | Next: **X02**      |
 | Already SHIPPED (of 91)                               | 50     | Done               |
 | Duplicates in 91                                      | 5      | Ignore             |
 | AI related                                            | 8      | Later → AI backlog |
@@ -74,35 +75,35 @@
 
 ## Table B — Buildable from gaps #1–#91 (6)
 
-| ID  | Gap# | Feature                   | What to finish                                         | Wave | Effort |
-| --- | ---- | ------------------------- | ------------------------------------------------------ | ---- | ------ |
-| B01 | 6/73 | Native mobile app         | Field meters/evidence; prefer B02 first if scope large | 4    | L      |
-| B02 | 74   | Offline-first data entry  | Queue + sync / PWA                                     | 4    | L      |
-| B03 | 68   | Zapier / Make.com         | Published recipes + docs on webhooks                   | 4    | S      |
-| B04 | 85   | Multi-year contracts      | Billing contract fields/flows                          | 4    | S      |
-| B05 | 88   | Trial extensions & upsell | Extend trial + upsell workflows                        | 4    | S      |
-| B06 | 91   | Revenue recognition notes | ASC 606 / IFRS 15 checklist (not full ERP)             | 4    | S      |
+| ID  | Gap# | Feature                   | Status | What to finish                                         | Wave | Effort |
+| --- | ---- | ------------------------- | ------ | ------------------------------------------------------ | ---- | ------ |
+| B01 | 6/73 | Native mobile app         | Done*  | `/field` PWA shell (manifest + SW) for meters/evidence | 4    | L      |
+| B02 | 74   | Offline-first data entry  | Done*  | IndexedDB queue → ingest + evidence sync               | 4    | L      |
+| B03 | 68   | Zapier / Make.com         | Done*  | Docs + templates on webhooks (aligned event names)     | 4    | S      |
+| B04 | 85   | Multi-year contracts      | Done*  | contractTermYears / ends / discount on billing         | 4    | S      |
+| B05 | 88   | Trial extensions & upsell | Done*  | extend-trial API + Extend/Upgrade banner               | 4    | S      |
+| B06 | 91   | Revenue recognition notes | Done*  | `/billing/revenue-recognition` ASC 606 / IFRS 15       | 4    | S      |
 
 ---
 
 ## Table C — Extra PARTIAL outside spreadsheet (14)
 
-| ID  | Feature                                | Current anchor                 | What to finish                                                       | Wave | Effort |
-| --- | -------------------------------------- | ------------------------------ | -------------------------------------------------------------------- | ---- | ------ |
-| X01 | CBAM filing pack depth                 | `/compliance/cbam`             | Official reporting export, defaults tables, declarant workflow       | 2    | L      |
-| X02 | Residual / offsets claim depth         | `/compliance/residual`         | Registry serials, project fields, disclosure guards (no marketplace) | 2    | M      |
-| X03 | Restatements → applied inventory       | `/compliance/ghg/restatements` | As-of published figures / applied recalc path                        | 2    | L      |
-| X04 | Double materiality depth               | `/materiality`                 | Stakeholder surveys, IRO register, ESRS crosswalk                    | 1    | L      |
-| X05 | BRSR depth (India)                     | `/frameworks/brsr`             | Fill empty metricKeys; SEBI-style export pack                        | 1    | M      |
-| X06 | Assurance L vs R engagement depth      | `lib/assurance/pathways`       | Sampling, materiality, opinion letter, checkpoint binding            | 1    | M      |
-| X07 | Multi-org consolidation depth          | Org hierarchy + consolidation  | IC eliminations, FX, statutory vs management pack                    | 3    | L      |
-| X08 | Employee engagement depth              | `/engagement`                  | Surveys, verified commute at scale (no HRIS BSP required)            | 3    | M      |
-| X09 | Procurement tradeoffs depth            | `/procurement/tradeoffs`       | Vendor lists / RFP-lite (no paid ERP required)                       | 3    | M      |
-| X10 | Cascade ↔ MACC ↔ reduction closed loop | analytics routes               | One plan object; facility progress from meters                       | 2    | M      |
-| X11 | Public embed hardening                 | `/public/reports/embed`        | Domain allowlist, theme, CSP docs                                    | 3    | S      |
-| X12 | Realtime SSE multi-instance            | `lib/realtime`                 | Redis/pub-sub fan-out (beyond in-process hub)                        | 3    | M      |
-| X13 | California SB 253/261 filing pack      | `/compliance/california`       | Exportable pack beyond coverage checklist                            | 2    | M      |
-| X14 | Taxonomy / ISSB mapping stubs          | `mappings.ts`, ISSB questions  | Replace counsel placeholders with real mappings                      | 2    | M      |
+| ID  | Feature                                | Current anchor                 | What to finish                                                             | Wave | Effort |
+| --- | -------------------------------------- | ------------------------------ | -------------------------------------------------------------------------- | ---- | ------ |
+| X01 | CBAM filing pack depth                 | `/compliance/cbam`             | Done* — Filing CSV/JSON; defaults table; declarant + draft→ready→submitted | 2    | L      |
+| X02 | Residual / offsets claim depth         | `/compliance/residual`         | Registry serials, project fields, disclosure guards (no marketplace)       | 2    | M      |
+| X03 | Restatements → applied inventory       | `/compliance/ghg/restatements` | As-of published figures / applied recalc path                              | 2    | L      |
+| X04 | Double materiality depth               | `/materiality`                 | Stakeholder surveys, IRO register, ESRS crosswalk                          | 1    | L      |
+| X05 | BRSR depth (India)                     | `/frameworks/brsr`             | Fill empty metricKeys; SEBI-style export pack                              | 1    | M      |
+| X06 | Assurance L vs R engagement depth      | `lib/assurance/pathways`       | Sampling, materiality, opinion letter, checkpoint binding                  | 1    | M      |
+| X07 | Multi-org consolidation depth          | Org hierarchy + consolidation  | IC eliminations, FX, statutory vs management pack                          | 3    | L      |
+| X08 | Employee engagement depth              | `/engagement`                  | Surveys, verified commute at scale (no HRIS BSP required)                  | 3    | M      |
+| X09 | Procurement tradeoffs depth            | `/procurement/tradeoffs`       | Vendor lists / RFP-lite (no paid ERP required)                             | 3    | M      |
+| X10 | Cascade ↔ MACC ↔ reduction closed loop | analytics routes               | One plan object; facility progress from meters                             | 2    | M      |
+| X11 | Public embed hardening                 | `/public/reports/embed`        | Domain allowlist, theme, CSP docs                                          | 3    | S      |
+| X12 | Realtime SSE multi-instance            | `lib/realtime`                 | Redis/pub-sub fan-out (beyond in-process hub)                              | 3    | M      |
+| X13 | California SB 253/261 filing pack      | `/compliance/california`       | Exportable pack beyond coverage checklist                                  | 2    | M      |
+| X14 | Taxonomy / ISSB mapping stubs          | `mappings.ts`, ISSB questions  | Replace counsel placeholders with real mappings                            | 2    | M      |
 
 ---
 

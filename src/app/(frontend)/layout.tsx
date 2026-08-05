@@ -62,6 +62,12 @@ export const metadata: Metadata = {
     icon: [{ url: "/icon", type: "image/png" }],
     apple: [{ url: "/apple-icon", type: "image/png" }],
   },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "ClearESG Field",
+    statusBarStyle: "default",
+  },
   openGraph: {
     type: "website",
     siteName: "ClearESG",

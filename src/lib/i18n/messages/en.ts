@@ -58,6 +58,7 @@ export const en: MessageTree = {
       restatements: "Base-year restatements",
       residual: "Residual & offsets",
       facilities: "Facilities",
+      field: "Field",
       policies: "Policy library",
       california: "California SB 253/261",
       sfdr: "SFDR PAI",

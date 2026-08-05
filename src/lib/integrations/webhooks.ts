@@ -3,6 +3,7 @@ import type { Payload } from "payload";
 
 import { generateSecret } from "@/lib/webhooks/webhookValidator";
 import type { WebhookConfig, WebhookEvent, WebhookTemplate, SyncResult } from "./types";
+import { listWebhookTemplates } from "./webhookTemplates";
 
 function orgIdFromRelation(value: unknown): string {
   if (typeof value === "string") return value;
@@ -355,61 +356,7 @@ export class WebhookManager {
    * Get webhook templates for Zapier/Make
    */
   getWebhookTemplates(): WebhookTemplate[] {
-    return [
-      {
-        name: "Zapier - New Datapoint",
-        provider: "zapier",
-        events: ["data.created"],
-        mapping: {
-          event: "event",
-          timestamp: "timestamp",
-          dataId: "data.id",
-          metricKey: "data.metricKey",
-          value: "data.value",
-          unit: "data.unit",
-        },
-        description: "Trigger Zapier workflows when new datapoints are created",
-      },
-      {
-        name: "Make - Emissions Alert",
-        provider: "make",
-        events: ["alert.triggered"],
-        mapping: {
-          event: "event",
-          timestamp: "timestamp",
-          alertLevel: "data.level",
-          message: "data.message",
-          affectedMetrics: "data.metrics",
-        },
-        description: "Send alerts to Make.com when emissions thresholds are exceeded",
-      },
-      {
-        name: "Zapier - Report Generated",
-        provider: "zapier",
-        events: ["report.generated"],
-        mapping: {
-          event: "event",
-          timestamp: "timestamp",
-          reportId: "data.reportId",
-          reportType: "data.type",
-          reportUrl: "data.downloadUrl",
-        },
-        description: "Trigger workflows when reports are generated",
-      },
-      {
-        name: "Make - Data Sync Complete",
-        provider: "make",
-        events: ["sync.completed"],
-        mapping: {
-          event: "event",
-          timestamp: "timestamp",
-          syncProvider: "data.provider",
-          recordsProcessed: "data.recordsProcessed",
-          status: "data.status",
-        },
-        description: "Monitor data sync completions across integrations",
-      },
-    ];
+    return listWebhookTemplates();
   }
 
   /**

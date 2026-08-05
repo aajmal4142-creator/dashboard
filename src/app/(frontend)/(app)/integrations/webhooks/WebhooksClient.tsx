@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
+import { listWebhookTemplates } from "@/lib/integrations/webhookTemplates";
 import { cn } from "@/lib/utils";
 
 type WebhookRow = {
@@ -285,6 +286,31 @@ export function WebhooksClient(props: { canManage: boolean }) {
           </p>
         </div>
       ) : null}
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold text-ink">Zapier &amp; Make recipes</h2>
+        <p className="text-sm text-ink-muted">
+          Published starter recipes. Full steps:{" "}
+          <span className="font-data text-ink">docs/integrations/ZAPIER.md</span> and{" "}
+          <span className="font-data text-ink">docs/integrations/MAKE.md</span>.
+        </p>
+        <ul className="divide-y divide-rule border-t border-rule">
+          {listWebhookTemplates().map((t) => (
+            <li
+              key={t.name}
+              className="flex flex-wrap items-baseline justify-between gap-2 py-3"
+            >
+              <div>
+                <p className="text-sm text-ink">{t.name}</p>
+                <p className="mt-0.5 text-xs text-ink-muted">{t.description}</p>
+              </div>
+              <p className="font-data text-[11px] text-ink-muted">
+                {t.provider} · {t.events.join(", ")}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       {!props.canManage ? (
         <p className="text-sm text-ink-muted">

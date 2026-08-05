@@ -28,6 +28,14 @@ type PlanPricing = {
   volumeDiscountPercent: number;
 };
 
+type ContractState = {
+  contractTermYears: "1" | "2" | "3" | null;
+  contractEndsAt: string | null;
+  multiYearDiscountPercent: number | null;
+  trialEndsAt: string | null;
+  trialExtensionCount: number;
+};
+
 type DunningState = {
   status: string;
   nextRetryAt: string | null;
@@ -71,16 +79,19 @@ export function BillingClient({
   role = null,
   planPricing = null,
   dunning = null,
+  contract = null,
 }: {
   initial: BillingState;
   role?: MembershipRole | null;
   planPricing?: PlanPricing | null;
   dunning?: DunningState | null;
+  contract?: ContractState | null;
 }) {
   const [state, setState] = useState(initial);
   const [cycle, setCycle] = useState<"monthly" | "annual">(
     planPricing?.billingCycle ?? "monthly",
   );
+  const [contractState, setContractState] = useState<ContractState | null>(contract);
   const [status, setStatus] = useState<string | null>(null);
   const [statusTone, setStatusTone] = useState<"neutral" | "error" | "ok">("neutral");
   const [busy, setBusy] = useState(false);
@@ -91,6 +102,8 @@ export function BillingClient({
   } | null>(null);
   const canManage = role === null ? true : role === "owner" || role === "admin";
   const readOnlyNonOwner = role !== null && role !== "owner" && role !== "admin";
+  const isTrialing = state.subscriptionStatus === "trialing";
+  const extensionsLeft = Math.max(0, 2 - (contractState?.trialExtensionCount ?? 0));
 
   async function checkout(plan: Exclude<PlanId, "free">) {
     if (!canManage) {
@@ -205,6 +218,100 @@ export function BillingClient({
     if (data.plan && data.usage) setState(data);
   }
 
+  async function extendTrial() {
+    if (!canManage) {
+      setStatusTone("error");
+      setStatus("Only an owner or admin can extend the trial.");
+      return;
+    }
+    setBusy(true);
+    setStatus(null);
+    try {
+      const res = await fetch("/api/app/billing/subscriptions/extend-trial", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        trialEndsAt?: string;
+        extensionsUsed?: number;
+        daysAdded?: number;
+      };
+      if (!res.ok) {
+        setStatusTone("error");
+        setStatus(data.error ?? "Could not extend trial.");
+        return;
+      }
+      setContractState((prev) =>
+        prev
+          ? {
+              ...prev,
+              trialEndsAt: data.trialEndsAt ?? prev.trialEndsAt,
+              trialExtensionCount: data.extensionsUsed ?? prev.trialExtensionCount,
+            }
+          : {
+              contractTermYears: null,
+              contractEndsAt: null,
+              multiYearDiscountPercent: null,
+              trialEndsAt: data.trialEndsAt ?? null,
+              trialExtensionCount: data.extensionsUsed ?? 1,
+            },
+      );
+      setStatusTone("ok");
+      setStatus(
+        `Trial extended by ${data.daysAdded ?? 14} days${
+          data.trialEndsAt
+            ? ` (ends ${new Date(data.trialEndsAt).toLocaleDateString()})`
+            : ""
+        }.`,
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function setContractTerm(years: "1" | "2" | "3" | null) {
+    if (!canManage) {
+      setStatusTone("error");
+      setStatus("Only an owner or admin can set the contract term.");
+      return;
+    }
+    setBusy(true);
+    setStatus(null);
+    try {
+      const res = await fetch("/api/app/billing/subscriptions/contract", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contractTermYears: years }),
+      });
+      const data = (await res.json()) as {
+        error?: string;
+        contractTermYears?: "1" | "2" | "3" | null;
+        contractEndsAt?: string | null;
+        multiYearDiscountPercent?: number | null;
+      };
+      if (!res.ok) {
+        setStatusTone("error");
+        setStatus(data.error ?? "Could not update contract.");
+        return;
+      }
+      setContractState((prev) => ({
+        contractTermYears: data.contractTermYears ?? null,
+        contractEndsAt: data.contractEndsAt ?? null,
+        multiYearDiscountPercent: data.multiYearDiscountPercent ?? null,
+        trialEndsAt: prev?.trialEndsAt ?? null,
+        trialExtensionCount: prev?.trialExtensionCount ?? 0,
+      }));
+      setStatusTone("ok");
+      setStatus(
+        years ? `Contract term set to ${years} year(s).` : "Multi-year contract cleared.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const monthlyBase = planPricing?.monthlyPrice ?? 0;
   const annualBase = planPricing?.annualPrice ?? 0;
   const seatCount = planPricing?.seats ?? 1;
@@ -251,11 +358,52 @@ export function BillingClient({
           >
             Metered usage details
           </Link>
+          <Link
+            href="/billing/revenue-recognition"
+            className="block text-accent underline-offset-2 hover:underline"
+          >
+            Revenue recognition notes
+          </Link>
         </div>
       }
     >
       <div className="space-y-4">
         {status ? <StatusLine tone={statusTone}>{status}</StatusLine> : null}
+
+        {isTrialing ? (
+          <StatusLine tone="neutral">
+            Trial active
+            {contractState?.trialEndsAt
+              ? ` until ${new Date(contractState.trialEndsAt).toLocaleDateString()}`
+              : ""}
+            .{" "}
+            {canManage && extensionsLeft > 0 ? (
+              <>
+                <button
+                  type="button"
+                  className="underline underline-offset-2"
+                  disabled={busy}
+                  onClick={() => void extendTrial()}
+                >
+                  Extend trial ({extensionsLeft} left)
+                </button>
+                {" · "}
+              </>
+            ) : null}
+            {canManage ? (
+              <button
+                type="button"
+                className="underline underline-offset-2"
+                disabled={busy}
+                onClick={() => void checkout("pro")}
+              >
+                Upgrade
+              </button>
+            ) : (
+              "Ask an owner to extend or upgrade."
+            )}
+          </StatusLine>
+        ) : null}
 
         {dunning || state.subscriptionStatus === "past_due" ? (
           <StatusLine tone="error">
@@ -387,6 +535,60 @@ export function BillingClient({
                   onClick={() => void switchCycle(prorataConfirm.newBillingCycle, true)}
                 >
                   Confirm switch
+                </Button>
+              </div>
+            ) : null}
+          </PageCard>
+        ) : null}
+
+        {planPricing ? (
+          <PageCard title="Multi-year contract">
+            <p className="text-[13px] text-ink-muted">
+              Commercial term on the subscription (1–3 years). Setting 2y or 3y applies a
+              default multi-year discount (10% / 15%). Revenue is still recognised over
+              time — see revenue recognition notes.
+            </p>
+            {contractState?.contractTermYears ? (
+              <p className="mt-2 text-[13px] text-ink">
+                Current:{" "}
+                <span className="font-mono tabular-nums">
+                  {contractState.contractTermYears} year
+                  {contractState.contractTermYears === "1" ? "" : "s"}
+                </span>
+                {contractState.contractEndsAt
+                  ? ` · ends ${new Date(contractState.contractEndsAt).toLocaleDateString()}`
+                  : ""}
+                {contractState.multiYearDiscountPercent != null
+                  ? ` · ${contractState.multiYearDiscountPercent}% multi-year discount`
+                  : ""}
+              </p>
+            ) : (
+              <p className="mt-2 text-[13px] text-ink-muted">No multi-year term set.</p>
+            )}
+            {canManage ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(["1", "2", "3"] as const).map((y) => (
+                  <Button
+                    key={y}
+                    type="button"
+                    size="sm"
+                    variant={
+                      contractState?.contractTermYears === y ? "default" : "outline"
+                    }
+                    disabled={busy}
+                    onClick={() => void setContractTerm(y)}
+                  >
+                    {y}y
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy || !contractState?.contractTermYears}
+                  onClick={() => void setContractTerm(null)}
+                >
+                  Clear
                 </Button>
               </div>
             ) : null}

@@ -81,12 +81,14 @@ export type SyncWebhookPayload = {
 
 // Webhook types
 export type WebhookEvent =
+  | "datapoint.created"
+  | "datapoint.updated"
+  | "report.generated"
   | "data.updated"
   | "data.created"
   | "data.deleted"
   | "alert.triggered"
   | "sync.completed"
-  | "report.generated"
   | "export.completed";
 
 export type WebhookConfig = {

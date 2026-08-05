@@ -47,7 +47,8 @@ export const API_DOC_GROUPS: readonly ApiDocGroupMeta[] = [
   {
     id: "webhooks",
     label: "Webhooks",
-    blurb: "Outbound event registrations, deliveries, and replay.",
+    blurb:
+      "Outbound event registrations, deliveries, and replay. Zapier/Make recipes: docs/integrations/ZAPIER.md, docs/integrations/MAKE.md.",
   },
   {
     id: "factors",

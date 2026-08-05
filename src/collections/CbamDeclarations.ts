@@ -64,9 +64,30 @@ export const CbamDeclarations: CollectionConfig = {
       defaultValue: "draft",
       options: [
         { label: "Draft", value: "draft" },
+        { label: "Ready", value: "ready" },
         { label: "Submitted", value: "submitted" },
       ],
       index: true,
+    },
+    {
+      name: "declarantName",
+      type: "text",
+      admin: { description: "CBAM declarant / importer legal name" },
+    },
+    {
+      name: "declarantEori",
+      type: "text",
+      admin: { description: "EORI number" },
+    },
+    {
+      name: "declarantCountry",
+      type: "text",
+      admin: { description: "Declarant country (ISO-2)" },
+    },
+    {
+      name: "declarantEmail",
+      type: "email",
+      admin: { description: "Declarant contact email" },
     },
     {
       name: "certificatePriceEur",

@@ -181,6 +181,11 @@ export function buildNavGroups(opts: {
       icon: Building2,
     },
     {
+      href: "/field",
+      labelKey: "nav.items.field",
+      icon: Gauge,
+    },
+    {
       href: "/policies",
       labelKey: "nav.items.policies",
       icon: BookOpen,

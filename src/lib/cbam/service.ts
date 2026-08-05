@@ -29,6 +29,10 @@ export type CbamDeclarationDto = {
   status: CbamDeclarationStatus;
   certificatePriceEur: number | null;
   notes: string | null;
+  declarantName: string | null;
+  declarantEori: string | null;
+  declarantCountry: string | null;
+  declarantEmail: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -117,13 +121,19 @@ export function docToCbamDeclaration(doc: {
   status?: unknown;
   certificatePriceEur?: unknown;
   notes?: unknown;
+  declarantName?: unknown;
+  declarantEori?: unknown;
+  declarantCountry?: unknown;
+  declarantEmail?: unknown;
   createdAt?: unknown;
   updatedAt?: unknown;
 }): CbamDeclarationDto {
   const year = Number(doc.reportingYear) || 0;
   const quarter = asQuarter(doc.reportingQuarter) ?? "1";
   const status: CbamDeclarationStatus =
-    doc.status === "submitted" ? "submitted" : "draft";
+    doc.status === "submitted" ? "submitted" : doc.status === "ready" ? "ready" : "draft";
+  const str = (v: unknown): string | null =>
+    typeof v === "string" && v.trim() ? v.trim() : null;
   return {
     id: String(doc.id),
     label:
@@ -134,7 +144,11 @@ export function docToCbamDeclaration(doc: {
     reportingQuarter: quarter,
     status,
     certificatePriceEur: optionalNumber(doc.certificatePriceEur),
-    notes: typeof doc.notes === "string" && doc.notes.trim() ? doc.notes.trim() : null,
+    notes: str(doc.notes),
+    declarantName: str(doc.declarantName),
+    declarantEori: str(doc.declarantEori),
+    declarantCountry: str(doc.declarantCountry),
+    declarantEmail: str(doc.declarantEmail),
     createdAt: String(doc.createdAt ?? ""),
     updatedAt: String(doc.updatedAt ?? ""),
   };

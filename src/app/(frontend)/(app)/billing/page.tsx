@@ -105,7 +105,32 @@ export default async function BillingPage() {
     manualPaymentLink: string | null;
   } | null = null;
 
+  let contract: {
+    contractTermYears: "1" | "2" | "3" | null;
+    contractEndsAt: string | null;
+    multiYearDiscountPercent: number | null;
+    trialEndsAt: string | null;
+    trialExtensionCount: number;
+  } | null = null;
+
   if (subscription) {
+    const term = subscription.contractTermYears;
+    contract = {
+      contractTermYears: term === "1" || term === "2" || term === "3" ? term : null,
+      contractEndsAt: subscription.contractEndsAt
+        ? String(subscription.contractEndsAt)
+        : null,
+      multiYearDiscountPercent:
+        typeof subscription.multiYearDiscountPercent === "number"
+          ? subscription.multiYearDiscountPercent
+          : null,
+      trialEndsAt: subscription.trialEndsAt ? String(subscription.trialEndsAt) : null,
+      trialExtensionCount:
+        typeof subscription.trialExtensionCount === "number"
+          ? subscription.trialExtensionCount
+          : 0,
+    };
+
     const dunningFound = await payload.find({
       collection: "dunning-management",
       where: {
@@ -139,6 +164,7 @@ export default async function BillingPage() {
       role={ctx.role}
       planPricing={planPricing}
       dunning={dunning}
+      contract={contract}
     />
   );
 }

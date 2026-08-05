@@ -18,7 +18,7 @@ export type CbamQuantityUnit = "t" | "kg" | "mwh";
 
 export type CbamQuarter = "1" | "2" | "3" | "4";
 
-export type CbamDeclarationStatus = "draft" | "submitted";
+export type CbamDeclarationStatus = "draft" | "ready" | "submitted";
 
 export type CbamGoodInput = {
   cnCode: string;

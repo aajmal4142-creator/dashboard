@@ -163,5 +163,44 @@ export const Subscriptions: CollectionConfig = {
       max: 100,
       admin: { description: "Discount percentage applied (only for annual billing)" },
     },
+    {
+      name: "contractTermYears",
+      type: "select",
+      options: [
+        { label: "1 year", value: "1" },
+        { label: "2 years", value: "2" },
+        { label: "3 years", value: "3" },
+      ],
+      admin: {
+        description:
+          "Multi-year commercial term (1–3). Null = month-to-month / annual only.",
+      },
+    },
+    {
+      name: "contractEndsAt",
+      type: "date",
+      admin: { description: "End of the multi-year contract window" },
+    },
+    {
+      name: "multiYearDiscountPercent",
+      type: "number",
+      min: 0,
+      max: 100,
+      admin: {
+        description:
+          "Additional discount % for 2–3 year terms (commercial, not Stripe coupon)",
+      },
+    },
+    {
+      name: "trialExtensionCount",
+      type: "number",
+      min: 0,
+      max: 10,
+      defaultValue: 0,
+      admin: {
+        description: "How many times the trial has been extended (max 2 via self-serve)",
+        readOnly: true,
+      },
+    },
   ],
 };

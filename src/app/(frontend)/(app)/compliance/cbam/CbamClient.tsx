@@ -5,12 +5,13 @@ import { Download, FileSpreadsheet, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { EmptyState, StatusLine } from "@/components/shell/PageFrame";
 import { Button } from "@/components/ui/button";
+import { CBAM_DEFAULT_VALUE_TABLE, findCbamDefaultForCn } from "@/lib/cbam/defaults";
 import { cn } from "@/lib/utils";
 
 type Quality = "measured" | "estimated" | "missing";
 type Quarter = "1" | "2" | "3" | "4";
 type QuantityUnit = "t" | "kg" | "mwh";
-type DeclarationStatus = "draft" | "submitted";
+type DeclarationStatus = "draft" | "ready" | "submitted";
 
 type LineResult = {
   quantityNormalised: number | null;
@@ -46,6 +47,10 @@ type Declaration = {
   status: DeclarationStatus;
   certificatePriceEur: number | null;
   notes: string | null;
+  declarantName: string | null;
+  declarantEori: string | null;
+  declarantCountry: string | null;
+  declarantEmail: string | null;
 };
 
 type Liability = {
@@ -151,6 +156,10 @@ export function CbamClient({
   const [priceInput, setPriceInput] = useState("");
   const [declStatus, setDeclStatus] = useState<DeclarationStatus>("draft");
   const [declError, setDeclError] = useState<string | null>(null);
+  const [declarantName, setDeclarantName] = useState("");
+  const [declarantEori, setDeclarantEori] = useState("");
+  const [declarantCountry, setDeclarantCountry] = useState("");
+  const [declarantEmail, setDeclarantEmail] = useState("");
   const [csvText, setCsvText] = useState("");
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -175,6 +184,10 @@ export function CbamClient({
             : "",
         );
         setDeclStatus(json.declaration?.status ?? "draft");
+        setDeclarantName(json.declaration?.declarantName ?? "");
+        setDeclarantEori(json.declaration?.declarantEori ?? "");
+        setDeclarantCountry(json.declaration?.declarantCountry ?? "");
+        setDeclarantEmail(json.declaration?.declarantEmail ?? "");
       } catch {
         setError("Network error loading CBAM data. Retry.");
       }
@@ -290,6 +303,10 @@ export function CbamClient({
         reportingQuarter: quarter,
         status: declStatus,
         certificatePriceEur: price,
+        declarantName: declarantName.trim() || null,
+        declarantEori: declarantEori.trim() || null,
+        declarantCountry: declarantCountry.trim() || null,
+        declarantEmail: declarantEmail.trim() || null,
       }),
     });
     const json = (await res.json()) as { error?: string };
@@ -298,6 +315,42 @@ export function CbamClient({
       return;
     }
     load();
+  }
+
+  async function downloadFilingPack(format: "json" | "csv") {
+    const res = await fetch(
+      `/api/app/compliance/cbam/filing-pack?year=${year}&quarter=${quarter}&format=${format}`,
+    );
+    if (!res.ok) {
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
+      setError(json.error ?? "Could not build filing pack");
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cbam-filing-${year}-Q${quarter}.${format}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function applyIndicativeDefault() {
+    const row = findCbamDefaultForCn(form.cnCode);
+    if (!row) {
+      setFormError(
+        "No indicative default for this CN prefix. Enter measured values or pick a matching CN.",
+      );
+      return;
+    }
+    setForm((f) => ({
+      ...f,
+      directEmissions: String(row.defaultDirect),
+      indirectEmissions: String(row.defaultIndirect),
+      quantityUnit: row.quantityUnit,
+      usesDefaultValues: true,
+    }));
+    setFormError(null);
   }
 
   async function dryRunImport() {
@@ -394,6 +447,22 @@ export function CbamClient({
           <Button
             type="button"
             variant="outline"
+            onClick={() => void downloadFilingPack("csv")}
+          >
+            <Download className="mr-1.5 size-3.5" />
+            Filing CSV
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void downloadFilingPack("json")}
+          >
+            <Download className="mr-1.5 size-3.5" />
+            Filing JSON
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
             onClick={() => setImportOpen((v) => !v)}
           >
             <FileSpreadsheet className="mr-1.5 size-3.5" />
@@ -462,9 +531,46 @@ export function CbamClient({
           Quarterly draft
         </h2>
         <p className="text-sm text-[color:var(--ink-muted)]">
-          Set the certificate price used for the liability estimate. Leave blank if
-          unknown — the estimate stays quality missing rather than inventing a rate.
+          Declarant → draft → ready → submitted. Set the certificate price used for the
+          liability estimate. Leave blank if unknown — the estimate stays quality missing
+          rather than inventing a rate.
         </p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="text-xs text-[color:var(--ink-muted)]">
+            Declarant name
+            <input
+              value={declarantName}
+              onChange={(e) => setDeclarantName(e.target.value)}
+              className="mt-1 block w-full rounded-[4px] border border-[color:var(--rule)] bg-[color:var(--canvas)] px-2 py-1.5 text-sm text-[color:var(--ink)]"
+            />
+          </label>
+          <label className="text-xs text-[color:var(--ink-muted)]">
+            EORI
+            <input
+              value={declarantEori}
+              onChange={(e) => setDeclarantEori(e.target.value)}
+              className="mt-1 block w-full rounded-[4px] border border-[color:var(--rule)] bg-[color:var(--canvas)] px-2 py-1.5 font-[family-name:var(--font-mono)] text-sm text-[color:var(--ink)]"
+            />
+          </label>
+          <label className="text-xs text-[color:var(--ink-muted)]">
+            Country (ISO-2)
+            <input
+              value={declarantCountry}
+              onChange={(e) => setDeclarantCountry(e.target.value)}
+              maxLength={2}
+              className="mt-1 block w-full rounded-[4px] border border-[color:var(--rule)] bg-[color:var(--canvas)] px-2 py-1.5 font-[family-name:var(--font-mono)] text-sm uppercase text-[color:var(--ink)]"
+            />
+          </label>
+          <label className="text-xs text-[color:var(--ink-muted)]">
+            Contact email
+            <input
+              type="email"
+              value={declarantEmail}
+              onChange={(e) => setDeclarantEmail(e.target.value)}
+              className="mt-1 block w-full rounded-[4px] border border-[color:var(--rule)] bg-[color:var(--canvas)] px-2 py-1.5 text-sm text-[color:var(--ink)]"
+            />
+          </label>
+        </div>
         <div className="flex flex-wrap items-end gap-3">
           <label className="text-xs text-[color:var(--ink-muted)]">
             Certificate price (€ / tCO₂e)
@@ -483,14 +589,58 @@ export function CbamClient({
               className="mt-1 block rounded-[4px] border border-[color:var(--rule)] bg-[color:var(--canvas)] px-2 py-1.5 text-sm text-[color:var(--ink)]"
             >
               <option value="draft">Draft</option>
+              <option value="ready">Ready</option>
               <option value="submitted">Submitted</option>
             </select>
           </label>
-          <Button type="button" onClick={saveDeclaration}>
-            Save draft
+          <Button type="button" onClick={() => void saveDeclaration()}>
+            Save declaration
           </Button>
         </div>
         {declError ? <StatusLine tone="error">{declError}</StatusLine> : null}
+      </section>
+
+      <section className="space-y-3 border-b border-[color:var(--rule)] pb-6">
+        <h2 className="font-[family-name:var(--font-display)] text-xl text-[color:var(--ink)]">
+          Indicative default values
+        </h2>
+        <p className="text-sm text-[color:var(--ink-muted)]">
+          Applying a default sets <Mono>usesDefaultValues</Mono> on the goods line. The
+          calc engine never invents these silently — confirm against competent-authority
+          tables before filing.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+            <thead>
+              <tr className="border-b border-[color:var(--rule)] text-xs uppercase tracking-wide text-[color:var(--ink-muted)]">
+                <th className="py-2 pr-3 font-medium">CN</th>
+                <th className="py-2 pr-3 font-medium">Sector</th>
+                <th className="py-2 pr-3 font-medium">Direct</th>
+                <th className="py-2 pr-3 font-medium">Indirect</th>
+                <th className="py-2 font-medium">Unit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {CBAM_DEFAULT_VALUE_TABLE.map((row) => (
+                <tr key={row.cnPrefix} className="border-b border-[color:var(--rule)]">
+                  <td className="py-2 pr-3 font-[family-name:var(--font-mono)] tabular-nums text-[color:var(--ink)]">
+                    {row.cnPrefix}
+                  </td>
+                  <td className="py-2 pr-3 text-[color:var(--ink)]">{row.label}</td>
+                  <td className="py-2 pr-3 font-[family-name:var(--font-mono)] tabular-nums">
+                    {row.defaultDirect}
+                  </td>
+                  <td className="py-2 pr-3 font-[family-name:var(--font-mono)] tabular-nums">
+                    {row.defaultIndirect}
+                  </td>
+                  <td className="py-2 font-[family-name:var(--font-mono)]">
+                    {row.quantityUnit}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       {importOpen ? (
@@ -784,6 +934,16 @@ export function CbamClient({
                 />
                 Uses Commission default values
               </label>
+              <div className="sm:col-span-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={applyIndicativeDefault}
+                >
+                  Apply indicative default for CN
+                </Button>
+              </div>
               <label className="text-xs text-[color:var(--ink-muted)] sm:col-span-2">
                 Notes
                 <textarea
