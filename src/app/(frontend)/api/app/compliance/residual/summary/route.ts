@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { getCurrentContext, isNextRedirectError } from "@/lib/auth";
 import {
+  buildOffsetClaimPack,
   buildResidualLedgerSummary,
   listOrgPeriods,
   parseOptionalNonNeg,
@@ -66,7 +67,31 @@ export async function GET(req: Request) {
       listOrgPeriods(payload, ctx.activeOrg.id),
     ]);
 
-    return NextResponse.json({ ...summary, periods });
+    const includePack =
+      url.searchParams.get("pack") === "1" ||
+      url.searchParams.get("pack") === "true" ||
+      url.searchParams.get("pack") === "yes";
+
+    const pack = includePack
+      ? buildOffsetClaimPack({
+          lots: summary.credits.map((c) => ({
+            id: c.id,
+            label: c.label,
+            status: c.status,
+            volumeTco2e: c.volumeTco2e,
+            registryName: c.registryName,
+            serial: c.serial,
+            projectName: c.projectName,
+            projectId: c.projectId,
+            methodology: c.methodology,
+          })),
+          residualTco2e: summary.position.residualTco2e,
+          retiredOffsetsTco2e: summary.position.retiredOffsetsTco2e,
+          periodLabel: summary.periodLabel,
+        })
+      : null;
+
+    return NextResponse.json({ ...summary, periods, pack: pack ?? undefined });
   } catch (error) {
     if (isNextRedirectError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

@@ -4,8 +4,10 @@ import { NextResponse } from "next/server";
 import { ENGAGEMENT_CAMPAIGNS_SLUG } from "@/collections/EngagementCampaigns";
 import {
   docToCampaign,
+  ensureCampaignPublicToken,
   isCampaignGoalType,
   isCampaignStatus,
+  isSurveyMode,
   listOrgCampaigns,
 } from "@/lib/engagement";
 import { getCurrentContext, isNextRedirectError } from "@/lib/auth";
@@ -99,6 +101,7 @@ export async function POST(req: Request) {
     const title = typeof body.title === "string" ? body.title.trim() : "";
     const status = body.status === undefined ? "draft" : body.status;
     const goalType = body.goalType === undefined ? "participants" : body.goalType;
+    const surveyMode = body.surveyMode === undefined ? "none" : body.surveyMode;
 
     if (!title) {
       return NextResponse.json({ error: "title is required" }, { status: 400 });
@@ -114,6 +117,12 @@ export async function POST(req: Request) {
     if (!isCampaignGoalType(goalType)) {
       return NextResponse.json(
         { error: "goalType must be participants or tco2e" },
+        { status: 400 },
+      );
+    }
+    if (!isSurveyMode(surveyMode)) {
+      return NextResponse.json(
+        { error: "surveyMode must be none or commute" },
         { status: 400 },
       );
     }
@@ -179,15 +188,24 @@ export async function POST(req: Request) {
           typeof body.description === "string" && body.description.trim()
             ? body.description.trim()
             : undefined,
+        surveyMode,
+        surveyResponseCount: 0,
       },
       depth: 0,
       overrideAccess: true,
     });
 
-    return NextResponse.json(
-      { campaign: docToCampaign(created as unknown as Record<string, unknown>) },
-      { status: 201 },
-    );
+    let campaign = docToCampaign(created as unknown as Record<string, unknown>);
+    if (status === "active" && !campaign.publicToken) {
+      const token = await ensureCampaignPublicToken(
+        payload,
+        campaign.id,
+        campaign.publicToken,
+      );
+      campaign = { ...campaign, publicToken: token };
+    }
+
+    return NextResponse.json({ campaign }, { status: 201 });
   } catch (error) {
     if (isNextRedirectError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

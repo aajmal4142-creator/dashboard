@@ -836,6 +836,19 @@ export const hi: MessageTree = {
     colTco2e: "tCO₂e",
     noData: "कोई डेटा नहीं",
     byCategory: "श्रेणी अनुसार",
+    packLabel: "पैक",
+    packManagement: "प्रबंधन",
+    packStatutory: "सांविधिक",
+    packHelp:
+      "सांविधिक पैक कॉन्फ़िगर की गई स्वामित्व विधि के बावजूद सभी सहायक कंपनियों को पूर्ण (100%) समेकन पर बाध्य करता है।",
+    eliminationsTitle: "इंटरकंपनी उन्मूलन",
+    eliminationsHelp:
+      "समेकित कुल से घटाई जाने वाली वैकल्पिक समायोजन पंक्तियाँ। केवल तभी लागू होती हैं जब कुल मापा गया हो, गायब आंकड़े पर कभी नहीं।",
+    eliminationsAdd: "उन्मूलन पंक्ति जोड़ें",
+    eliminationsRemove: "हटाएँ",
+    eliminationsLabelPlaceholder: "लेबल (जैसे इंटरकंपनी फ्रेट)",
+    eliminationsNotePlaceholder: "नोट (वैकल्पिक)",
+    eliminationsApply: "उन्मूलन लागू करें",
   },
   orgHierarchy: {
     thisOrgTitle: "यह संगठन",

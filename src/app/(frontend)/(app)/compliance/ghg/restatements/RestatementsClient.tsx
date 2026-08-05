@@ -61,11 +61,19 @@ type Restatement = {
   auditNarrative: string | null;
   comparison: Comparison | null;
   finalizedAt: string | null;
+  appliedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
 type PeriodOption = { id: string; label: string; status: string | null };
+
+type AppliedBaseYearInventory = {
+  inventory: InventorySnapshot;
+  source: "restatement" | "snapshot";
+  restatementId: string | null;
+  appliedAt: string | null;
+};
 
 type FormState = {
   title: string;
@@ -172,6 +180,27 @@ function inventoryPayload(scope1: string, scope2: string, scope3: string) {
   };
 }
 
+function AsOfStat({
+  label,
+  value,
+  mono = true,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="border-t border-[color:var(--rule)] pt-2">
+      <div className="text-[11px] uppercase tracking-wide text-[color:var(--ink-muted)]">
+        {label}
+      </div>
+      <div className="mt-1 text-lg text-[color:var(--ink)]">
+        {mono ? <Mono>{value}</Mono> : value}
+      </div>
+    </div>
+  );
+}
+
 function ComparisonTable({ comparison }: { comparison: Comparison }) {
   const rows: Array<{ label: string; delta: ScopeDelta }> = [
     { label: "Scope 1", delta: comparison.scope1 },
@@ -244,6 +273,10 @@ export function RestatementsClient({ orgName }: { orgName: string }) {
   const [form, setForm] = useState<FormState>(() => emptyForm(""));
   const [formError, setFormError] = useState<string | null>(null);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [asOfPeriodId, setAsOfPeriodId] = useState("");
+  const [asOfResult, setAsOfResult] = useState<AppliedBaseYearInventory | null>(null);
+  const [asOfError, setAsOfError] = useState<string | null>(null);
+  const [asOfLoading, setAsOfLoading] = useState(false);
 
   const selected = restatements.find((r) => r.id === selectedId) ?? null;
 
@@ -272,6 +305,45 @@ export function RestatementsClient({ orgName }: { orgName: string }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!asOfPeriodId && periods.length > 0) {
+      const id = window.setTimeout(() => setAsOfPeriodId(periods[0]!.id), 0);
+      return () => window.clearTimeout(id);
+    }
+  }, [periods, asOfPeriodId]);
+
+  function loadAsOf(periodId: string) {
+    if (!periodId) return;
+    startTransition(async () => {
+      setAsOfError(null);
+      setAsOfLoading(true);
+      try {
+        const res = await fetch(
+          `/api/app/compliance/ghg/restatements/as-of?baseYearPeriodId=${encodeURIComponent(periodId)}`,
+        );
+        const json = (await res.json()) as {
+          applied?: AppliedBaseYearInventory;
+          error?: string;
+        };
+        if (!res.ok || !json.applied) {
+          setAsOfError(json.error ?? "Could not load as-of base year");
+          setAsOfResult(null);
+          return;
+        }
+        setAsOfResult(json.applied);
+      } catch {
+        setAsOfError("Network error loading as-of base year. Retry.");
+        setAsOfResult(null);
+      } finally {
+        setAsOfLoading(false);
+      }
+    });
+  }
+
+  useEffect(() => {
+    if (asOfPeriodId) loadAsOf(asOfPeriodId);
+  }, [asOfPeriodId]);
 
   function openCreate() {
     const defaultPeriod = periods[0]?.id ?? "";
@@ -421,6 +493,73 @@ export function RestatementsClient({ orgName }: { orgName: string }) {
       {pending && !restatements.length && !error ? (
         <StatusLine>Loading restatements…</StatusLine>
       ) : null}
+
+      <section className="space-y-3 border border-[color:var(--rule)] bg-[color:var(--surface-1)] p-4 rounded-[6px]">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="font-[family-name:var(--font-display)] text-lg text-[color:var(--ink)]">
+              As-of base year
+            </h2>
+            <p className="mt-1 text-[12px] text-[color:var(--ink-muted)]">
+              The figures currently applied for this base-year period — the latest final
+              restatement when one exists, otherwise the published snapshot.
+            </p>
+          </div>
+          <div>
+            <FieldLabel htmlFor="rst-asof-period">Base-year period</FieldLabel>
+            <select
+              id="rst-asof-period"
+              className={inputClass}
+              value={asOfPeriodId}
+              onChange={(e) => setAsOfPeriodId(e.target.value)}
+            >
+              <option value="">Select period</option>
+              {periods.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {asOfError ? <StatusLine tone="error">{asOfError}</StatusLine> : null}
+        {asOfLoading && !asOfResult ? <StatusLine>Loading…</StatusLine> : null}
+
+        {asOfResult ? (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <AsOfStat label="Scope 1" value={formatNum(asOfResult.inventory.scope1)} />
+            <AsOfStat label="Scope 2" value={formatNum(asOfResult.inventory.scope2)} />
+            <AsOfStat label="Scope 3" value={formatNum(asOfResult.inventory.scope3)} />
+            <AsOfStat
+              label="Source"
+              value={
+                asOfResult.source === "restatement" ? "Final restatement" : "Snapshot"
+              }
+              mono={false}
+            />
+          </div>
+        ) : null}
+        {asOfResult ? (
+          <p className="text-[12px] text-[color:var(--ink-muted)]">
+            Quality:{" "}
+            <span
+              className={
+                asOfResult.inventory.quality === "measured"
+                  ? "text-[color:var(--signal)]"
+                  : "text-[color:var(--rust)]"
+              }
+            >
+              {asOfResult.inventory.quality}
+            </span>
+            {asOfResult.appliedAt ? (
+              <>
+                {" · "}applied <Mono>{asOfResult.appliedAt}</Mono>
+              </>
+            ) : null}
+          </p>
+        ) : null}
+      </section>
 
       {formOpen ? (
         <section className="space-y-4 border border-[color:var(--rule)] bg-[color:var(--surface-1)] p-4 rounded-[6px]">

@@ -28,8 +28,23 @@ type ConsolidatedOrg = {
   hasData: boolean;
 };
 
+type ConsolidationPack = "management" | "statutory";
+
+type EliminationRow = {
+  label: string;
+  scope1: string;
+  scope2: string;
+  scope3: string;
+  note: string;
+};
+
+function emptyEliminationRow(): EliminationRow {
+  return { label: "", scope1: "", scope2: "", scope3: "", note: "" };
+}
+
 type ConsolidatedPayload = {
   period: string;
+  pack: ConsolidationPack;
   total: number | null;
   by_scope: {
     scope1: number | null;
@@ -73,10 +88,32 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
   const year = defaultPeriod ?? new Date().getFullYear();
   const [includeSubsidiaries, setIncludeSubsidiaries] = useState(false);
   const [period, setPeriod] = useState(String(year));
+  const [pack, setPack] = useState<ConsolidationPack>("management");
+  const [eliminations, setEliminations] = useState<EliminationRow[]>([]);
   const [data, setData] = useState<ConsolidatedPayload | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [statusTone, setStatusTone] = useState<"ok" | "error" | "neutral">("neutral");
   const [pending, startTransition] = useTransition();
+
+  function eliminationsQueryValue(): string | null {
+    const rows = eliminations
+      .filter((r) => r.label.trim())
+      .map((r) => ({
+        label: r.label.trim(),
+        scope1: r.scope1 ? Number(r.scope1) : 0,
+        scope2: r.scope2 ? Number(r.scope2) : 0,
+        scope3: r.scope3 ? Number(r.scope3) : 0,
+        note: r.note.trim() || null,
+      }));
+    return rows.length > 0 ? JSON.stringify(rows) : null;
+  }
+
+  function buildQuery(extra?: Record<string, string>): string {
+    const params = new URLSearchParams({ period, pack, ...extra });
+    const elimJson = eliminationsQueryValue();
+    if (elimJson) params.set("eliminations", elimJson);
+    return params.toString();
+  }
 
   function load() {
     startTransition(async () => {
@@ -88,9 +125,7 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
       setStatus(t("consolidation.loading"));
       setStatusTone("neutral");
       try {
-        const res = await fetch(
-          `/api/app/reports/consolidated?period=${encodeURIComponent(period)}`,
-        );
+        const res = await fetch(`/api/app/reports/consolidated?${buildQuery()}`);
         const json = (await res.json()) as ConsolidatedPayload;
         if (!res.ok) {
           setStatus(json.error ?? t("consolidation.errorLoad"));
@@ -124,13 +159,13 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
 
   useEffect(() => {
     void Promise.resolve().then(() => load());
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when toggle/period change
-  }, [includeSubsidiaries, period]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when toggle/period/pack change
+  }, [includeSubsidiaries, period, pack]);
 
   async function downloadCsv() {
     try {
       const res = await fetch(
-        `/api/app/reports/consolidated?period=${encodeURIComponent(period)}&format=csv`,
+        `/api/app/reports/consolidated?${buildQuery({ format: "csv" })}`,
       );
       if (!res.ok) {
         const json = (await res.json().catch(() => ({}))) as { error?: string };
@@ -142,13 +177,25 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `consolidated-${period}.csv`;
+      a.download = `consolidated-${period}-${pack}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
       setStatus(t("consolidation.errorCsvNetwork"));
       setStatusTone("error");
     }
+  }
+
+  function addEliminationRow() {
+    setEliminations((rows) => [...rows, emptyEliminationRow()]);
+  }
+
+  function updateEliminationRow(index: number, patch: Partial<EliminationRow>) {
+    setEliminations((rows) => rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+  }
+
+  function removeEliminationRow(index: number) {
+    setEliminations((rows) => rows.filter((_, i) => i !== index));
   }
 
   return (
@@ -173,6 +220,29 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
             disabled={!includeSubsidiaries || pending}
           />
         </label>
+        <div className="flex items-center gap-2 text-[12px] text-ink-muted">
+          {t("consolidation.packLabel")}
+          <div className="flex overflow-hidden rounded-[4px] border border-rule">
+            {(["management", "statutory"] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                disabled={!includeSubsidiaries || pending}
+                onClick={() => setPack(p)}
+                className={cn(
+                  "px-2.5 py-1 text-[12px] transition-colors",
+                  pack === p
+                    ? "bg-accent text-white"
+                    : "bg-surface-1 text-ink-muted hover:text-ink",
+                )}
+              >
+                {p === "management"
+                  ? t("consolidation.packManagement")
+                  : t("consolidation.packStatutory")}
+              </button>
+            ))}
+          </div>
+        </div>
         {includeSubsidiaries ? (
           <Button
             type="button"
@@ -193,6 +263,69 @@ export function ConsolidatedReportPanel({ defaultPeriod }: { defaultPeriod?: num
           {t("consolidation.manageHierarchy")}
         </a>
       </p>
+      {pack === "statutory" ? (
+        <p className="mt-1 text-[12px] text-amber">{t("consolidation.packHelp")}</p>
+      ) : null}
+
+      {includeSubsidiaries ? (
+        <div className="mt-4 space-y-2 border-t border-rule pt-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink">
+              {t("consolidation.eliminationsTitle")}
+            </p>
+            <Button type="button" size="sm" variant="outline" onClick={addEliminationRow}>
+              {t("consolidation.eliminationsAdd")}
+            </Button>
+          </div>
+          <p className="text-[12px] text-ink-muted">
+            {t("consolidation.eliminationsHelp")}
+          </p>
+          {eliminations.length > 0 ? (
+            <div className="space-y-2">
+              {eliminations.map((row, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="text"
+                    className="min-w-[180px] flex-1 rounded-[4px] border border-rule bg-surface-1 px-2 py-1 text-[13px] text-ink"
+                    placeholder={t("consolidation.eliminationsLabelPlaceholder")}
+                    value={row.label}
+                    onChange={(e) => updateEliminationRow(i, { label: e.target.value })}
+                  />
+                  {(["scope1", "scope2", "scope3"] as const).map((scopeKey) => (
+                    <input
+                      key={scopeKey}
+                      type="number"
+                      className="w-24 rounded-[4px] border border-rule bg-surface-1 px-2 py-1 font-data text-[13px] text-ink"
+                      placeholder={t(`consolidation.${scopeKey}`)}
+                      value={row[scopeKey]}
+                      onChange={(e) =>
+                        updateEliminationRow(i, { [scopeKey]: e.target.value })
+                      }
+                    />
+                  ))}
+                  <input
+                    type="text"
+                    className="min-w-[140px] flex-1 rounded-[4px] border border-rule bg-surface-1 px-2 py-1 text-[13px] text-ink"
+                    placeholder={t("consolidation.eliminationsNotePlaceholder")}
+                    value={row.note}
+                    onChange={(e) => updateEliminationRow(i, { note: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    className="text-[12px] text-rust"
+                    onClick={() => removeEliminationRow(i)}
+                  >
+                    {t("consolidation.eliminationsRemove")}
+                  </button>
+                </div>
+              ))}
+              <Button type="button" size="sm" disabled={pending} onClick={() => load()}>
+                {t("consolidation.eliminationsApply")}
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {!includeSubsidiaries ? (
         <div className="mt-5">

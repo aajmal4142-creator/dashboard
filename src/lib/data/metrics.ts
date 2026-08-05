@@ -208,6 +208,55 @@ export const DATA_METRICS: DataMetricDef[] = [
     category: "G",
     inputType: "boolean",
   },
+  {
+    key: "fines_anti_corruption_count",
+    label: "Anti-corruption fines / penalties",
+    unit: "count",
+    category: "G",
+    inputType: "number",
+  },
+  {
+    key: "input_recycled_pct",
+    label: "Recycled / reused input material",
+    unit: "%",
+    category: "E",
+    inputType: "number",
+  },
+  {
+    key: "parental_return_rate",
+    label: "Return-to-work rate after parental leave",
+    unit: "%",
+    category: "S",
+    inputType: "number",
+  },
+  {
+    key: "stakeholder_engagement_events",
+    label: "Stakeholder engagement events",
+    unit: "count",
+    category: "S",
+    inputType: "number",
+  },
+  {
+    key: "csr_spend_inr",
+    label: "CSR / community development spend",
+    unit: "INR",
+    category: "S",
+    inputType: "number",
+  },
+  {
+    key: "value_chain_hr_assessment_pct",
+    label: "Value-chain human rights assessment coverage",
+    unit: "%",
+    category: "S",
+    inputType: "number",
+  },
+  {
+    key: "product_recall_count",
+    label: "Product recall instances",
+    unit: "count",
+    category: "S",
+    inputType: "number",
+  },
 ];
 
 export const DATA_METRIC_BY_KEY = Object.fromEntries(

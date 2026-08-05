@@ -19,10 +19,36 @@ type Credit = {
   status: CreditStatus;
   registryName: string;
   serial: string | null;
+  projectName: string | null;
+  projectId: string | null;
+  methodology: string | null;
   periodId: string | null;
   periodLabel: string | null;
   retiredAt: string | null;
   notes: string | null;
+};
+
+type ClaimIssue = {
+  lotId: string | null;
+  label: string;
+  code: "missing_serial" | "missing_registry" | "missing_project";
+  message: string;
+};
+
+type ClaimDisclosureGuard = {
+  retiredCount: number;
+  completeClaimCount: number;
+  incompleteClaimCount: number;
+  claimQuality: "complete" | "incomplete" | "none";
+  issues: ClaimIssue[];
+  message: string | null;
+};
+
+type OffsetClaimPack = {
+  generatedAt: string;
+  periodLabel: string;
+  plainText: string;
+  csv: string;
 };
 
 type PeriodOption = { id: string; label: string; status: string };
@@ -50,7 +76,9 @@ type SummaryPayload = {
   periodLabel: string | null;
   credits: Credit[];
   position: ResidualPosition;
+  claimGuard: ClaimDisclosureGuard;
   periods: PeriodOption[];
+  pack?: OffsetClaimPack;
 };
 
 type FormState = {
@@ -61,6 +89,9 @@ type FormState = {
   status: CreditStatus;
   registryName: string;
   serial: string;
+  projectName: string;
+  projectId: string;
+  methodology: string;
   periodId: string;
   retiredAt: string;
   notes: string;
@@ -82,6 +113,9 @@ function emptyForm(periodId: string, year: number): FormState {
     status: "held",
     registryName: "",
     serial: "",
+    projectName: "",
+    projectId: "",
+    methodology: "",
     periodId,
     retiredAt: "",
     notes: "",
@@ -180,6 +214,9 @@ export function ResidualClient({ orgName }: { orgName: string }) {
       status: c.status,
       registryName: c.registryName,
       serial: c.serial ?? "",
+      projectName: c.projectName ?? "",
+      projectId: c.projectId ?? "",
+      methodology: c.methodology ?? "",
       periodId: c.periodId ?? "",
       retiredAt: c.retiredAt ? c.retiredAt.slice(0, 10) : "",
       notes: c.notes ?? "",
@@ -213,6 +250,9 @@ export function ResidualClient({ orgName }: { orgName: string }) {
       status: form.status,
       registryName: form.registryName.trim(),
       serial: form.serial.trim() || null,
+      projectName: form.projectName.trim() || null,
+      projectId: form.projectId.trim() || null,
+      methodology: form.methodology.trim() || null,
       periodId: form.periodId.trim() || null,
       retiredAt: form.retiredAt.trim() || null,
       notes: form.notes.trim() || null,
@@ -257,8 +297,39 @@ export function ResidualClient({ orgName }: { orgName: string }) {
     }
   }
 
+  async function downloadClaimPack() {
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      if (periodId) params.set("periodId", periodId);
+      if (appliedGross.trim()) params.set("grossInventoryTco2e", appliedGross.trim());
+      if (appliedReductions.trim()) {
+        params.set("reductionsTco2e", appliedReductions.trim());
+      }
+      params.set("pack", "1");
+      const res = await fetch(
+        `/api/app/compliance/residual/summary?${params.toString()}`,
+      );
+      const json = (await res.json()) as SummaryPayload & { error?: string };
+      if (!res.ok || !json.pack) {
+        setError(json.error ?? "Could not build claim pack");
+        return;
+      }
+      const blob = new Blob([json.pack.plainText], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `offset-claim-pack-${periodId || "all-periods"}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError("Network error building claim pack. Retry.");
+    }
+  }
+
   const position = summary?.position;
   const credits = summary?.credits ?? [];
+  const claimGuard = summary?.claimGuard;
 
   return (
     <div className="space-y-8">
@@ -315,6 +386,14 @@ export function ResidualClient({ orgName }: { orgName: string }) {
             <Plus className="mr-1 size-3.5" aria-hidden />
             Add lot
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => void downloadClaimPack()}
+          >
+            Download claim pack
+          </Button>
         </div>
         <p className="text-xs text-[color:var(--ink-muted)]">
           Enter inventory and reductions explicitly. Blank fields stay missing — they are
@@ -326,6 +405,13 @@ export function ResidualClient({ orgName }: { orgName: string }) {
         <StatusLine tone="error">{error}</StatusLine>
       ) : pending && !summary ? (
         <StatusLine>Loading residual ledger…</StatusLine>
+      ) : null}
+
+      {claimGuard && claimGuard.claimQuality !== "none" ? (
+        <StatusLine tone={claimGuard.claimQuality === "complete" ? "ok" : "error"}>
+          Claim quality: {claimGuard.claimQuality}
+          {claimGuard.message ? ` — ${claimGuard.message}` : null}
+        </StatusLine>
       ) : null}
 
       {position ? (
@@ -571,6 +657,32 @@ export function ResidualClient({ orgName }: { orgName: string }) {
                   className="w-full rounded-[4px] border border-[color:var(--rule)] bg-[color:var(--canvas)] px-2 py-1.5 font-[family-name:var(--font-mono)] text-sm"
                   value={form.serial}
                   onChange={(e) => setForm((f) => ({ ...f, serial: e.target.value }))}
+                />
+              </Field>
+              <Field label="Project name (recommended for claims)">
+                <input
+                  className="w-full rounded-[4px] border border-[color:var(--rule)] bg-[color:var(--canvas)] px-2 py-1.5 text-sm"
+                  value={form.projectName}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, projectName: e.target.value }))
+                  }
+                />
+              </Field>
+              <Field label="Project id (optional)">
+                <input
+                  className="w-full rounded-[4px] border border-[color:var(--rule)] bg-[color:var(--canvas)] px-2 py-1.5 font-[family-name:var(--font-mono)] text-sm"
+                  value={form.projectId}
+                  onChange={(e) => setForm((f) => ({ ...f, projectId: e.target.value }))}
+                />
+              </Field>
+              <Field label="Methodology (optional)">
+                <input
+                  className="w-full rounded-[4px] border border-[color:var(--rule)] bg-[color:var(--canvas)] px-2 py-1.5 text-sm"
+                  value={form.methodology}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, methodology: e.target.value }))
+                  }
+                  placeholder="e.g. VM0042, Gold Standard AR-AMS"
                 />
               </Field>
               <Field label="Retired date (optional)">

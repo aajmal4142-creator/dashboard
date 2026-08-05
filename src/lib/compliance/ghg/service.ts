@@ -44,6 +44,7 @@ export type RestatementDto = {
   auditNarrative: string | null;
   comparison: BaseYearInventoryComparison | null;
   finalizedAt: string | null;
+  appliedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -117,6 +118,7 @@ export function docToRestatement(doc: {
   auditNarrative?: unknown;
   comparisonJson?: unknown;
   finalizedAt?: unknown;
+  appliedAt?: unknown;
   createdAt?: unknown;
   updatedAt?: unknown;
 }): RestatementDto {
@@ -145,6 +147,7 @@ export function docToRestatement(doc: {
     auditNarrative: optionalString(doc.auditNarrative),
     comparison,
     finalizedAt: optionalString(doc.finalizedAt),
+    appliedAt: optionalString(doc.appliedAt),
     createdAt: String(doc.createdAt ?? ""),
     updatedAt: String(doc.updatedAt ?? ""),
   };
@@ -507,11 +510,73 @@ export async function finalizeRestatement(
       disclosureNote,
       finalizedAt,
       finalizedBy: userId,
+      appliedAt: finalizedAt,
     },
     overrideAccess: true,
   });
 
   return docToRestatement(updated);
+}
+
+export type AppliedBaseYearInventory = {
+  inventory: InventorySnapshot;
+  source: "restatement" | "snapshot";
+  restatementId: string | null;
+  appliedAt: string | null;
+};
+
+/**
+ * The inventory that should be used as the base year "as of" today.
+ * If a final restatement exists for this base-year period, its restated
+ * figures win (most recent final restatement by appliedAt). Otherwise falls
+ * back to the published-report / GHG-compliance snapshot.
+ */
+export async function getAppliedBaseYearInventory(
+  payload: Payload,
+  organisationId: string,
+  baseYearPeriodId: string,
+): Promise<AppliedBaseYearInventory> {
+  const result = await payload.find({
+    collection: BASE_YEAR_RESTATEMENTS_SLUG,
+    where: {
+      and: [
+        { organisation: { equals: organisationId } },
+        { baseYearPeriod: { equals: baseYearPeriodId } },
+        { status: { equals: "final" } },
+      ],
+    } as Where,
+    sort: "-appliedAt",
+    limit: 1,
+    depth: 1,
+    overrideAccess: true,
+  });
+
+  const doc = result.docs[0];
+  if (doc) {
+    const restatement = docToRestatement(doc);
+    const inventory = normaliseInventorySnapshot({
+      ...restatement.restatedInventory,
+      source: `restatement:${restatement.id}`,
+    });
+    return {
+      inventory,
+      source: "restatement",
+      restatementId: restatement.id,
+      appliedAt: restatement.appliedAt,
+    };
+  }
+
+  const inventory = await loadBaseYearInventorySnapshot(
+    payload,
+    organisationId,
+    baseYearPeriodId,
+  );
+  return {
+    inventory,
+    source: "snapshot",
+    restatementId: null,
+    appliedAt: null,
+  };
 }
 
 export async function deleteRestatement(

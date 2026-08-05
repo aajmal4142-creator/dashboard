@@ -125,6 +125,39 @@ export const EngagementCampaigns: CollectionConfig = {
         description: "Optional campaign brief shown to organisers.",
       },
     },
+    {
+      name: "publicToken",
+      type: "text",
+      unique: true,
+      index: true,
+      admin: {
+        description:
+          "Auto-generated when the campaign is created or activated. Powers the public /e/[token] survey link — never guessable, never reused.",
+      },
+    },
+    {
+      name: "surveyMode",
+      type: "select",
+      defaultValue: "none",
+      options: [
+        { label: "No public survey", value: "none" },
+        { label: "Commute survey (days/km)", value: "commute" },
+      ],
+      admin: {
+        description: "Enables a public, tokenised survey form for this campaign.",
+      },
+    },
+    {
+      name: "surveyResponseCount",
+      type: "number",
+      required: true,
+      defaultValue: 0,
+      min: 0,
+      admin: {
+        description:
+          "Count of public survey submissions received via the /e/[token] link.",
+      },
+    },
   ],
   timestamps: true,
 };

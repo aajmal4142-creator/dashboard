@@ -2,6 +2,8 @@ import type { Payload, Where } from "payload";
 
 import { CARBON_CREDITS_SLUG } from "@/collections/CarbonCredits";
 
+import { evaluateClaimDisclosure } from "./claimPack";
+import type { ClaimDisclosureGuard } from "./claimPack";
 import { calculateResidual, isCreditStatus, isCreditType } from "./residual";
 import type { CreditStatus, CreditType, ResidualPosition } from "./types";
 
@@ -14,6 +16,9 @@ export type CarbonCreditDto = {
   status: CreditStatus;
   registryName: string;
   serial: string | null;
+  projectName: string | null;
+  projectId: string | null;
+  methodology: string | null;
   periodId: string | null;
   periodLabel: string | null;
   retiredAt: string | null;
@@ -27,6 +32,7 @@ export type ResidualLedgerSummary = {
   periodLabel: string | null;
   credits: CarbonCreditDto[];
   position: ResidualPosition;
+  claimGuard: ClaimDisclosureGuard;
   /** Echo of operator-entered residual inputs for the summary request. */
   inputs: {
     grossInventoryTco2e: number | null;
@@ -66,6 +72,9 @@ export function docToCarbonCredit(doc: {
   status?: unknown;
   registryName?: unknown;
   serial?: unknown;
+  projectName?: unknown;
+  projectId?: unknown;
+  methodology?: unknown;
   period?: unknown;
   retiredAt?: unknown;
   notes?: unknown;
@@ -84,6 +93,9 @@ export function docToCarbonCredit(doc: {
     status,
     registryName: String(doc.registryName ?? ""),
     serial: optionalString(doc.serial),
+    projectName: optionalString(doc.projectName),
+    projectId: optionalString(doc.projectId),
+    methodology: optionalString(doc.methodology),
     periodId: relationId(doc.period),
     periodLabel: relationLabel(doc.period),
     retiredAt:
@@ -214,11 +226,26 @@ export async function buildResidualLedgerSummary(
     })),
   });
 
+  const claimGuard = evaluateClaimDisclosure(
+    credits.map((c) => ({
+      id: c.id,
+      label: c.label,
+      status: c.status,
+      volumeTco2e: c.volumeTco2e,
+      registryName: c.registryName,
+      serial: c.serial,
+      projectName: c.projectName,
+      projectId: c.projectId,
+      methodology: c.methodology,
+    })),
+  );
+
   return {
     periodId,
     periodLabel,
     credits,
     position,
+    claimGuard,
     inputs: {
       grossInventoryTco2e,
       reductionsTco2e,

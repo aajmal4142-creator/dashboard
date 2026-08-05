@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { PageFrame, StatusLine } from "@/components/shell/PageFrame";
 import {
+  crosswalkForTopic,
   ESRS_TOPICS,
   financialScoreOf,
   impactScoreOf,
@@ -16,6 +17,14 @@ import {
   type TopicOrigin,
 } from "@/lib/materiality";
 
+type IroKind = "impact" | "risk" | "opportunity";
+
+type Iro = {
+  kind: IroKind;
+  description: string;
+  severity: number;
+};
+
 type TopicScore = {
   esrsTopic: string;
   impactSeverity: number;
@@ -25,10 +34,32 @@ type TopicScore = {
   financialLikelihood: number;
   rationale: string;
   origin: TopicOrigin;
+  stakeholderSurveyAvg: number | null;
+  iros: Iro[];
 };
 
 function fromDefaults(sector: string): TopicScore[] {
-  return sectorDefaults(sector).map((s) => ({ ...s, origin: "suggested" as const }));
+  return sectorDefaults(sector).map((s) => ({
+    ...s,
+    origin: "suggested" as const,
+    stakeholderSurveyAvg: null,
+    iros: [],
+  }));
+}
+
+function parseIros(value: unknown): Iro[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((raw) => {
+    const row = raw as Record<string, unknown>;
+    const kind = row.kind;
+    if (kind !== "impact" && kind !== "risk" && kind !== "opportunity") return [];
+    const description = typeof row.description === "string" ? row.description : "";
+    const severity =
+      typeof row.severity === "number" && Number.isFinite(row.severity)
+        ? row.severity
+        : 0;
+    return [{ kind, description, severity }];
+  });
 }
 
 function fromAssessment(topics: unknown, sector: string): TopicScore[] {
@@ -44,7 +75,14 @@ function fromAssessment(topics: unknown, sector: string): TopicScore[] {
   return ESRS_TOPICS.map((t) => {
     const row = byId.get(t.id);
     const baseline = baselineById.get(t.id)!;
-    if (!row) return { ...baseline, origin: "suggested" as const };
+    if (!row) {
+      return {
+        ...baseline,
+        origin: "suggested" as const,
+        stakeholderSurveyAvg: null,
+        iros: [],
+      };
+    }
     const current = {
       esrsTopic: t.id,
       impactSeverity: Number(row.impactSeverity ?? baseline.impactSeverity),
@@ -62,7 +100,12 @@ function fromAssessment(topics: unknown, sector: string): TopicScore[] {
       row.origin === "suggested" || row.origin === "adjusted"
         ? (row.origin as TopicOrigin)
         : topicOriginAgainstDefault(current, baseline);
-    return { ...current, origin };
+    const stakeholderSurveyAvg =
+      typeof row.stakeholderSurveyAvg === "number" &&
+      Number.isFinite(row.stakeholderSurveyAvg)
+        ? row.stakeholderSurveyAvg
+        : null;
+    return { ...current, origin, stakeholderSurveyAvg, iros: parseIros(row.iros) };
   });
 }
 
@@ -76,6 +119,7 @@ export function MaterialityWorkshop({
     topics?: unknown;
     status?: string;
     narrative?: string | null;
+    surveyNotes?: string | null;
   } | null;
   topicsCatalog: EsrsTopic[];
   canWrite?: boolean;
@@ -89,9 +133,13 @@ export function MaterialityWorkshop({
   const [status, setStatus] = useState<string | null>(null);
   const [statusTone, setStatusTone] = useState<"neutral" | "error" | "ok">("neutral");
   const [narrative, setNarrative] = useState(initialAssessment?.narrative ?? "");
+  const [surveyNotes, setSurveyNotes] = useState(initialAssessment?.surveyNotes ?? "");
   const [assessmentStatus, setAssessmentStatus] = useState(
     initialAssessment?.status ?? "draft",
   );
+  const [newIroKind, setNewIroKind] = useState<IroKind>("impact");
+  const [newIroDescription, setNewIroDescription] = useState("");
+  const [newIroSeverity, setNewIroSeverity] = useState(3);
 
   const locked = assessmentStatus === "final" || !canWrite;
 
@@ -127,7 +175,7 @@ export function MaterialityWorkshop({
     const res = await fetch("/api/app/materiality", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ topics: computed, finalise }),
+      body: JSON.stringify({ topics: computed, finalise, surveyNotes }),
     });
     const data = (await res.json().catch(() => ({}))) as {
       error?: string;
@@ -171,6 +219,35 @@ export function MaterialityWorkshop({
           : "adjusted";
         return { ...next, origin };
       }),
+    );
+  }
+
+  function addIro() {
+    if (locked || !newIroDescription.trim()) return;
+    const description = newIroDescription.trim();
+    setScores((prev) =>
+      prev.map((s, i) =>
+        i !== active
+          ? s
+          : {
+              ...s,
+              iros: [
+                ...s.iros,
+                { kind: newIroKind, description, severity: newIroSeverity },
+              ],
+            },
+      ),
+    );
+    setNewIroDescription("");
+    setNewIroSeverity(3);
+  }
+
+  function removeIro(index: number) {
+    if (locked) return;
+    setScores((prev) =>
+      prev.map((s, i) =>
+        i !== active ? s : { ...s, iros: s.iros.filter((_, j) => j !== index) },
+      ),
     );
   }
 
@@ -278,6 +355,24 @@ export function MaterialityWorkshop({
               </p>
             </div>
             <p className="text-sm text-ink-muted">{topic.description}</p>
+            {(() => {
+              const crosswalk = crosswalkForTopic(topic.id);
+              if (!crosswalk) return null;
+              return (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="label-caps text-ink-muted">ESRS disclosures</span>
+                  {crosswalk.disclosureCodes.map((code) => (
+                    <span
+                      key={code}
+                      className="rounded-[2px] border border-rule px-1.5 py-0.5 font-data text-[11px] text-ink-muted"
+                      title={crosswalk.note}
+                    >
+                      {code}
+                    </span>
+                  ))}
+                </div>
+              );
+            })()}
             {(
               [
                 ["impactSeverity", "Impact severity"],
@@ -312,6 +407,106 @@ export function MaterialityWorkshop({
                 onChange={(e) => setField("rationale", e.target.value)}
               />
             </label>
+            <label className={`block ${locked ? "opacity-70" : ""}`}>
+              <span className="label-caps">
+                Stakeholder survey average (optional, 0–5)
+              </span>
+              <input
+                type="number"
+                min={0}
+                max={5}
+                step={0.1}
+                disabled={locked}
+                className="mt-2 w-32 border border-rule bg-surface-1 px-2 py-1.5 font-data text-sm text-ink disabled:cursor-not-allowed"
+                value={row.stakeholderSurveyAvg ?? ""}
+                onChange={(e) =>
+                  setScores((prev) =>
+                    prev.map((s, i) =>
+                      i !== active
+                        ? s
+                        : {
+                            ...s,
+                            stakeholderSurveyAvg:
+                              e.target.value === "" ? null : Number(e.target.value),
+                          },
+                    ),
+                  )
+                }
+              />
+            </label>
+
+            <div className={locked ? "opacity-70" : ""}>
+              <span className="label-caps">Impacts, risks, opportunities</span>
+              <ul className="mt-2 space-y-2">
+                {row.iros.length === 0 ? (
+                  <li className="text-[12px] text-ink-muted">No IRO entries recorded.</li>
+                ) : (
+                  row.iros.map((iro, idx) => (
+                    <li
+                      key={idx}
+                      className="flex items-start justify-between gap-2 border border-rule bg-surface-1 px-2 py-1.5 text-[12px]"
+                    >
+                      <span>
+                        <span className="font-data uppercase text-ink-muted">
+                          {iro.kind}
+                        </span>
+                        {" · severity "}
+                        <span className="font-data text-ink">{iro.severity}</span>
+                        {" — "}
+                        <span className="text-ink-muted">{iro.description}</span>
+                      </span>
+                      {!locked ? (
+                        <button
+                          type="button"
+                          onClick={() => removeIro(idx)}
+                          className="shrink-0 text-ink-muted hover:text-rust"
+                          aria-label="Remove IRO"
+                        >
+                          ×
+                        </button>
+                      ) : null}
+                    </li>
+                  ))
+                )}
+              </ul>
+              {!locked ? (
+                <div className="mt-2 flex flex-wrap items-end gap-2">
+                  <select
+                    value={newIroKind}
+                    onChange={(e) => setNewIroKind(e.target.value as IroKind)}
+                    className="border border-rule bg-surface-1 px-2 py-1.5 text-[12px] text-ink"
+                  >
+                    <option value="impact">Impact</option>
+                    <option value="risk">Risk</option>
+                    <option value="opportunity">Opportunity</option>
+                  </select>
+                  <input
+                    type="number"
+                    min={0}
+                    max={5}
+                    value={newIroSeverity}
+                    onChange={(e) => setNewIroSeverity(Number(e.target.value))}
+                    className="w-16 border border-rule bg-surface-1 px-2 py-1.5 font-data text-[12px] text-ink"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Description"
+                    value={newIroDescription}
+                    onChange={(e) => setNewIroDescription(e.target.value)}
+                    className="min-w-[12rem] flex-1 border border-rule bg-surface-1 px-2 py-1.5 text-[12px] text-ink"
+                  />
+                  <button
+                    type="button"
+                    onClick={addIro}
+                    disabled={!newIroDescription.trim()}
+                    className="border border-rule px-2 py-1.5 text-[12px] text-ink-muted hover:border-rule-strong hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Add
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
             <p className="font-data text-sm text-ink-muted">
               Impact {computed[active]?.impactScore} · Financial{" "}
               {computed[active]?.financialScore}
@@ -319,6 +514,20 @@ export function MaterialityWorkshop({
             </p>
           </div>
         ) : null}
+
+        <label className={`block ${locked ? "opacity-70" : ""}`}>
+          <span className="label-caps">
+            Stakeholder engagement / survey notes (optional)
+          </span>
+          <textarea
+            disabled={locked}
+            className="mt-2 w-full border border-rule bg-surface-1 px-2 py-2 text-sm text-ink disabled:cursor-not-allowed"
+            rows={3}
+            value={surveyNotes}
+            onChange={(e) => setSurveyNotes(e.target.value)}
+            placeholder="Methodology, respondent count, dates — free text."
+          />
+        </label>
 
         {!locked && canWrite && assessmentStatus !== "final" ? (
           <div className="mt-6 flex gap-3">

@@ -19,6 +19,7 @@ import type {
   BrsrGapKind,
   BrsrLevelSummary,
 } from "@/lib/frameworks/brsr";
+import { buildBrsrPack } from "@/lib/frameworks/brsr";
 
 function gapKindLabel(kind: BrsrGapKind | null): string {
   switch (kind) {
@@ -136,6 +137,7 @@ export function BrsrCoverageClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>("P6");
+  const [exportMsg, setExportMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -169,6 +171,20 @@ export function BrsrCoverageClient() {
     return () => window.clearTimeout(id);
   }, [load]);
 
+  function downloadPack() {
+    if (!coverage) return;
+    setExportMsg(null);
+    const pack = buildBrsrPack({ coverage, periodLabel });
+    const blob = new Blob([pack.plainText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `brsr-pack-${coverage.periodId}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportMsg("BRSR pack downloaded.");
+  }
+
   return (
     <PageFrame
       eyebrow="Frameworks"
@@ -177,6 +193,14 @@ export function BrsrCoverageClient() {
       context={periodLabel ? { period: periodLabel } : undefined}
       actions={
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={downloadPack}
+            disabled={!coverage}
+            className="inline-flex h-8 items-center rounded-[4px] border border-rule bg-surface-1 px-3 text-[12px] text-ink hover:border-rule-strong disabled:opacity-50"
+          >
+            Download pack
+          </button>
           <Link
             href="/reports"
             className="inline-flex h-8 items-center rounded-[4px] border border-rule bg-surface-1 px-3 text-[12px] text-ink hover:border-rule-strong"
@@ -217,6 +241,8 @@ export function BrsrCoverageClient() {
       }
     >
       {loading ? <PageSkeleton rows={6} /> : null}
+
+      {exportMsg ? <StatusLine tone="ok">{exportMsg}</StatusLine> : null}
 
       {!loading && error ? (
         <StatusLine tone="error">

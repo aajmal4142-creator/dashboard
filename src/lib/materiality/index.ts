@@ -17,3 +17,8 @@ export {
   type TopicOrigin,
   type TopicStartingScores,
 } from "./sectorDefaults";
+export {
+  crosswalkForTopic,
+  ESRS_DISCLOSURE_CROSSWALK,
+  type EsrsCrosswalkEntry,
+} from "./esrsCrosswalk";

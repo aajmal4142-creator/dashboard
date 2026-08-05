@@ -641,6 +641,62 @@ export function consolidatedReportToCsv(result: ConsolidationResult): string {
   return `${lines.join("\n")}\n`;
 }
 
+export type IcEliminationLine = {
+  label: string;
+  scope1?: number | null;
+  scope2?: number | null;
+  scope3?: number | null;
+  note?: string | null;
+};
+
+/**
+ * Subtract intercompany elimination lines from a consolidated result.
+ * Only applied when quality is not "missing" — never subtracts from a null
+ * total. Each line appends a warning so eliminations stay auditable in the
+ * report footer / warnings list rather than silently adjusting figures.
+ */
+export function applyIcEliminations(
+  result: ConsolidationResult,
+  eliminations: IcEliminationLine[],
+): ConsolidationResult {
+  if (eliminations.length === 0) return result;
+  if (result.quality === "missing" || result.total === null) {
+    return {
+      ...result,
+      warnings: [
+        ...result.warnings,
+        "Intercompany eliminations were not applied — consolidated total is missing.",
+      ],
+    };
+  }
+
+  let scope1 = result.byScope.scope1 ?? 0;
+  let scope2 = result.byScope.scope2 ?? 0;
+  let scope3 = result.byScope.scope3 ?? 0;
+  const warnings = [...result.warnings];
+
+  for (const line of eliminations) {
+    const e1 = Number.isFinite(line.scope1) ? Number(line.scope1) : 0;
+    const e2 = Number.isFinite(line.scope2) ? Number(line.scope2) : 0;
+    const e3 = Number.isFinite(line.scope3) ? Number(line.scope3) : 0;
+    scope1 -= e1;
+    scope2 -= e2;
+    scope3 -= e3;
+    warnings.push(
+      `Intercompany elimination "${line.label}": -${e1 + e2 + e3} tCO₂e (S1 -${e1}, S2 -${e2}, S3 -${e3})${
+        line.note ? ` — ${line.note}` : ""
+      }.`,
+    );
+  }
+
+  return {
+    ...result,
+    byScope: { scope1, scope2, scope3 },
+    total: scope1 + scope2 + scope3,
+    warnings,
+  };
+}
+
 export function formatConsolidationFooter(result: ConsolidationResult): string {
   const methods =
     result.methodsUsed.length > 0

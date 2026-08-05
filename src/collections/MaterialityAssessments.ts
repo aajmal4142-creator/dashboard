@@ -52,6 +52,39 @@ export const MaterialityAssessments: CollectionConfig = {
         },
         { name: "rationale", type: "textarea" },
         {
+          name: "stakeholderSurveyAvg",
+          type: "number",
+          min: 0,
+          max: 5,
+          admin: {
+            description:
+              "Optional stakeholder survey average (0-5) for this topic, if collected outside the platform.",
+          },
+        },
+        {
+          name: "iros",
+          type: "array",
+          label: "Impacts, risks, opportunities",
+          admin: {
+            description:
+              "IRO register entries backing the impact/financial scores for this topic.",
+          },
+          fields: [
+            {
+              name: "kind",
+              type: "select",
+              required: true,
+              options: [
+                { label: "Impact", value: "impact" },
+                { label: "Risk", value: "risk" },
+                { label: "Opportunity", value: "opportunity" },
+              ],
+            },
+            { name: "description", type: "textarea", required: true },
+            { name: "severity", type: "number", required: true, min: 0, max: 5 },
+          ],
+        },
+        {
           name: "origin",
           type: "select",
           defaultValue: "suggested",
@@ -74,6 +107,13 @@ export const MaterialityAssessments: CollectionConfig = {
     },
     { name: "matrixSnapshot", type: "json" },
     { name: "narrative", type: "textarea" },
+    {
+      name: "surveyNotes",
+      type: "textarea",
+      admin: {
+        description: "Optional stakeholder engagement / survey methodology notes.",
+      },
+    },
     { name: "finalisedAt", type: "date" },
   ],
 };

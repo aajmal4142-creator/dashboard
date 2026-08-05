@@ -832,6 +832,19 @@ export const en: MessageTree = {
     colTco2e: "tCO₂e",
     noData: "no data",
     byCategory: "By category",
+    packLabel: "Pack",
+    packManagement: "Management",
+    packStatutory: "Statutory",
+    packHelp:
+      "Statutory forces all subsidiaries to full (100%) consolidation regardless of configured ownership method.",
+    eliminationsTitle: "Intercompany eliminations",
+    eliminationsHelp:
+      "Optional adjustment lines subtracted from the consolidated total. Applied only when the total is measured, never against a missing figure.",
+    eliminationsAdd: "Add elimination line",
+    eliminationsRemove: "Remove",
+    eliminationsLabelPlaceholder: "Label (e.g. Intercompany freight)",
+    eliminationsNotePlaceholder: "Note (optional)",
+    eliminationsApply: "Apply eliminations",
   },
   orgHierarchy: {
     thisOrgTitle: "This organisation",

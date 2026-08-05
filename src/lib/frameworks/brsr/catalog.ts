@@ -117,9 +117,9 @@ export const BRSR_DISCLOSURES: BrsrDisclosureDef[] = [
     principleId: "P1",
     level: "comprehensive",
     label: "Details of fines / penalties for anti-corruption breaches",
-    metricKeys: [],
+    metricKeys: ["fines_anti_corruption_count"],
     requiresEvidence: true,
-    note: "Narrative / registry disclosure — not collected as a ClearESG metric yet.",
+    note: "Count metric; attach narrative evidence for SEBI narrative cells.",
   },
 
   // ── P2 Sustainable products ────────────────────────────────────────────
@@ -137,9 +137,9 @@ export const BRSR_DISCLOSURES: BrsrDisclosureDef[] = [
     principleId: "P2",
     level: "comprehensive",
     label: "Percentage of recycled / reused input material",
-    metricKeys: [],
+    metricKeys: ["input_recycled_pct"],
     requiresEvidence: true,
-    note: "Circularity KPI — not collected as a ClearESG metric yet.",
+    note: "Circularity KPI — enter input_recycled_pct on Metrics.",
   },
 
   // ── P3 Employee wellbeing ──────────────────────────────────────────────
@@ -180,9 +180,9 @@ export const BRSR_DISCLOSURES: BrsrDisclosureDef[] = [
     principleId: "P3",
     level: "comprehensive",
     label: "Return to work and retention rates after parental leave",
-    metricKeys: [],
+    metricKeys: ["parental_return_rate"],
     requiresEvidence: true,
-    note: "HR narrative — not collected as a ClearESG metric yet.",
+    note: "Enter parental_return_rate on Metrics; attach HR evidence.",
   },
 
   // ── P4 Stakeholders ────────────────────────────────────────────────────
@@ -191,18 +191,18 @@ export const BRSR_DISCLOSURES: BrsrDisclosureDef[] = [
     principleId: "P4",
     level: "core",
     label: "Processes for stakeholder identification and engagement",
-    metricKeys: [],
+    metricKeys: ["stakeholder_engagement_events"],
     requiresEvidence: true,
-    note: "Process disclosure — link evidence when available; no numeric metric.",
+    note: "Event count is a beachhead proxy; policy narrative still needs evidence.",
   },
   {
     code: "P4-L1",
     principleId: "P4",
     level: "comprehensive",
     label: "Instances of stakeholder engagement outcomes disclosed",
-    metricKeys: [],
+    metricKeys: ["stakeholder_engagement_events"],
     requiresEvidence: true,
-    note: "Leadership narrative — not collected as a ClearESG metric yet.",
+    note: "Same engagement events metric; attach outcome narrative in evidence.",
   },
 
   // ── P5 Human rights ────────────────────────────────────────────────────
@@ -220,9 +220,9 @@ export const BRSR_DISCLOSURES: BrsrDisclosureDef[] = [
     principleId: "P5",
     level: "comprehensive",
     label: "Value-chain human rights assessment coverage",
-    metricKeys: [],
+    metricKeys: ["value_chain_hr_assessment_pct"],
     requiresEvidence: true,
-    note: "Supply-chain assessment — not collected as a ClearESG metric yet.",
+    note: "Enter value_chain_hr_assessment_pct on Metrics.",
   },
 
   // ── P6 Environment ─────────────────────────────────────────────────────
@@ -354,9 +354,9 @@ export const BRSR_DISCLOSURES: BrsrDisclosureDef[] = [
     principleId: "P8",
     level: "comprehensive",
     label: "CSR / community development spend",
-    metricKeys: [],
+    metricKeys: ["csr_spend_inr"],
     requiresEvidence: true,
-    note: "Social spend KPI — not collected as a ClearESG metric yet.",
+    note: "Enter csr_spend_inr on Metrics (INR).",
   },
 
   // ── P9 Consumers ───────────────────────────────────────────────────────
@@ -374,9 +374,9 @@ export const BRSR_DISCLOSURES: BrsrDisclosureDef[] = [
     principleId: "P9",
     level: "comprehensive",
     label: "Product recall instances and corrective actions",
-    metricKeys: [],
+    metricKeys: ["product_recall_count"],
     requiresEvidence: true,
-    note: "Consumer safety narrative — not collected as a ClearESG metric yet.",
+    note: "Enter product_recall_count; attach corrective-action evidence.",
   },
 ];
 

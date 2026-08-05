@@ -168,6 +168,24 @@ export async function PUT(req: Request, context: RouteContext) {
               ? body.serial.trim()
               : null
             : existing.serial,
+        projectName:
+          body.projectName !== undefined
+            ? typeof body.projectName === "string" && body.projectName.trim()
+              ? body.projectName.trim()
+              : null
+            : existing.projectName,
+        projectId:
+          body.projectId !== undefined
+            ? typeof body.projectId === "string" && body.projectId.trim()
+              ? body.projectId.trim()
+              : null
+            : existing.projectId,
+        methodology:
+          body.methodology !== undefined
+            ? typeof body.methodology === "string" && body.methodology.trim()
+              ? body.methodology.trim()
+              : null
+            : existing.methodology,
         period: periodId,
         retiredAt:
           body.retiredAt !== undefined

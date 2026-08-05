@@ -67,3 +67,4 @@ export {
   type PathwayCoverage,
   type PathwayCoverageInput,
 } from "./pathways";
+export { buildOpinionLetterDraft, type OpinionLetterInput } from "./opinionLetter";

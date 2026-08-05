@@ -49,6 +49,7 @@ export default async function MaterialityPage() {
               topics: found.docs[0].topics,
               status: found.docs[0].status,
               narrative: found.docs[0].narrative,
+              surveyNotes: found.docs[0].surveyNotes,
             }
           : null
       }

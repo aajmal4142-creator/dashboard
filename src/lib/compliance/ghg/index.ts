@@ -12,6 +12,7 @@ export {
   deleteRestatement,
   docToRestatement,
   finalizeRestatement,
+  getAppliedBaseYearInventory,
   getOrgRestatement,
   listOrgPeriods,
   listOrgRestatements,
@@ -20,6 +21,7 @@ export {
   updateRestatement,
 } from "./service";
 export type {
+  AppliedBaseYearInventory,
   CreateRestatementInput,
   PeriodOption,
   RestatementDto,

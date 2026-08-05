@@ -26,3 +26,12 @@ export {
   type CarbonCreditDto,
   type ResidualLedgerSummary,
 } from "./service";
+
+export {
+  buildOffsetClaimPack,
+  evaluateClaimDisclosure,
+  type ClaimDisclosureGuard,
+  type ClaimIssue,
+  type ClaimLotInput,
+  type OffsetClaimPack,
+} from "./claimPack";

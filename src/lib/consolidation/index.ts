@@ -1,6 +1,7 @@
 export {
   CONSOLIDATION_METHODS,
   CONSOLIDATION_METHOD_LABELS,
+  applyIcEliminations,
   buildHierarchyForest,
   consolidateEmissions,
   consolidatedReportToCsv,
@@ -22,6 +23,7 @@ export {
   type ConsolidationResult,
   type HierarchyOrg,
   type HierarchyTreeNode,
+  type IcEliminationLine,
   type OrgEmissionsSlice,
 } from "./consolidate";
 
@@ -32,5 +34,6 @@ export {
   loadOrgEmissionsSlice,
   orgDocToHierarchy,
   setOrganisationHierarchy,
+  type ConsolidationPack,
   type SetHierarchyInput,
 } from "./consolidationService";

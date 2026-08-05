@@ -21,3 +21,4 @@ export {
 } from "./catalog";
 
 export { computeBrsrCoverage } from "./coverage";
+export { buildBrsrPack, brsrPackToCsv, type BrsrPack } from "./pack";

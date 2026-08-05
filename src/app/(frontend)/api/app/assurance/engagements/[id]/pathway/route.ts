@@ -16,6 +16,7 @@ type CheckpointRow = {
   checkpointId: string;
   completedAt?: string | null;
   notes?: string | null;
+  evidenceIds?: string[] | null;
   id?: string | null;
 };
 
@@ -45,7 +46,40 @@ async function loadEngagementForOrg(id: string, organisationId: string) {
   return { payload, engagement };
 }
 
-function pathwayPayload(level: AssuranceLevel, rows: CheckpointRow[] | null | undefined) {
+type SamplingFields = {
+  materialityThresholdTco2e: number | null;
+  samplingMethod: string | null;
+  samplingPopulationSize: number | null;
+  samplingSampleSize: number | null;
+  samplingNotes: string | null;
+};
+
+function samplingFieldsOf(engagement: Record<string, unknown>): SamplingFields {
+  return {
+    materialityThresholdTco2e:
+      typeof engagement.materialityThresholdTco2e === "number"
+        ? engagement.materialityThresholdTco2e
+        : null,
+    samplingMethod:
+      typeof engagement.samplingMethod === "string" ? engagement.samplingMethod : null,
+    samplingPopulationSize:
+      typeof engagement.samplingPopulationSize === "number"
+        ? engagement.samplingPopulationSize
+        : null,
+    samplingSampleSize:
+      typeof engagement.samplingSampleSize === "number"
+        ? engagement.samplingSampleSize
+        : null,
+    samplingNotes:
+      typeof engagement.samplingNotes === "string" ? engagement.samplingNotes : null,
+  };
+}
+
+function pathwayPayload(
+  level: AssuranceLevel,
+  rows: CheckpointRow[] | null | undefined,
+  sampling: SamplingFields,
+) {
   const pathway = getPathway(level);
   const completedIds = completedIdsFrom(rows);
   const coverage = coverageForPathway(level, completedIds);
@@ -55,6 +89,7 @@ function pathwayPayload(level: AssuranceLevel, rows: CheckpointRow[] | null | un
     completedIds,
     checkpoints: rows ?? [],
     coverage,
+    ...sampling,
   };
 }
 
@@ -79,7 +114,11 @@ export async function GET(_req: Request, ctx: Ctx) {
 
     return NextResponse.json({
       engagementId: id,
-      ...pathwayPayload(level, rows),
+      ...pathwayPayload(
+        level,
+        rows,
+        samplingFieldsOf(loaded.engagement as unknown as Record<string, unknown>),
+      ),
     });
   } catch (error) {
     console.error("Error loading pathway progress:", error);
@@ -114,8 +153,14 @@ export async function PATCH(req: Request, ctx: Ctx) {
         checkpointId?: unknown;
         completed?: unknown;
         notes?: unknown;
+        evidenceIds?: unknown;
       };
       completedIds?: unknown;
+      materialityThresholdTco2e?: unknown;
+      samplingMethod?: unknown;
+      samplingPopulationSize?: unknown;
+      samplingSampleSize?: unknown;
+      samplingNotes?: unknown;
     };
 
     const loaded = await loadEngagementForOrg(id, auth.activeOrg.id);
@@ -172,6 +217,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
       }
       const completed = body.mark.completed === true;
       const notes = typeof body.mark.notes === "string" ? body.mark.notes : undefined;
+      const evidenceIds = Array.isArray(body.mark.evidenceIds)
+        ? body.mark.evidenceIds.filter((v): v is string => typeof v === "string")
+        : undefined;
 
       if (completed) {
         const existing = rows.find((r) => r.checkpointId === checkpointId);
@@ -179,6 +227,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
           checkpointId,
           completedAt: new Date().toISOString(),
           notes: notes ?? existing?.notes ?? null,
+          evidenceIds: evidenceIds ?? existing?.evidenceIds ?? [],
         };
         rows = [...rows.filter((r) => r.checkpointId !== checkpointId), entry];
       } else {
@@ -186,12 +235,54 @@ export async function PATCH(req: Request, ctx: Ctx) {
       }
     }
 
+    const materialityThresholdTco2e =
+      body.materialityThresholdTco2e !== undefined
+        ? typeof body.materialityThresholdTco2e === "number" &&
+          Number.isFinite(body.materialityThresholdTco2e) &&
+          body.materialityThresholdTco2e >= 0
+          ? body.materialityThresholdTco2e
+          : null
+        : undefined;
+    const samplingMethod =
+      body.samplingMethod !== undefined
+        ? typeof body.samplingMethod === "string" && body.samplingMethod.trim()
+          ? body.samplingMethod.trim()
+          : null
+        : undefined;
+    const samplingPopulationSize =
+      body.samplingPopulationSize !== undefined
+        ? typeof body.samplingPopulationSize === "number" &&
+          Number.isFinite(body.samplingPopulationSize) &&
+          body.samplingPopulationSize >= 0
+          ? body.samplingPopulationSize
+          : null
+        : undefined;
+    const samplingSampleSize =
+      body.samplingSampleSize !== undefined
+        ? typeof body.samplingSampleSize === "number" &&
+          Number.isFinite(body.samplingSampleSize) &&
+          body.samplingSampleSize >= 0
+          ? body.samplingSampleSize
+          : null
+        : undefined;
+    const samplingNotes =
+      body.samplingNotes !== undefined
+        ? typeof body.samplingNotes === "string" && body.samplingNotes.trim()
+          ? body.samplingNotes.trim()
+          : null
+        : undefined;
+
     const updated = await loaded.payload.update({
       collection: "assurance-engagements",
       id,
       data: {
         assuranceLevel: level,
         pathwayCheckpoints: rows,
+        materialityThresholdTco2e,
+        samplingMethod,
+        samplingPopulationSize,
+        samplingSampleSize,
+        samplingNotes,
       },
       overrideAccess: true,
     });
@@ -199,7 +290,11 @@ export async function PATCH(req: Request, ctx: Ctx) {
     return NextResponse.json({
       engagementId: id,
       engagement: updated,
-      ...pathwayPayload(level, rows),
+      ...pathwayPayload(
+        level,
+        rows,
+        samplingFieldsOf(updated as unknown as Record<string, unknown>),
+      ),
     });
   } catch (error) {
     console.error("Error updating pathway progress:", error);

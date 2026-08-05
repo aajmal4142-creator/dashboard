@@ -170,6 +170,18 @@ export async function POST(req: Request) {
           typeof body.serial === "string" && body.serial.trim()
             ? body.serial.trim()
             : undefined,
+        projectName:
+          typeof body.projectName === "string" && body.projectName.trim()
+            ? body.projectName.trim()
+            : undefined,
+        projectId:
+          typeof body.projectId === "string" && body.projectId.trim()
+            ? body.projectId.trim()
+            : undefined,
+        methodology:
+          typeof body.methodology === "string" && body.methodology.trim()
+            ? body.methodology.trim()
+            : undefined,
         period: periodId ?? undefined,
         retiredAt:
           typeof body.retiredAt === "string" && body.retiredAt.trim()

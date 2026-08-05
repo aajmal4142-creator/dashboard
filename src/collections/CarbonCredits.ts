@@ -106,6 +106,30 @@ export const CarbonCredits: CollectionConfig = {
       },
     },
     {
+      name: "projectName",
+      type: "text",
+      admin: {
+        description:
+          "Project name backing this credit lot (recommended for claim disclosure).",
+      },
+    },
+    {
+      name: "projectId",
+      type: "text",
+      admin: {
+        description:
+          "Registry project id / reference (recommended for claim disclosure).",
+      },
+    },
+    {
+      name: "methodology",
+      type: "text",
+      admin: {
+        description:
+          "Crediting methodology / protocol (e.g. VM0042, Gold Standard AR-AMS).",
+      },
+    },
+    {
       name: "period",
       type: "relationship",
       relationTo: "reporting-periods",

@@ -16,6 +16,7 @@ import {
   type EvidencePackManifest,
 } from "./evidencePack";
 import { loadAssurancePayload } from "./loadAssurance";
+import { buildOpinionLetterDraft } from "./opinionLetter";
 import { buildStoreZip } from "./zipStore";
 
 export type EvidencePackFormat = "pdf" | "csv" | "zip";
@@ -167,6 +168,15 @@ export async function assembleEvidencePack(opts: {
 
   let assuranceLevel = opts.assuranceLevel ?? null;
   let pathwayCompletedIds: string[] = [];
+  let engagementForOpinion: {
+    materialityThresholdTco2e?: unknown;
+    samplingMethod?: unknown;
+    samplingPopulationSize?: unknown;
+    samplingSampleSize?: unknown;
+    samplingNotes?: unknown;
+    notes?: unknown;
+    dataGaps?: unknown;
+  } | null = null;
   {
     const engagements = await opts.payload.find({
       collection: "assurance-engagements",
@@ -186,6 +196,13 @@ export async function assembleEvidencePack(opts: {
           assuranceLevel?: unknown;
           pathwayLevel?: unknown;
           pathwayCheckpoints?: Array<{ checkpointId?: string }>;
+          materialityThresholdTco2e?: unknown;
+          samplingMethod?: unknown;
+          samplingPopulationSize?: unknown;
+          samplingSampleSize?: unknown;
+          samplingNotes?: unknown;
+          notes?: unknown;
+          dataGaps?: unknown;
         }
       | undefined;
     if (!assuranceLevel) {
@@ -197,6 +214,7 @@ export async function assembleEvidencePack(opts: {
         .map((c) => (typeof c.checkpointId === "string" ? c.checkpointId : ""))
         .filter((id) => id.length > 0);
     }
+    engagementForOpinion = eng ?? null;
   }
 
   const manifest = buildEvidencePackManifest({
@@ -277,7 +295,7 @@ export async function assembleEvidencePack(opts: {
   });
   const pathwayBytes = new TextEncoder().encode(pathwayCsv);
 
-  const zip = buildStoreZip([
+  const zipEntries = [
     { name: `${basename}.pdf`, data: pdfBytes },
     { name: `${basename}.csv`, data: csvBytes },
     {
@@ -288,7 +306,56 @@ export async function assembleEvidencePack(opts: {
       name: `${basename}.manifest.json`,
       data: new TextEncoder().encode(JSON.stringify(manifest, null, 2)),
     },
-  ]);
+  ];
+
+  if (assuranceLevel && engagementForOpinion) {
+    const eng = engagementForOpinion;
+    const dataGaps = Array.isArray(eng.dataGaps)
+      ? (eng.dataGaps as Array<{
+          metric?: string | null;
+          severity?: string | null;
+          description?: string | null;
+        }>)
+      : [];
+    const gapLines = dataGaps.map(
+      (g) =>
+        `- [${g.severity ?? "unknown"}] ${g.metric ?? "unlabelled"}: ${g.description ?? ""}`,
+    );
+    const findingsSummary =
+      [
+        typeof eng.notes === "string" ? eng.notes.trim() || null : null,
+        gapLines.length > 0 ? `Data gaps identified:\n${gapLines.join("\n")}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n\n") || null;
+
+    const opinionDraft = buildOpinionLetterDraft({
+      level: assuranceLevel,
+      organisationName: manifest.organisationName,
+      periodLabel: manifest.periodLabel,
+      materialityThresholdTco2e:
+        typeof eng.materialityThresholdTco2e === "number"
+          ? eng.materialityThresholdTco2e
+          : null,
+      samplingPlan: {
+        method: typeof eng.samplingMethod === "string" ? eng.samplingMethod : null,
+        populationSize:
+          typeof eng.samplingPopulationSize === "number"
+            ? eng.samplingPopulationSize
+            : null,
+        sampleSize:
+          typeof eng.samplingSampleSize === "number" ? eng.samplingSampleSize : null,
+        notes: typeof eng.samplingNotes === "string" ? eng.samplingNotes : null,
+      },
+      findingsSummary,
+    });
+    zipEntries.push({
+      name: `${basename}.opinion-draft.txt`,
+      data: new TextEncoder().encode(opinionDraft),
+    });
+  }
+
+  const zip = buildStoreZip(zipEntries);
 
   return {
     ok: true,

@@ -16,9 +16,12 @@ import {
   CAMPAIGN_GOAL_TYPE_LABELS,
   CAMPAIGN_STATUSES,
   CAMPAIGN_STATUS_LABELS,
+  SURVEY_MODE_LABELS,
+  SURVEY_MODES,
   type CampaignGoalType,
   type CampaignStatus,
   type EngagementCampaignDto,
+  type SurveyMode,
 } from "@/lib/engagement";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +42,7 @@ type FormState = {
   achievedTco2e: string;
   linkCommuteChallenge: boolean;
   description: string;
+  surveyMode: SurveyMode;
 };
 
 function emptyForm(): FormState {
@@ -52,6 +56,7 @@ function emptyForm(): FormState {
     achievedTco2e: "",
     linkCommuteChallenge: false,
     description: "",
+    surveyMode: "none",
   };
 }
 
@@ -130,6 +135,56 @@ function ProgressBar({ campaign }: { campaign: EngagementCampaignDto }) {
   );
 }
 
+function PublicSurveyLink({
+  token,
+  responseCount,
+}: {
+  token: string | null;
+  responseCount: number;
+}) {
+  const [copied, setCopied] = useState(false);
+  if (!token) {
+    return (
+      <p className="text-[12px] text-[color:var(--amber)]">
+        Survey link is being generated — refresh in a moment.
+      </p>
+    );
+  }
+  const url =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/e/${token}`
+      : `/e/${token}`;
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard unavailable — link is still visible to copy manually */
+    }
+  }
+
+  return (
+    <div className="space-y-1.5 border-t border-[color:var(--rule)] pt-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[color:var(--ink-muted)]">
+        Public survey link
+      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <code className="flex-1 break-all rounded-[4px] border border-[color:var(--rule)] bg-[color:var(--surface-2)] px-2 py-1 text-[12px] text-[color:var(--ink)]">
+          {url}
+        </code>
+        <Button type="button" size="sm" variant="outline" onClick={copy}>
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      </div>
+      <p className="text-[12px] text-[color:var(--ink-muted)]">
+        <Mono>{formatNum(responseCount, 0)}</Mono> survey responses recorded.
+      </p>
+    </div>
+  );
+}
+
 export function EngagementClient(props: {
   orgName: string;
   canWrite: boolean;
@@ -200,6 +255,7 @@ export function EngagementClient(props: {
         campaign.achievedTco2e === null ? "" : String(campaign.achievedTco2e),
       linkCommuteChallenge: campaign.linkCommuteChallenge,
       description: campaign.description ?? "",
+      surveyMode: campaign.surveyMode,
     });
     setFormError(null);
     setFormOpen(true);
@@ -242,6 +298,7 @@ export function EngagementClient(props: {
       achievedTco2e,
       linkCommuteChallenge: form.linkCommuteChallenge,
       description: form.description.trim() || null,
+      surveyMode: form.surveyMode,
     };
 
     const url = editingId
@@ -474,6 +531,22 @@ export function EngagementClient(props: {
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
+            <AppSelectNative
+              label="Public survey"
+              value={form.surveyMode}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  surveyMode: e.target.value as SurveyMode,
+                }))
+              }
+            >
+              {SURVEY_MODES.map((m) => (
+                <option key={m} value={m}>
+                  {SURVEY_MODE_LABELS[m]}
+                </option>
+              ))}
+            </AppSelectNative>
           </div>
           <label className="mt-3 flex items-center gap-2 text-[13px] text-[color:var(--ink)]">
             <input
@@ -674,6 +747,13 @@ export function EngagementClient(props: {
                   <p className="text-[13px] text-[color:var(--ink-muted)]">
                     {selected.description}
                   </p>
+                ) : null}
+
+                {selected.status === "active" && selected.surveyMode === "commute" ? (
+                  <PublicSurveyLink
+                    token={selected.publicToken}
+                    responseCount={selected.surveyResponseCount}
+                  />
                 ) : null}
 
                 {selected.linkCommuteChallenge ? (

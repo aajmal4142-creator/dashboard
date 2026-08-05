@@ -37,11 +37,24 @@ type EngagementRow = {
   requestedAt: string;
 };
 
+type CheckpointRow = {
+  checkpointId: string;
+  completedAt?: string | null;
+  notes?: string | null;
+  evidenceIds?: string[] | null;
+};
+
 type PathwayDetail = {
   level: AssuranceLevel;
   pathway: AssurancePathwayDefinition;
   completedIds: string[];
   coverage: PathwayCoverage;
+  checkpoints: CheckpointRow[];
+  materialityThresholdTco2e: number | null;
+  samplingMethod: string | null;
+  samplingPopulationSize: number | null;
+  samplingSampleSize: number | null;
+  samplingNotes: string | null;
 };
 
 type LoadState =
@@ -88,6 +101,13 @@ export function AssuranceEngagementsClient({
   const [newLevel, setNewLevel] = useState<AssuranceLevel>("limited");
   const [scope, setScope] = useState<"scope1" | "scope2" | "scope3" | "all">("all");
 
+  const [materialityInput, setMaterialityInput] = useState("");
+  const [samplingMethodInput, setSamplingMethodInput] = useState("");
+  const [samplingPopulationInput, setSamplingPopulationInput] = useState("");
+  const [samplingSampleInput, setSamplingSampleInput] = useState("");
+  const [samplingNotesInput, setSamplingNotesInput] = useState("");
+  const [opinionState, setOpinionState] = useState<"idle" | "loading" | "error">("idle");
+
   const loadList = useCallback(() => {
     startTransition(async () => {
       try {
@@ -132,6 +152,12 @@ export function AssuranceEngagementsClient({
             pathway: data.pathway,
             completedIds: data.completedIds,
             coverage: data.coverage,
+            checkpoints: data.checkpoints ?? [],
+            materialityThresholdTco2e: data.materialityThresholdTco2e ?? null,
+            samplingMethod: data.samplingMethod ?? null,
+            samplingPopulationSize: data.samplingPopulationSize ?? null,
+            samplingSampleSize: data.samplingSampleSize ?? null,
+            samplingNotes: data.samplingNotes ?? null,
           });
         } catch {
           setDetail(null);
@@ -156,6 +182,69 @@ export function AssuranceEngagementsClient({
     return () => window.clearTimeout(id);
   }, [selectedId, loadPathway]);
 
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setMaterialityInput(
+        detail?.materialityThresholdTco2e != null
+          ? String(detail.materialityThresholdTco2e)
+          : "",
+      );
+      setSamplingMethodInput(detail?.samplingMethod ?? "");
+      setSamplingPopulationInput(
+        detail?.samplingPopulationSize != null
+          ? String(detail.samplingPopulationSize)
+          : "",
+      );
+      setSamplingSampleInput(
+        detail?.samplingSampleSize != null ? String(detail.samplingSampleSize) : "",
+      );
+      setSamplingNotesInput(detail?.samplingNotes ?? "");
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [detail]);
+
+  function saveSamplingPlan() {
+    patchPathway({
+      materialityThresholdTco2e:
+        materialityInput.trim() === "" ? null : Number(materialityInput),
+      samplingMethod: samplingMethodInput.trim() || null,
+      samplingPopulationSize:
+        samplingPopulationInput.trim() === "" ? null : Number(samplingPopulationInput),
+      samplingSampleSize:
+        samplingSampleInput.trim() === "" ? null : Number(samplingSampleInput),
+      samplingNotes: samplingNotesInput.trim() || null,
+    });
+  }
+
+  async function downloadOpinionDraft() {
+    if (!selectedId) return;
+    setOpinionState("loading");
+    try {
+      const res = await fetch(
+        `/api/app/assurance/engagements/${selectedId}/opinion-draft`,
+      );
+      const data = (await res.json()) as { text?: string; error?: string };
+      if (!res.ok || !data.text) {
+        setOpinionState("error");
+        setTone("error");
+        setMessage(data.error ?? "Could not build opinion draft");
+        return;
+      }
+      const blob = new Blob([data.text], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `opinion-draft-${selectedId}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setOpinionState("idle");
+    } catch {
+      setOpinionState("error");
+      setTone("error");
+      setMessage("Network error building opinion draft");
+    }
+  }
+
   function patchPathway(body: Record<string, unknown>) {
     if (!selectedId || !canWrite) return;
     startTransition(async () => {
@@ -177,6 +266,12 @@ export function AssuranceEngagementsClient({
           pathway: data.pathway,
           completedIds: data.completedIds,
           coverage: data.coverage,
+          checkpoints: data.checkpoints ?? [],
+          materialityThresholdTco2e: data.materialityThresholdTco2e ?? null,
+          samplingMethod: data.samplingMethod ?? null,
+          samplingPopulationSize: data.samplingPopulationSize ?? null,
+          samplingSampleSize: data.samplingSampleSize ?? null,
+          samplingNotes: data.samplingNotes ?? null,
         });
         setTone("ok");
         setMessage(t("assuranceEngagements.saved"));
@@ -466,7 +561,93 @@ export function AssuranceEngagementsClient({
                             />
                           </div>
                         ) : null}
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            className="text-[12px] text-accent underline-offset-2 hover:underline disabled:opacity-50"
+                            onClick={() => void downloadOpinionDraft()}
+                            disabled={opinionState === "loading"}
+                          >
+                            {opinionState === "loading"
+                              ? "Building opinion draft…"
+                              : "Download opinion draft"}
+                          </button>
+                        </div>
                       </div>
+                    </div>
+
+                    <div className="space-y-3 border-b border-rule pb-4">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-ink">
+                        Materiality &amp; sampling
+                      </p>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="block text-[12px] text-ink-muted">
+                          Materiality threshold (tCO₂e)
+                          <input
+                            type="number"
+                            min={0}
+                            step="any"
+                            disabled={!canWrite || pending}
+                            value={materialityInput}
+                            onChange={(e) => setMaterialityInput(e.target.value)}
+                            className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 font-data text-[13px] text-ink outline-none focus:border-rule-strong disabled:opacity-60"
+                          />
+                        </label>
+                        <label className="block text-[12px] text-ink-muted">
+                          Sampling method
+                          <input
+                            type="text"
+                            disabled={!canWrite || pending}
+                            value={samplingMethodInput}
+                            onChange={(e) => setSamplingMethodInput(e.target.value)}
+                            className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 text-[13px] text-ink outline-none focus:border-rule-strong disabled:opacity-60"
+                            placeholder="e.g. judgmental, statistical, MUS"
+                          />
+                        </label>
+                        <label className="block text-[12px] text-ink-muted">
+                          Population size
+                          <input
+                            type="number"
+                            min={0}
+                            disabled={!canWrite || pending}
+                            value={samplingPopulationInput}
+                            onChange={(e) => setSamplingPopulationInput(e.target.value)}
+                            className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 font-data text-[13px] text-ink outline-none focus:border-rule-strong disabled:opacity-60"
+                          />
+                        </label>
+                        <label className="block text-[12px] text-ink-muted">
+                          Sample size
+                          <input
+                            type="number"
+                            min={0}
+                            disabled={!canWrite || pending}
+                            value={samplingSampleInput}
+                            onChange={(e) => setSamplingSampleInput(e.target.value)}
+                            className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 font-data text-[13px] text-ink outline-none focus:border-rule-strong disabled:opacity-60"
+                          />
+                        </label>
+                        <label className="block text-[12px] text-ink-muted sm:col-span-2">
+                          Sampling notes
+                          <textarea
+                            rows={2}
+                            disabled={!canWrite || pending}
+                            value={samplingNotesInput}
+                            onChange={(e) => setSamplingNotesInput(e.target.value)}
+                            className="mt-1 w-full border border-rule bg-surface-1 px-3 py-2 text-[13px] text-ink outline-none focus:border-rule-strong disabled:opacity-60"
+                          />
+                        </label>
+                      </div>
+                      {canWrite ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={pending}
+                          onClick={saveSamplingPlan}
+                        >
+                          Save materiality &amp; sampling
+                        </Button>
+                      ) : null}
                     </div>
 
                     <div
@@ -500,6 +681,9 @@ export function AssuranceEngagementsClient({
                     <ul className="space-y-3">
                       {detail.pathway.checkpoints.map((cp) => {
                         const done = completedSet.has(cp.id);
+                        const row = detail.checkpoints.find(
+                          (r) => r.checkpointId === cp.id,
+                        );
                         return (
                           <li
                             key={cp.id}
@@ -539,6 +723,31 @@ export function AssuranceEngagementsClient({
                                 </span>
                               </span>
                             </label>
+                            {done ? (
+                              <div className="ml-7 mt-2">
+                                <label className="block text-[11px] text-ink-muted">
+                                  Evidence ids (comma-separated)
+                                  <input
+                                    type="text"
+                                    disabled={!canWrite || pending}
+                                    defaultValue={(row?.evidenceIds ?? []).join(", ")}
+                                    onBlur={(e) =>
+                                      patchPathway({
+                                        mark: {
+                                          checkpointId: cp.id,
+                                          completed: true,
+                                          evidenceIds: e.target.value
+                                            .split(",")
+                                            .map((v) => v.trim())
+                                            .filter(Boolean),
+                                        },
+                                      })
+                                    }
+                                    className="mt-1 w-full border border-rule bg-surface-1 px-2 py-1 font-data text-[11px] text-ink outline-none focus:border-rule-strong disabled:opacity-60"
+                                  />
+                                </label>
+                              </div>
+                            ) : null}
                           </li>
                         );
                       })}

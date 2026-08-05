@@ -7,6 +7,7 @@ import type { Payload } from "payload";
 import { resolveOrgBaselineByScope } from "@/lib/analytics/resolveOrgBaseline";
 
 import {
+  applyIcEliminations,
   buildHierarchyForest,
   consolidateEmissions,
   consolidatedReportToCsv,
@@ -18,8 +19,11 @@ import {
   type ConsolidationResult,
   type HierarchyOrg,
   type HierarchyTreeNode,
+  type IcEliminationLine,
   type OrgEmissionsSlice,
 } from "./consolidate";
+
+export type ConsolidationPack = "management" | "statutory";
 
 function relId(value: unknown): string | null {
   if (!value) return null;
@@ -285,15 +289,32 @@ export async function buildConsolidatedReport(
     parentOrganisationId: string;
     periodYear: number;
     accessibleOrgIds: string[];
+    pack?: ConsolidationPack;
+    eliminations?: IcEliminationLine[];
   },
-): Promise<ConsolidationResult & { footer: string; csv: string }> {
+): Promise<
+  ConsolidationResult & { footer: string; csv: string; pack: ConsolidationPack }
+> {
   const accessible = new Set(opts.accessibleOrgIds);
   if (!accessible.has(opts.parentOrganisationId)) {
     throw new Error("Forbidden: no Membership on parent organisation.");
   }
 
+  const pack: ConsolidationPack = opts.pack === "statutory" ? "statutory" : "management";
+
   // Full graph for path ownership (intermediates may be inaccessible).
-  const graphOrgs = await loadHierarchyOrgs(payload, opts.accessibleOrgIds);
+  let graphOrgs = await loadHierarchyOrgs(payload, opts.accessibleOrgIds);
+  const statutoryWarnings: string[] = [];
+  if (pack === "statutory") {
+    graphOrgs = graphOrgs.map((org) =>
+      org.id === opts.parentOrganisationId || org.consolidationMethod === "full"
+        ? org
+        : { ...org, consolidationMethod: "full" as const },
+    );
+    statutoryWarnings.push(
+      "Statutory pack: all subsidiaries consolidated at full (100%) method regardless of configured ownership, per statutory consolidation convention.",
+    );
+  }
   // Emissions + output rows: Membership only.
   const reportOrgs = graphOrgs.filter((o) => accessible.has(o.id));
 
@@ -309,6 +330,7 @@ export async function buildConsolidatedReport(
     orgs: graphOrgs,
     emissions,
   });
+  result.warnings = [...statutoryWarnings, ...result.warnings];
 
   // Never surface subsidiary rows without Membership
   result.byOrg = result.byOrg.filter((r) => accessible.has(r.organisationId));
@@ -327,10 +349,11 @@ export async function buildConsolidatedReport(
 
   // Recompute measured-only totals + quality after Membership filter
   const recomputed = recomputeConsolidationAggregates(result);
-  const footer = formatConsolidationFooter(recomputed);
-  const csv = consolidatedReportToCsv(recomputed);
+  const withEliminations = applyIcEliminations(recomputed, opts.eliminations ?? []);
+  const footer = formatConsolidationFooter(withEliminations);
+  const csv = consolidatedReportToCsv(withEliminations);
 
-  return { ...recomputed, footer, csv };
+  return { ...withEliminations, footer, csv, pack };
 }
 
 export {

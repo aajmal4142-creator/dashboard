@@ -342,7 +342,7 @@ export interface User {
   avatarUrl?: string | null;
   lastSeenAt?: string | null;
   /**
-   * UI language preference (en | hi)
+   * UI language preference (en | hi | fr)
    */
   language?: ('en' | 'hi' | 'fr') | null;
   updatedAt: string;
@@ -1688,9 +1688,33 @@ export interface AssuranceEngagement {
          * Optional notes for this checkpoint
          */
         notes?: string | null;
+        /**
+         * Evidence document ids supporting this checkpoint
+         */
+        evidenceIds?: string[] | null;
         id?: string | null;
       }[]
     | null;
+  /**
+   * Quantitative materiality threshold for this engagement (tCO₂e).
+   */
+  materialityThresholdTco2e?: number | null;
+  /**
+   * Sampling method (e.g. judgmental, statistical, MUS).
+   */
+  samplingMethod?: string | null;
+  /**
+   * Population size the sample is drawn from.
+   */
+  samplingPopulationSize?: number | null;
+  /**
+   * Number of items actually sampled.
+   */
+  samplingSampleSize?: number | null;
+  /**
+   * Sampling plan rationale and coverage notes.
+   */
+  samplingNotes?: string | null;
   status: 'draft' | 'submitted' | 'reviewing' | 'findings_submitted' | 'approved' | 'signed_off';
   /**
    * When engagement was requested
@@ -1981,6 +2005,21 @@ export interface MaterialityAssessment {
         financialScore: number;
         rationale?: string | null;
         /**
+         * Optional stakeholder survey average (0-5) for this topic, if collected outside the platform.
+         */
+        stakeholderSurveyAvg?: number | null;
+        /**
+         * IRO register entries backing the impact/financial scores for this topic.
+         */
+        iros?:
+          | {
+              kind: 'impact' | 'risk' | 'opportunity';
+              description: string;
+              severity: number;
+              id?: string | null;
+            }[]
+          | null;
+        /**
          * Auditor trail — sector starting position accepted vs actively changed.
          */
         origin?: ('suggested' | 'adjusted') | null;
@@ -1999,6 +2038,10 @@ export interface MaterialityAssessment {
     | boolean
     | null;
   narrative?: string | null;
+  /**
+   * Optional stakeholder engagement / survey methodology notes.
+   */
+  surveyNotes?: string | null;
   finalisedAt?: string | null;
   updatedAt: string;
   createdAt: string;
@@ -2806,6 +2849,22 @@ export interface Subscription {
    * Discount percentage applied (only for annual billing)
    */
   annualDiscountPercentage: number;
+  /**
+   * Multi-year commercial term (1–3). Null = month-to-month / annual only.
+   */
+  contractTermYears?: ('1' | '2' | '3') | null;
+  /**
+   * End of the multi-year contract window
+   */
+  contractEndsAt?: string | null;
+  /**
+   * Additional discount % for 2–3 year terms (commercial, not Stripe coupon)
+   */
+  multiYearDiscountPercent?: number | null;
+  /**
+   * How many times the trial has been extended (max 2 via self-serve)
+   */
+  trialExtensionCount?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -5869,7 +5928,7 @@ export interface DatabaseConnection {
    * Human-readable connection label
    */
   name: string;
-  engine: 'postgresql' | 'mysql' | 'bigquery';
+  engine: 'postgresql' | 'mysql' | 'bigquery' | 'snowflake' | 'databricks';
   status: 'pending' | 'connected' | 'failed' | 'disabled';
   /**
    * AES-256-GCM ciphertext. Never log or return to clients.
@@ -6479,7 +6538,23 @@ export interface CbamDeclaration {
   label?: string | null;
   reportingYear: number;
   reportingQuarter: '1' | '2' | '3' | '4';
-  status: 'draft' | 'submitted';
+  status: 'draft' | 'ready' | 'submitted';
+  /**
+   * CBAM declarant / importer legal name
+   */
+  declarantName?: string | null;
+  /**
+   * EORI number
+   */
+  declarantEori?: string | null;
+  /**
+   * Declarant country (ISO-2)
+   */
+  declarantCountry?: string | null;
+  /**
+   * Declarant contact email
+   */
+  declarantEmail?: string | null;
   /**
    * Operator-entered CBAM certificate price estimate (€ / tCO₂e). Required for liability estimates; never silently defaulted.
    */
@@ -6912,6 +6987,10 @@ export interface BaseYearRestatement {
    */
   auditNarrative?: string | null;
   finalizedAt?: string | null;
+  /**
+   * Set when finalised — marks the restatement as the applied base-year inventory.
+   */
+  appliedAt?: string | null;
   finalizedBy?: (string | null) | User;
   createdBy?: (string | null) | User;
   updatedAt: string;
@@ -6990,6 +7069,18 @@ export interface CarbonCredit {
    * Optional serial / batch identifier from the registry.
    */
   serial?: string | null;
+  /**
+   * Project name backing this credit lot (recommended for claim disclosure).
+   */
+  projectName?: string | null;
+  /**
+   * Registry project id / reference (recommended for claim disclosure).
+   */
+  projectId?: string | null;
+  /**
+   * Crediting methodology / protocol (e.g. VM0042, Gold Standard AR-AMS).
+   */
+  methodology?: string | null;
   /**
    * Optional reporting period this retirement or holding applies to.
    */
@@ -7426,6 +7517,18 @@ export interface EngagementCampaign {
    * Optional campaign brief shown to organisers.
    */
   description?: string | null;
+  /**
+   * Auto-generated when the campaign is created or activated. Powers the public /e/[token] survey link — never guessable, never reused.
+   */
+  publicToken?: string | null;
+  /**
+   * Enables a public, tokenised survey form for this campaign.
+   */
+  surveyMode?: ('none' | 'commute') | null;
+  /**
+   * Count of public survey submissions received via the /e/[token] link.
+   */
+  surveyResponseCount: number;
   updatedAt: string;
   createdAt: string;
 }
@@ -8515,6 +8618,15 @@ export interface MaterialityAssessmentsSelect<T extends boolean = true> {
         impactScore?: T;
         financialScore?: T;
         rationale?: T;
+        stakeholderSurveyAvg?: T;
+        iros?:
+          | T
+          | {
+              kind?: T;
+              description?: T;
+              severity?: T;
+              id?: T;
+            };
         origin?: T;
         decidedBy?: T;
         decidedAt?: T;
@@ -8522,6 +8634,7 @@ export interface MaterialityAssessmentsSelect<T extends boolean = true> {
       };
   matrixSnapshot?: T;
   narrative?: T;
+  surveyNotes?: T;
   finalisedAt?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -8837,8 +8950,14 @@ export interface AssuranceEngagementsSelect<T extends boolean = true> {
         checkpointId?: T;
         completedAt?: T;
         notes?: T;
+        evidenceIds?: T;
         id?: T;
       };
+  materialityThresholdTco2e?: T;
+  samplingMethod?: T;
+  samplingPopulationSize?: T;
+  samplingSampleSize?: T;
+  samplingNotes?: T;
   status?: T;
   requestedAt?: T;
   submittedAt?: T;
@@ -8990,6 +9109,10 @@ export interface SubscriptionsSelect<T extends boolean = true> {
   nextRenewalDate?: T;
   lastRenewalDate?: T;
   annualDiscountPercentage?: T;
+  contractTermYears?: T;
+  contractEndsAt?: T;
+  multiYearDiscountPercent?: T;
+  trialExtensionCount?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -10590,6 +10713,10 @@ export interface CbamDeclarationsSelect<T extends boolean = true> {
   reportingYear?: T;
   reportingQuarter?: T;
   status?: T;
+  declarantName?: T;
+  declarantEori?: T;
+  declarantCountry?: T;
+  declarantEmail?: T;
   certificatePriceEur?: T;
   notes?: T;
   updatedAt?: T;
@@ -10838,6 +10965,7 @@ export interface BaseYearRestatementsSelect<T extends boolean = true> {
   disclosureNote?: T;
   auditNarrative?: T;
   finalizedAt?: T;
+  appliedAt?: T;
   finalizedBy?: T;
   createdBy?: T;
   updatedAt?: T;
@@ -10873,6 +11001,9 @@ export interface CarbonCreditsSelect<T extends boolean = true> {
   status?: T;
   registryName?: T;
   serial?: T;
+  projectName?: T;
+  projectId?: T;
+  methodology?: T;
   period?: T;
   retiredAt?: T;
   notes?: T;
@@ -11087,6 +11218,9 @@ export interface EngagementCampaignsSelect<T extends boolean = true> {
   achievedTco2e?: T;
   linkCommuteChallenge?: T;
   description?: T;
+  publicToken?: T;
+  surveyMode?: T;
+  surveyResponseCount?: T;
   updatedAt?: T;
   createdAt?: T;
 }

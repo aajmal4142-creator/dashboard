@@ -183,6 +183,16 @@ export const BaseYearRestatements: CollectionConfig = {
       },
     },
     {
+      name: "appliedAt",
+      type: "date",
+      admin: {
+        date: { pickerAppearance: "dayAndTime" },
+        readOnly: true,
+        description:
+          "Set when finalised — marks the restatement as the applied base-year inventory.",
+      },
+    },
+    {
       name: "finalizedBy",
       type: "relationship",
       relationTo: "users",

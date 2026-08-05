@@ -123,7 +123,43 @@ export const AssuranceEngagements: CollectionConfig = {
           type: "textarea",
           admin: { description: "Optional notes for this checkpoint" },
         },
+        {
+          name: "evidenceIds",
+          type: "text",
+          hasMany: true,
+          admin: { description: "Evidence document ids supporting this checkpoint" },
+        },
       ],
+    },
+    {
+      name: "materialityThresholdTco2e",
+      type: "number",
+      min: 0,
+      admin: {
+        description: "Quantitative materiality threshold for this engagement (tCO₂e).",
+      },
+    },
+    {
+      name: "samplingMethod",
+      type: "text",
+      admin: { description: "Sampling method (e.g. judgmental, statistical, MUS)." },
+    },
+    {
+      name: "samplingPopulationSize",
+      type: "number",
+      min: 0,
+      admin: { description: "Population size the sample is drawn from." },
+    },
+    {
+      name: "samplingSampleSize",
+      type: "number",
+      min: 0,
+      admin: { description: "Number of items actually sampled." },
+    },
+    {
+      name: "samplingNotes",
+      type: "textarea",
+      admin: { description: "Sampling plan rationale and coverage notes." },
     },
     {
       name: "status",

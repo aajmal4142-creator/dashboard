@@ -17,6 +17,12 @@ import {
 import { ensureOpenPeriod } from "@/lib/org/period";
 import config from "@/payload.config";
 
+type IroBody = {
+  kind?: "impact" | "risk" | "opportunity";
+  description?: string;
+  severity?: number;
+};
+
 type TopicBody = {
   esrsTopic: string;
   impactSeverity?: number;
@@ -28,7 +34,32 @@ type TopicBody = {
   financialScore?: number;
   rationale?: string;
   origin?: TopicOrigin;
+  stakeholderSurveyAvg?: number;
+  iros?: IroBody[];
 };
+
+function sanitiseIros(iros: IroBody[] | undefined): Array<{
+  kind: "impact" | "risk" | "opportunity";
+  description: string;
+  severity: number;
+}> {
+  if (!Array.isArray(iros)) return [];
+  return iros
+    .filter(
+      (i) =>
+        (i.kind === "impact" || i.kind === "risk" || i.kind === "opportunity") &&
+        typeof i.description === "string" &&
+        i.description.trim().length > 0,
+    )
+    .map((i) => ({
+      kind: i.kind as "impact" | "risk" | "opportunity",
+      description: String(i.description).trim(),
+      severity:
+        typeof i.severity === "number" && Number.isFinite(i.severity)
+          ? Math.min(5, Math.max(0, i.severity))
+          : 0,
+    }));
+}
 
 export async function GET() {
   const ctx = await getCurrentContext();
@@ -85,6 +116,7 @@ export async function PUT(req: Request) {
   const body = (await req.json()) as {
     topics?: TopicBody[];
     finalise?: boolean;
+    surveyNotes?: string;
   };
 
   const payload = await getPayload({ config });
@@ -146,6 +178,8 @@ export async function PUT(req: Request) {
       impactScore: impact,
       financialScore: financial,
       rationale: t.rationale,
+      stakeholderSurveyAvg: t.stakeholderSurveyAvg,
+      iros: sanitiseIros(t.iros),
       origin,
       decidedBy: ctx.user.id,
       decidedAt: new Date().toISOString(),
@@ -177,6 +211,10 @@ export async function PUT(req: Request) {
     topics,
     matrixSnapshot: snapshot,
     narrative,
+    surveyNotes:
+      typeof body.surveyNotes === "string"
+        ? body.surveyNotes.trim() || undefined
+        : undefined,
     status: body.finalise ? ("final" as const) : ("draft" as const),
     finalisedAt: body.finalise ? new Date().toISOString() : undefined,
   };

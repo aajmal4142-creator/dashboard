@@ -4,9 +4,11 @@ import { NextResponse } from "next/server";
 import { ENGAGEMENT_CAMPAIGNS_SLUG } from "@/collections/EngagementCampaigns";
 import {
   docToCampaign,
+  ensureCampaignPublicToken,
   getOrgCampaign,
   isCampaignGoalType,
   isCampaignStatus,
+  isSurveyMode,
 } from "@/lib/engagement";
 import { getCurrentContext, isNextRedirectError } from "@/lib/auth";
 import config from "@/payload.config";
@@ -112,6 +114,15 @@ export async function PUT(req: Request, context: RouteContext) {
       );
     }
 
+    const surveyMode =
+      body.surveyMode !== undefined ? body.surveyMode : existing.surveyMode;
+    if (!isSurveyMode(surveyMode)) {
+      return NextResponse.json(
+        { error: "surveyMode must be none or commute" },
+        { status: 400 },
+      );
+    }
+
     let goalValue = existing.goalValue;
     if (body.goalValue !== undefined) {
       if (body.goalValue === null || body.goalValue === "") {
@@ -195,14 +206,23 @@ export async function PUT(req: Request, context: RouteContext) {
               ? body.description.trim()
               : null
             : existing.description,
+        surveyMode,
       },
       depth: 0,
       overrideAccess: true,
     });
 
-    return NextResponse.json({
-      campaign: docToCampaign(updated as unknown as Record<string, unknown>),
-    });
+    let campaign = docToCampaign(updated as unknown as Record<string, unknown>);
+    if (status === "active" && !campaign.publicToken) {
+      const token = await ensureCampaignPublicToken(
+        payload,
+        campaign.id,
+        campaign.publicToken,
+      );
+      campaign = { ...campaign, publicToken: token };
+    }
+
+    return NextResponse.json({ campaign });
   } catch (error) {
     if (isNextRedirectError(error)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

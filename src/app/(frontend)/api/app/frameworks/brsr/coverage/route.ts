@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getCurrentContext, isNextRedirectError } from "@/lib/auth";
 import {
+  buildBrsrPack,
   computeBrsrCoverage,
   type BrsrDatapointInput,
 } from "@/lib/frameworks/brsr";
@@ -50,8 +51,9 @@ function asProvenance(
 }
 
 /**
- * GET /api/app/frameworks/brsr/coverage?periodId=
+ * GET /api/app/frameworks/brsr/coverage?periodId=&pack=
  * Deterministic BRSR Core vs Comprehensive coverage for the active org.
+ * Pass pack=1 to include a plain-text BRSR readiness pack.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -125,10 +127,16 @@ export async function GET(req: NextRequest) {
     const periodLabel =
       typeof period.label === "string" ? period.label : periodId;
 
+    const includePack =
+      params.pack === "1" || params.pack === "true" || params.pack === "yes";
+
+    const pack = includePack ? buildBrsrPack({ coverage, periodLabel }) : null;
+
     return NextResponse.json({
       success: true,
       periodLabel,
       coverage,
+      pack: pack ?? undefined,
     });
   } catch (error) {
     if (isNextRedirectError(error)) {
