@@ -20,6 +20,7 @@
 | 2026-08-05 | P16–P21       | Portal chrome on `/s/q/*`; French locale; annual cycle + volume UX; live metered usage; dunning webhook + cron                                                                                                                                 |
 | 2026-08-05 | B01–B06 + X01 | Field PWA + offline queue; Zapier/Make recipes; multi-year contracts; trial extend; ASC 606 notes; CBAM filing pack + declarant/ready                                                                                                          |
 | 2026-08-05 | X02–X08       | Residual claim pack + guard + project fields; restatements as-of; materiality IROs + crosswalk; BRSR pack export; assurance sampling + opinion draft; consolidation eliminations + statutory/management pack; engagement public commute survey |
+| 2026-08-06 | X09–X14       | Procurement RFP-lite pack + download; cascade↔MACC↔reduction decarbon plan panel; embed domain allowlist + theme + dynamic CSP; California filing pack; Redis bus fan-out for SSE; ISSB S1/S2 + EU Taxonomy real mappings                      |
 
 ---
 
@@ -31,7 +32,7 @@
 | Partial — extras outside spreadsheet                  | **14** | Yes                |
 | Buildable — gaps #1–#91                               | **6**  | Yes                |
 | Buildable — extras outside spreadsheet                | **10** | Yes                |
-| **Total remaining (non-AI, non-pay)**                 | **37** | Next: **X09**      |
+| **Total remaining (non-AI, non-pay)**                 | **31** | Next: **Y01**      |
 | Already SHIPPED (of 91)                               | 50     | Done               |
 | Duplicates in 91                                      | 5      | Ignore             |
 | AI related                                            | 8      | Later → AI backlog |
@@ -89,22 +90,22 @@
 
 ## Table C — Extra PARTIAL outside spreadsheet (14)
 
-| ID  | Feature                                | Current anchor                 | What to finish                                                                             | Wave | Effort |
-| --- | -------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------ | ---- | ------ |
-| X01 | CBAM filing pack depth                 | `/compliance/cbam`             | Done* — Filing CSV/JSON; defaults table; declarant + draft→ready→submitted                 | 2    | L      |
-| X02 | Residual / offsets claim depth         | `/compliance/residual`         | Done\* — project/methodology fields, claim disclosure guard, `?pack=1` claim pack download | 2    | M      |
-| X03 | Restatements → applied inventory       | `/compliance/ghg/restatements` | Done\* — `appliedAt`, `getAppliedBaseYearInventory`, `/restatements/as-of` panel           | 2    | L      |
-| X04 | Double materiality depth               | `/materiality`                 | Done\* — ESRS crosswalk chips, IRO register per topic, stakeholder survey avg + notes      | 1    | L      |
-| X05 | BRSR depth (India)                     | `/frameworks/brsr`             | Done\* — `buildBrsrPack` wired on coverage `?pack=1` + download button                     | 1    | M      |
-| X06 | Assurance L vs R engagement depth      | `lib/assurance/pathways`       | Done\* — materiality/sampling fields, checkpoint `evidenceIds`, opinion draft download     | 1    | M      |
-| X07 | Multi-org consolidation depth          | Org hierarchy + consolidation  | Done\* — `applyIcEliminations`, statutory (full-method) vs management pack toggle          | 3    | L      |
-| X08 | Employee engagement depth              | `/engagement`                  | Done\* — public tokenised commute survey (`/e/[token]`), response counter, survey link     | 3    | M      |
-| X09 | Procurement tradeoffs depth            | `/procurement/tradeoffs`       | Vendor lists / RFP-lite (no paid ERP required)                                             | 3    | M      |
-| X10 | Cascade ↔ MACC ↔ reduction closed loop | analytics routes               | One plan object; facility progress from meters                                             | 2    | M      |
-| X11 | Public embed hardening                 | `/public/reports/embed`        | Domain allowlist, theme, CSP docs                                                          | 3    | S      |
-| X12 | Realtime SSE multi-instance            | `lib/realtime`                 | Redis/pub-sub fan-out (beyond in-process hub)                                              | 3    | M      |
-| X13 | California SB 253/261 filing pack      | `/compliance/california`       | Exportable pack beyond coverage checklist                                                  | 2    | M      |
-| X14 | Taxonomy / ISSB mapping stubs          | `mappings.ts`, ISSB questions  | Replace counsel placeholders with real mappings                                            | 2    | M      |
+| ID  | Feature                                | Current anchor                 | What to finish                                                                                                                           | Wave | Effort |
+| --- | -------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ---- | ------ |
+| X01 | CBAM filing pack depth                 | `/compliance/cbam`             | Done* — Filing CSV/JSON; defaults table; declarant + draft→ready→submitted                                                               | 2    | L      |
+| X02 | Residual / offsets claim depth         | `/compliance/residual`         | Done\* — project/methodology fields, claim disclosure guard, `?pack=1` claim pack download                                               | 2    | M      |
+| X03 | Restatements → applied inventory       | `/compliance/ghg/restatements` | Done\* — `appliedAt`, `getAppliedBaseYearInventory`, `/restatements/as-of` panel                                                         | 2    | L      |
+| X04 | Double materiality depth               | `/materiality`                 | Done\* — ESRS crosswalk chips, IRO register per topic, stakeholder survey avg + notes                                                    | 1    | L      |
+| X05 | BRSR depth (India)                     | `/frameworks/brsr`             | Done\* — `buildBrsrPack` wired on coverage `?pack=1` + download button                                                                   | 1    | M      |
+| X06 | Assurance L vs R engagement depth      | `lib/assurance/pathways`       | Done\* — materiality/sampling fields, checkpoint `evidenceIds`, opinion draft download                                                   | 1    | M      |
+| X07 | Multi-org consolidation depth          | Org hierarchy + consolidation  | Done\* — `applyIcEliminations`, statutory (full-method) vs management pack toggle                                                        | 3    | L      |
+| X08 | Employee engagement depth              | `/engagement`                  | Done\* — public tokenised commute survey (`/e/[token]`), response counter, survey link                                                   | 3    | M      |
+| X09 | Procurement tradeoffs depth            | `/procurement/tradeoffs`       | Done\* — `buildRfpPack` (RFQ + weights + ranked options + Pareto + gaps), `?pack=1`, download buttons                                    | 3    | M      |
+| X10 | Cascade ↔ MACC ↔ reduction closed loop | analytics routes               | Done\* — `abatementLevers`/`reductionProjects` links, `getDecarbonPlan`, `/analytics/decarbon-plan`, panel + MACC/projects links         | 2    | M      |
+| X11 | Public embed hardening                 | `/public/reports/embed`        | Done\* — allowlist + theme on `ReportEmbedTokens`, origin enforcement, dynamic `frame-ancestors` CSP via `proxy.ts`, `docs/embed-csp.md` | 3    | S      |
+| X12 | Realtime SSE multi-instance            | `lib/realtime`                 | Done\* — `bus.ts` Upstash RPUSH/poll fan-out with local-hub fallback, wired into `emit.ts` + SSE route                                   | 3    | M      |
+| X13 | California SB 253/261 filing pack      | `/compliance/california`       | Done\* — `buildCaliforniaPack` wired on coverage `?pack=1` + download button                                                             | 2    | M      |
+| X14 | Taxonomy / ISSB mapping stubs          | `mappings.ts`, ISSB questions  | Done\* — real ISSB S1/S2 GHG/workforce/governance + EU Taxonomy eligibility mappings, `s2-ghg` `metricKeys`                              | 2    | M      |
 
 ---
 

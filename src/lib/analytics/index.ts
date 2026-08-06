@@ -261,3 +261,12 @@ export type {
   CascadedTargetDto,
   CascadedTargetWriteInput,
 } from "./targetCascadeService";
+
+export { getDecarbonPlan } from "./decarbonPlan";
+
+export type {
+  DecarbonPlan,
+  DecarbonPlanLevers,
+  DecarbonPlanProjects,
+  DecarbonPlanQuality,
+} from "./decarbonPlan";

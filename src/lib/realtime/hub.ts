@@ -1,9 +1,12 @@
 /**
  * In-process pub/sub hub for dashboard KPI updates.
  *
- * Limitation: subscribers only see events published in the same Node process.
- * Multi-instance / serverless fan-out is not supported without an external bus.
- * REST polling (`/api/app/realtime/kpis`) is the cross-instance fallback.
+ * Limitation: subscribers only see events published directly to `publish()` in the
+ * same Node process. Multi-instance / serverless fan-out needs `./bus.ts`
+ * (`publishBus` / `ensureBusSubscriber`), which relays through Upstash Redis when
+ * configured and always falls back to this local-only hub otherwise. REST polling
+ * (`/api/app/realtime/kpis`) remains the cross-instance fallback when no bus is
+ * configured at all.
  */
 
 import type { DashboardMetric, DashboardUpdate } from "./types";

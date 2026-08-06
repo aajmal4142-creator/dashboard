@@ -8,6 +8,7 @@ import {
   useTransition,
   type ReactNode,
 } from "react";
+import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 
 import { EmptyState, PageSkeleton, StatusLine } from "@/components/shell/PageFrame";
@@ -90,6 +91,30 @@ type CascadeDto = {
 type CascadeBundle = {
   cascade: CascadeDto;
   progress: CascadeProgressRollup;
+};
+
+type DecarbonPlanLegQuality = "measured" | "partial" | "missing";
+
+type DecarbonPlanDto = {
+  cascadeId: string;
+  cascadeName: string;
+  levers: {
+    linkedCount: number;
+    totalAnnualAbatementTco2e: number | null;
+    totalAnnualisedCost: number | null;
+    weightedAverageCostPerTco2e: number | null;
+    quality: "measured" | "missing";
+    message: string | null;
+  };
+  projects: {
+    linkedCount: number;
+    plannedTotalTco2e: number;
+    actualTotalTco2e: number | null;
+    quality: DecarbonPlanLegQuality;
+    message: string | null;
+  };
+  quality: DecarbonPlanLegQuality;
+  message: string | null;
 };
 
 type IndexPayload = {
@@ -219,6 +244,10 @@ export function TargetCascadeClient({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [editor, setEditor] = useState<EditorState>(() => emptyEditor());
+  const [plan, setPlan] = useState<DecarbonPlanDto | null>(null);
+  const [planCascadeId, setPlanCascadeId] = useState<string | null>(null);
+  const [planPending, startPlanTransition] = useTransition();
+  const [planError, setPlanError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     startTransition(async () => {
@@ -264,6 +293,41 @@ export function TargetCascadeClient({
     if (!index || !selectedId) return null;
     return index.cascades.find((b) => b.cascade.id === selectedId) ?? null;
   }, [index, selectedId]);
+
+  useEffect(() => {
+    if (!selectedId || creating) return;
+    let cancelled = false;
+    startPlanTransition(async () => {
+      setPlanError(null);
+      try {
+        const res = await fetch(
+          `/api/app/analytics/decarbon-plan?cascadeId=${encodeURIComponent(selectedId)}`,
+        );
+        if (cancelled) return;
+        if (!res.ok) {
+          setPlan(null);
+          setPlanCascadeId(selectedId);
+          setPlanError(t("targetCascade.decarbonPlanErrorLoad"));
+          return;
+        }
+        const data = (await res.json()) as { plan?: DecarbonPlanDto };
+        setPlan(data.plan ?? null);
+        setPlanCascadeId(selectedId);
+      } catch {
+        if (!cancelled) {
+          setPlan(null);
+          setPlanCascadeId(selectedId);
+          setPlanError(t("targetCascade.decarbonPlanErrorLoad"));
+        }
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId, creating, t]);
+
+  const activePlan =
+    plan && selectedId && planCascadeId === selectedId && !creating ? plan : null;
 
   const facilityLabel = useCallback(
     (id: string) => {
@@ -940,6 +1004,141 @@ export function TargetCascadeClient({
                       </tbody>
                     </table>
                   </div>
+                </div>
+              ) : null}
+
+              {selectedBundle && !creating ? (
+                <div className="space-y-3 border-t border-[color:var(--rule)] pt-4">
+                  <h3 className="font-[family-name:var(--font-display)] text-base text-[color:var(--ink)]">
+                    {t("targetCascade.decarbonPlanTitle")}
+                  </h3>
+                  <p className="text-sm text-[color:var(--ink-muted)]">
+                    {t("targetCascade.decarbonPlanHelp")}
+                  </p>
+                  {planPending ? (
+                    <p className="text-sm text-[color:var(--ink-muted)]">
+                      {t("targetCascade.decarbonPlanLoading")}
+                    </p>
+                  ) : planError ? (
+                    <StatusLine tone="error">{planError}</StatusLine>
+                  ) : activePlan ? (
+                    <div className="space-y-3">
+                      {activePlan.levers.linkedCount === 0 &&
+                      activePlan.projects.linkedCount === 0 ? (
+                        <p className="text-sm text-[color:var(--ink-muted)]">
+                          {t("targetCascade.decarbonPlanEmpty")}
+                        </p>
+                      ) : (
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-2 border border-[color:var(--rule)] p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-medium text-[color:var(--ink)]">
+                                {t("targetCascade.decarbonPlanLevers")}{" "}
+                                <Mono>({activePlan.levers.linkedCount})</Mono>
+                              </span>
+                              <Link
+                                href="/analytics/macc"
+                                className="text-xs text-[color:var(--accent)] underline-offset-2 hover:underline"
+                              >
+                                {t("targetCascade.decarbonPlanLinkMacc")}
+                              </Link>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <div className="text-[11px] uppercase tracking-wide text-[color:var(--ink-muted)]">
+                                  {t("targetCascade.decarbonPlanTotalAbatement")}
+                                </div>
+                                <div className={qualityClass(activePlan.levers.quality)}>
+                                  <Mono>
+                                    {formatNum(
+                                      activePlan.levers.totalAnnualAbatementTco2e,
+                                    )}
+                                  </Mono>
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-[11px] uppercase tracking-wide text-[color:var(--ink-muted)]">
+                                  {t("targetCascade.decarbonPlanAnnualisedCost")}
+                                </div>
+                                <div className={qualityClass(activePlan.levers.quality)}>
+                                  <Mono>
+                                    {formatNum(activePlan.levers.totalAnnualisedCost, 0)}
+                                  </Mono>
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-[11px] uppercase tracking-wide text-[color:var(--ink-muted)]">
+                                  {t("targetCascade.decarbonPlanCostPerTco2e")}
+                                </div>
+                                <div className={qualityClass(activePlan.levers.quality)}>
+                                  <Mono>
+                                    {formatNum(
+                                      activePlan.levers.weightedAverageCostPerTco2e,
+                                      0,
+                                    )}
+                                  </Mono>
+                                </div>
+                              </div>
+                            </div>
+                            {activePlan.levers.message ? (
+                              <p className="text-xs text-[color:var(--ink-muted)]">
+                                {activePlan.levers.message}
+                              </p>
+                            ) : null}
+                          </div>
+
+                          <div className="space-y-2 border border-[color:var(--rule)] p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-medium text-[color:var(--ink)]">
+                                {t("targetCascade.decarbonPlanProjects")}{" "}
+                                <Mono>({activePlan.projects.linkedCount})</Mono>
+                              </span>
+                              <Link
+                                href="/analytics/reduction-projects"
+                                className="text-xs text-[color:var(--accent)] underline-offset-2 hover:underline"
+                              >
+                                {t("targetCascade.decarbonPlanLinkProjects")}
+                              </Link>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                              <div>
+                                <div className="text-[11px] uppercase tracking-wide text-[color:var(--ink-muted)]">
+                                  {t("targetCascade.decarbonPlanned")}
+                                </div>
+                                <div>
+                                  <Mono>
+                                    {formatNum(activePlan.projects.plannedTotalTco2e)}
+                                  </Mono>
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-[11px] uppercase tracking-wide text-[color:var(--ink-muted)]">
+                                  {t("targetCascade.decarbonActual")}
+                                </div>
+                                <div
+                                  className={qualityClass(activePlan.projects.quality)}
+                                >
+                                  <Mono>
+                                    {formatNum(activePlan.projects.actualTotalTco2e)}
+                                  </Mono>
+                                </div>
+                              </div>
+                            </div>
+                            {activePlan.projects.message ? (
+                              <p className="text-xs text-[color:var(--ink-muted)]">
+                                {activePlan.projects.message}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      )}
+                      {activePlan.message ? (
+                        <p className={cn("text-sm", qualityClass(activePlan.quality))}>
+                          {activePlan.message}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </>

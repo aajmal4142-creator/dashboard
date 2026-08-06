@@ -573,6 +573,22 @@ export const en: MessageTree = {
     qualityPartial: "Partial",
     qualityMissing: "Missing",
     noOwner: "Unassigned",
+    decarbonPlanTitle: "Decarbon plan",
+    decarbonPlanHelp:
+      "Read-only view of the abatement levers and reduction projects linked to this cascade.",
+    decarbonPlanLoading: "Loading plan…",
+    decarbonPlanErrorLoad: "Could not load the decarbon plan for this cascade.",
+    decarbonPlanEmpty:
+      "No abatement levers or reduction projects are linked yet. Link them from the MACC and reduction project collections.",
+    decarbonPlanLevers: "Linked abatement levers",
+    decarbonPlanProjects: "Linked reduction projects",
+    decarbonPlanTotalAbatement: "Annual abatement",
+    decarbonPlanAnnualisedCost: "Annualised cost",
+    decarbonPlanCostPerTco2e: "Avg cost / tCO₂e",
+    decarbonPlanned: "Planned",
+    decarbonActual: "Actual",
+    decarbonPlanLinkMacc: "Open MACC",
+    decarbonPlanLinkProjects: "Open reduction projects",
   },
   supplierNetwork: {
     eyebrow: "Suppliers",

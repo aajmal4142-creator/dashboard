@@ -20,6 +20,7 @@ import type {
   CaliforniaLaw,
   CaliforniaLawSummary,
 } from "@/lib/frameworks/california";
+import { buildCaliforniaPack } from "@/lib/frameworks/california";
 
 function gapKindLabel(kind: CaliforniaGapKind | null): string {
   switch (kind) {
@@ -164,6 +165,7 @@ export function CaliforniaCoverageClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>("scope1");
+  const [exportMsg, setExportMsg] = useState<string | null>(null);
 
   const load = useCallback(async (nextLaw: CaliforniaLaw) => {
     setLoading(true);
@@ -201,6 +203,20 @@ export function CaliforniaCoverageClient() {
   const title =
     law === "253" ? "SB 253 GHG disclosure" : "SB 261 climate risk disclosure";
 
+  function downloadPack() {
+    if (!coverage) return;
+    setExportMsg(null);
+    const pack = buildCaliforniaPack({ coverage, periodLabel });
+    const blob = new Blob([pack.plainText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `california-sb${law}-pack-${coverage.periodId}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportMsg("California readiness pack downloaded.");
+  }
+
   return (
     <PageFrame
       eyebrow="Compliance"
@@ -209,6 +225,14 @@ export function CaliforniaCoverageClient() {
       context={periodLabel ? { period: periodLabel } : undefined}
       actions={
         <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={downloadPack}
+            disabled={!coverage}
+            className="inline-flex h-8 items-center rounded-[4px] border border-rule bg-surface-1 px-3 text-[12px] text-ink hover:border-rule-strong disabled:opacity-50"
+          >
+            Download pack
+          </button>
           <Link
             href="/tcfd"
             className="inline-flex h-8 items-center rounded-[4px] border border-rule bg-surface-1 px-3 text-[12px] text-ink hover:border-rule-strong"
@@ -279,6 +303,8 @@ export function CaliforniaCoverageClient() {
       </div>
 
       {loading ? <PageSkeleton rows={6} /> : null}
+
+      {exportMsg ? <StatusLine tone="ok">{exportMsg}</StatusLine> : null}
 
       {!loading && error ? (
         <StatusLine tone="error">

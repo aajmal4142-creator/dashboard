@@ -28,3 +28,5 @@ export {
 } from "./tradeoffService";
 
 export type { TradeoffOptionDto, TradeoffScenarioDto } from "./tradeoffService";
+
+export { buildRfpPack, type RfpPack } from "./rfpPack";

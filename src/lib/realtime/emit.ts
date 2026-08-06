@@ -1,6 +1,6 @@
 import type { Payload } from "payload";
 
-import { publish } from "./hub";
+import { publishBus } from "./bus";
 import {
   computeOrgKpiSnapshot,
   snapshotToUpdates,
@@ -9,7 +9,8 @@ import {
 import type { DashboardUpdate } from "./types";
 
 /**
- * Recalculate org KPIs and broadcast to in-process SSE subscribers.
+ * Recalculate org KPIs and broadcast to SSE subscribers on every instance (via the
+ * realtime bus — Redis relay when configured, local hub otherwise).
  * Fire-and-forget from collection hooks / API routes — never block writes.
  */
 export async function broadcastOrgDashboard(
@@ -19,7 +20,7 @@ export async function broadcastOrgDashboard(
 ): Promise<OrgKpiSnapshot> {
   const snapshot = await computeOrgKpiSnapshot(payload, organisationId);
   for (const update of snapshotToUpdates(snapshot, activity)) {
-    publish(organisationId, update);
+    await publishBus(organisationId, update);
   }
   return snapshot;
 }

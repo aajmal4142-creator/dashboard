@@ -23,6 +23,7 @@ export {
   type BackoffOptions,
 } from "./backoff";
 export { encodeSse, sseResponseHeaders, HEARTBEAT_INTERVAL_MS } from "./sse";
+export { ensureBusSubscriber, hasRealtimeBus, publishBus } from "./bus";
 export {
   DASHBOARD_METRICS,
   isDashboardMetric,

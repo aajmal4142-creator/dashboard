@@ -27,6 +27,12 @@ export type IssbQuestion = {
   prompt: string;
   autofillKey?: "emissions" | "materiality" | "quality";
   required: boolean;
+  /**
+   * Raw/derived metric keys that structurally feed this question (same keys used in
+   * lib/frameworks/mappings.ts). Informational only — not a substitute for the
+   * autofilled narrative answer, and never implies counsel sign-off on sufficiency.
+   */
+  metricKeys?: string[];
 };
 
 export type IssbDisclosureSnapshot = {

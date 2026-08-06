@@ -16,6 +16,7 @@ import {
   SHARE_TOKEN_TTL_DAYS,
   SHARE_TOKEN_TTL_MAX_DAYS,
   SHARE_TOKEN_TTL_MIN_DAYS,
+  type EmbedTheme,
 } from "@/lib/reports/htmlReport";
 
 type EmbedTokenRow = {
@@ -30,6 +31,8 @@ type EmbedTokenRow = {
   lastAccessedAt: string | null;
   revokedAt: string | null;
   status: "active" | "expired" | "revoked";
+  allowedOrigins: string[];
+  theme: EmbedTheme;
 };
 
 type MintedShare = {
@@ -39,9 +42,27 @@ type MintedShare = {
   embedCode: string;
   expiresAt: string;
   ttlDays: number;
+  allowedOrigins: string[];
+  theme: EmbedTheme;
 };
 
 const TTL_OPTIONS = [1, 3, 7, 14, 30] as const;
+const THEME_OPTIONS: Array<{ value: EmbedTheme; label: string }> = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+  { value: "org", label: "Match organisation" },
+];
+
+function parseDomainsText(text: string): string[] {
+  return Array.from(
+    new Set(
+      text
+        .split(/[\n,]/)
+        .map((s) => s.trim())
+        .filter(Boolean),
+    ),
+  );
+}
 
 function formatWhen(iso: string): string {
   return new Date(iso).toLocaleString("en-GB", {
@@ -68,6 +89,8 @@ export function ShareReportModal({
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [ttlDays, setTtlDays] = useState(SHARE_TOKEN_TTL_DAYS);
+  const [domainsText, setDomainsText] = useState("");
+  const [theme, setTheme] = useState<EmbedTheme>("light");
   const [minted, setMinted] = useState<MintedShare | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [tokens, setTokens] = useState<EmbedTokenRow[]>([]);
@@ -99,6 +122,8 @@ export function ShareReportModal({
     setTokens([]);
     setBusy(false);
     setTtlDays(SHARE_TOKEN_TTL_DAYS);
+    setDomainsText("");
+    setTheme("light");
   }
 
   function handleOpenChange(next: boolean) {
@@ -159,7 +184,11 @@ export function ShareReportModal({
       const res = await fetch(`/api/app/reports/${reportId}/embed-token`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ttlDays }),
+        body: JSON.stringify({
+          ttlDays,
+          allowedOrigins: parseDomainsText(domainsText),
+          theme,
+        }),
       });
       const data = (await res.json().catch(() => ({}))) as MintedShare & {
         error?: string;
@@ -175,6 +204,8 @@ export function ShareReportModal({
         embedCode: data.embedCode,
         expiresAt: data.expiresAt,
         ttlDays: data.ttlDays,
+        allowedOrigins: data.allowedOrigins ?? [],
+        theme: data.theme ?? "light",
       });
       setStatus(`Token created. Expires ${formatWhen(data.expiresAt)}.`);
       await refreshTokens();
@@ -248,6 +279,32 @@ export function ShareReportModal({
                 </option>
               ))}
             </select>
+          </label>
+          <label className="text-xs text-ink-muted">
+            Theme
+            <select
+              className="mt-1 block rounded-[4px] border border-rule bg-canvas px-2 py-1.5 text-ink"
+              value={theme}
+              disabled={busy}
+              onChange={(e) => setTheme(e.target.value as EmbedTheme)}
+            >
+              {THEME_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="min-w-[220px] flex-1 text-xs text-ink-muted">
+            Allowed embed domains (one per line)
+            <textarea
+              rows={2}
+              placeholder="https://example.com"
+              className="mt-1 block w-full rounded-[4px] border border-rule bg-canvas px-2 py-1.5 font-data text-xs text-ink"
+              value={domainsText}
+              disabled={busy}
+              onChange={(e) => setDomainsText(e.target.value)}
+            />
           </label>
           <Button type="button" disabled={busy} onClick={() => void generateToken()}>
             Generate token
@@ -325,14 +382,25 @@ export function ShareReportModal({
           <TabsContent value="embed" className="mt-4 space-y-3">
             {minted ? (
               <>
-                <p className="text-xs text-ink-muted">
-                  Paste into any site. Allowed from any domain (CSP{" "}
-                  <span className="font-data">frame-ancestors *</span>). Expires{" "}
-                  <span className="font-data text-ink">
-                    {formatWhen(minted.expiresAt)}
-                  </span>
-                  .
-                </p>
+                {minted.allowedOrigins.length === 0 ? (
+                  <p className="text-xs text-rust">
+                    No allowed domains configured — embedding is denied everywhere until
+                    you add at least one domain above and generate a new token. The public
+                    link still works directly.
+                  </p>
+                ) : (
+                  <p className="text-xs text-ink-muted">
+                    Framing allowed only from{" "}
+                    <span className="font-data text-ink">
+                      {minted.allowedOrigins.join(", ")}
+                    </span>{" "}
+                    (CSP <span className="font-data">frame-ancestors</span>). Expires{" "}
+                    <span className="font-data text-ink">
+                      {formatWhen(minted.expiresAt)}
+                    </span>
+                    .
+                  </p>
+                )}
                 <label className="block text-xs text-ink-muted">
                   Embed URL
                   <input
@@ -350,13 +418,15 @@ export function ShareReportModal({
                     value={minted.embedCode}
                   />
                 </label>
-                <div className="overflow-hidden rounded-[6px] border border-rule">
-                  <iframe
-                    title="Embed preview"
-                    src={minted.embedUrl}
-                    className="h-[280px] w-full bg-canvas"
-                  />
-                </div>
+                {minted.allowedOrigins.length > 0 ? (
+                  <div className="overflow-hidden rounded-[6px] border border-rule">
+                    <iframe
+                      title="Embed preview"
+                      src={minted.embedUrl}
+                      className="h-[280px] w-full bg-canvas"
+                    />
+                  </div>
+                ) : null}
                 <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
@@ -398,6 +468,12 @@ export function ShareReportModal({
                       Expires {formatWhen(t.expiresAt)} · Uses{" "}
                       <span className="font-data">{t.usageCount}</span>
                       {t.lastAccessedAt ? ` · Last ${formatWhen(t.lastAccessedAt)}` : ""}
+                      {" · "}
+                      {t.allowedOrigins.length > 0
+                        ? `${t.allowedOrigins.length} domain${t.allowedOrigins.length === 1 ? "" : "s"}`
+                        : "no domains (embed denied)"}
+                      {" · "}
+                      {t.theme} theme
                     </p>
                   </div>
                   <Button

@@ -6,7 +6,13 @@ import {
   listReportEmbedTokens,
   mintReportShareLink,
 } from "@/lib/reports/htmlReportShare";
-import { clampShareTtlDays, SHARE_TOKEN_TTL_DAYS } from "@/lib/reports/htmlReport";
+import {
+  clampShareTtlDays,
+  isEmbedTheme,
+  normalizeAllowedOrigins,
+  SHARE_TOKEN_TTL_DAYS,
+  type EmbedTheme,
+} from "@/lib/reports/htmlReport";
 import type { ReportSnapshot } from "@/lib/reports";
 import { requirePermission } from "@/lib/policy/protect";
 import config from "@/payload.config";
@@ -128,9 +134,17 @@ export async function POST(req: Request, ctx: Ctx) {
   }
 
   let ttlDays = SHARE_TOKEN_TTL_DAYS;
+  let allowedOrigins: string[] = [];
+  let theme: EmbedTheme = "light";
   try {
-    const body = (await req.json()) as { ttlDays?: number };
+    const body = (await req.json()) as {
+      ttlDays?: number;
+      allowedOrigins?: unknown;
+      theme?: unknown;
+    };
     if (body.ttlDays != null) ttlDays = clampShareTtlDays(body.ttlDays);
+    allowedOrigins = normalizeAllowedOrigins(body.allowedOrigins);
+    if (isEmbedTheme(body.theme)) theme = body.theme;
   } catch {
     /* empty body ok */
   }
@@ -144,6 +158,8 @@ export async function POST(req: Request, ctx: Ctx) {
     ip,
     userAgent,
     ttlDays,
+    allowedOrigins,
+    theme,
   });
 
   if (!minted.ok) {
@@ -158,6 +174,8 @@ export async function POST(req: Request, ctx: Ctx) {
     embedCode: minted.result.embedCode,
     expiresAt: minted.result.expiresAt,
     ttlDays: minted.result.ttlDays,
+    allowedOrigins: minted.result.allowedOrigins,
+    theme: minted.result.theme,
     generatedAt: new Date().toISOString(),
   });
 }

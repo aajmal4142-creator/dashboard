@@ -6628,6 +6628,14 @@ export interface ReportEmbedToken {
    * Set when the token is revoked; access denied thereafter
    */
   revokedAt?: string | null;
+  /**
+   * Domains allowed to iframe-embed this report (e.g. https://example.com). Empty = embedding denied everywhere; the direct share link still works without a domain.
+   */
+  allowedOrigins?: string[] | null;
+  /**
+   * Colour theme applied to the embedded/shared report view
+   */
+  theme: 'light' | 'dark' | 'org';
   updatedAt: string;
   createdAt: string;
 }
@@ -7156,6 +7164,14 @@ export interface CascadedTarget {
   requireExactShares?: boolean | null;
   status: 'draft' | 'active' | 'archived';
   notes?: string | null;
+  /**
+   * Abatement levers (MACC) that this cascade's plan relies on — read-only reference for the decarbon plan panel.
+   */
+  abatementLevers?: (string | AbatementLever)[] | null;
+  /**
+   * Reduction projects executing against this cascade — read-only reference for the decarbon plan panel.
+   */
+  reductionProjects?: (string | ReductionProject)[] | null;
   /**
    * Facility (optional owner) child targets as share % of org target or absolute tCO₂e.
    */
@@ -10755,6 +10771,8 @@ export interface ReportEmbedTokensSelect<T extends boolean = true> {
   lastAccessedAt?: T;
   createdBy?: T;
   revokedAt?: T;
+  allowedOrigins?: T;
+  theme?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -11044,6 +11062,8 @@ export interface CascadedTargetsSelect<T extends boolean = true> {
   requireExactShares?: T;
   status?: T;
   notes?: T;
+  abatementLevers?: T;
+  reductionProjects?: T;
   allocations?:
     | T
     | {

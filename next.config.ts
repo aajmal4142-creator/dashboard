@@ -13,17 +13,9 @@ const nextConfig: NextConfig = {
       { source: "/app/:path*", destination: "/:path*", permanent: true },
     ];
   },
-  async headers() {
-    const embedHeaders = [
-      { key: "Content-Security-Policy", value: "frame-ancestors *" },
-      { key: "X-Content-Type-Options", value: "nosniff" },
-      { key: "Access-Control-Allow-Origin", value: "*" },
-    ];
-    return [
-      { source: "/r/html/:token*", headers: embedHeaders },
-      { source: "/public/reports/embed/:token*", headers: embedHeaders },
-    ];
-  },
+  // Content-Security-Policy for /r/html/:token and /public/reports/embed/:token is set
+  // dynamically per-token in proxy.ts (frame-ancestors from the token's allowlist) — see
+  // docs/embed-csp.md. No static wide-open frame-ancestors here.
   images: {
     localPatterns: [
       {

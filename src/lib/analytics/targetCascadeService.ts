@@ -46,6 +46,10 @@ export type CascadedTargetDto = {
   shareSumPct: number;
   allocatedTargetTco2e: number;
   unallocatedTargetTco2e: number;
+  /** Linked abatement levers (MACC) — read-only reference for the decarbon plan panel. */
+  abatementLeverIds: string[];
+  /** Linked reduction projects — read-only reference for the decarbon plan panel. */
+  reductionProjectIds: string[];
   createdAt: string;
   updatedAt: string;
 };
@@ -98,6 +102,16 @@ function allocationRowId(doc: { id?: unknown }, index: number): string {
   return `row-${index}`;
 }
 
+function relationIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const ids: string[] = [];
+  for (const item of value) {
+    const id = relationId(item);
+    if (id) ids.push(id);
+  }
+  return ids;
+}
+
 export function docToCascadedTarget(doc: {
   id: string;
   organisation?: unknown;
@@ -111,6 +125,8 @@ export function docToCascadedTarget(doc: {
   status?: unknown;
   notes?: unknown;
   allocations?: unknown;
+  abatementLevers?: unknown;
+  reductionProjects?: unknown;
   createdAt?: unknown;
   updatedAt?: unknown;
 }): CascadedTargetDto {
@@ -171,6 +187,8 @@ export function docToCascadedTarget(doc: {
     shareSumPct,
     allocatedTargetTco2e,
     unallocatedTargetTco2e: Math.max(0, orgTargetTco2e - allocatedTargetTco2e),
+    abatementLeverIds: relationIds(doc.abatementLevers),
+    reductionProjectIds: relationIds(doc.reductionProjects),
     createdAt: String(doc.createdAt ?? ""),
     updatedAt: String(doc.updatedAt ?? ""),
   };

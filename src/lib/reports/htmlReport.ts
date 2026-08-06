@@ -16,6 +16,13 @@ export const SHARE_TOKEN_TTL_MAX_DAYS = 30;
 
 export type ScopeFilter = "all" | "scope1" | "scope2" | "scope3";
 
+export const EMBED_THEME_OPTIONS = ["light", "dark", "org"] as const;
+export type EmbedTheme = (typeof EMBED_THEME_OPTIONS)[number];
+
+export function isEmbedTheme(value: unknown): value is EmbedTheme {
+  return EMBED_THEME_OPTIONS.includes(value as EmbedTheme);
+}
+
 export type EmissionsChartRow = {
   key: "scope1" | "scope2" | "scope3";
   label: string;
@@ -278,6 +285,48 @@ export function computeShareExpiry(
 ): Date {
   const days = clampShareTtlDays(ttlDays);
   return new Date(from.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+/**
+ * Pure: normalise a raw allowlist into deduped, valid origins (scheme+host+port only).
+ * Invalid or non-string entries are dropped silently (mint-time validation surfaces those).
+ */
+export function normalizeAllowedOrigins(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  const seen = new Set<string>();
+  for (const raw of input) {
+    if (typeof raw !== "string") continue;
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+    try {
+      seen.add(new URL(trimmed).origin);
+    } catch {
+      /* drop invalid origin */
+    }
+  }
+  return Array.from(seen);
+}
+
+/**
+ * Pure: CSP `frame-ancestors` value from an allowlist.
+ * Empty allowlist denies all framing — embedding requires at least one configured origin.
+ */
+export function buildFrameAncestorsHeaderValue(allowedOrigins: string[]): string {
+  if (allowedOrigins.length === 0) return "frame-ancestors 'none'";
+  return `frame-ancestors ${allowedOrigins.join(" ")}`;
+}
+
+/** Pure: does a candidate Origin/Referer header value match the allowlist? */
+export function isOriginAllowed(
+  candidate: string | null | undefined,
+  allowedOrigins: string[],
+): boolean {
+  if (!candidate || allowedOrigins.length === 0) return false;
+  try {
+    return allowedOrigins.includes(new URL(candidate).origin);
+  } catch {
+    return false;
+  }
 }
 
 /** Pure: public share + embed URLs from opaque token (org id never in token). */

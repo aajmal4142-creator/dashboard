@@ -6,6 +6,7 @@ import { Plus, Trash2 } from "lucide-react";
 
 import { EmptyState, StatusLine } from "@/components/shell/PageFrame";
 import { Button } from "@/components/ui/button";
+import { buildRfpPack } from "@/lib/procurement/rfpPack";
 import { cn } from "@/lib/utils";
 
 type Quality = "measured" | "missing";
@@ -328,6 +329,24 @@ export function TradeoffsClient({ orgName }: { orgName: string }) {
     });
   }
 
+  function downloadRfpPack(
+    title: string,
+    weights: { cost: number; carbon: number; lead: number },
+    cmp: Comparison,
+    notes: string | null = null,
+  ) {
+    setError(null);
+    const pack = buildRfpPack({ title, notes, weights, comparison: cmp });
+    const blob = new Blob([pack.plainText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `rfp-pack-${title.trim().toLowerCase().replace(/\s+/g, "-") || "untitled"}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setStatus("RFP pack downloaded.");
+  }
+
   const ranked = comparison?.ranked.ranked ?? [];
   const topTwo = ranked.slice(0, 2);
   const frontierIds = new Set(comparison?.pareto.frontier.map((p) => p.id) ?? []);
@@ -473,6 +492,25 @@ export function TradeoffsClient({ orgName }: { orgName: string }) {
             <Button type="button" onClick={runCompute} disabled={pending}>
               Rank options
             </Button>
+            {comparison ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  downloadRfpPack(
+                    scenarioName.trim() || "Untitled RFQ",
+                    {
+                      cost: Number(weightCost) || 0,
+                      carbon: Number(weightCarbon) || 0,
+                      lead: Number(weightLead) || 0,
+                    },
+                    comparison,
+                  )
+                }
+              >
+                Download RFP pack
+              </Button>
+            ) : null}
           </div>
         </div>
 
@@ -703,6 +741,21 @@ export function TradeoffsClient({ orgName }: { orgName: string }) {
                     onClick={() => loadScenario(item)}
                   >
                     Load
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      downloadRfpPack(
+                        item.scenario.name,
+                        item.scenario.weights,
+                        item.comparison,
+                        item.scenario.notes,
+                      )
+                    }
+                  >
+                    RFP pack
                   </Button>
                   {canWrite ? (
                     <Button

@@ -4,6 +4,9 @@
  * Citations are placeholders for counsel — do not treat labels as legal determinations.
  * BRSR rows come from the principle Core / Comprehensive catalog.
  * SECR rows come from the UK SECR Core / Supporting catalog.
+ * ISSB S1/S2 and EU Taxonomy rows are structural mappings to existing raw/derived metric
+ * keys (same Scope 1/2/3 activity data the calc engine uses) — not counsel-approved
+ * determinations of disclosure sufficiency or Taxonomy alignment.
  */
 import { brsrCatalogAsFrameworkMappings } from "./brsr/catalog";
 import { secrCatalogAsFrameworkMappings } from "./secr/catalog";
@@ -85,24 +88,85 @@ export const FRAMEWORK_MAPPINGS: FrameworkMappingRow[] = [
     contributionOnly: false,
     metricKeys: ["derived.energy_total_mwh"],
   },
-  // ISSB — placeholders (counsel); contribution only.
+  // ISSB S2 (climate) — structural metric mapping. Same activity data that feeds the
+  // Scope 1/2/3 calc engine (lib/calc/emissions.ts); ClearESG does not independently
+  // verify GHG Protocol boundary/methodology choices, so every row stays contribution-only.
+  {
+    framework: "ISSB_S2",
+    datapointRef: "S2-scope1",
+    label: "Scope 1 GHG emissions — fuel inputs",
+    required: true,
+    contributionOnly: true,
+    metricKeys: ["diesel_litres", "petrol_litres", "natural_gas_m3"],
+    note: "Structural mapping — not counsel-approved determination. Full S2 narrative lives in ISSB disclosures (/issb); TCFD pillars in /tcfd.",
+  },
+  {
+    framework: "ISSB_S2",
+    datapointRef: "S2-scope2",
+    label: "Scope 2 GHG emissions — purchased electricity / heat",
+    required: true,
+    contributionOnly: true,
+    metricKeys: ["electricity_kwh", "electricity_renewable_pct", "district_heat_kwh"],
+    note: "Structural mapping — not counsel-approved determination.",
+  },
+  {
+    framework: "ISSB_S2",
+    datapointRef: "S2-scope3",
+    label: "Scope 3 GHG emissions — value chain (spend + travel basis)",
+    required: false,
+    contributionOnly: true,
+    metricKeys: ["supplier_spend_total", "business_travel_km"],
+    note: "Structural mapping — not counsel-approved determination. Spend/travel basis only; not a full value-chain screen.",
+  },
   {
     framework: "ISSB_S2",
     datapointRef: "S2-energy",
-    label: "Energy consumption (ISSB S2 climate — placeholder)",
+    label: "Energy consumption disclosure",
     required: false,
     contributionOnly: true,
-    metricKeys: ["electricity_kwh", "derived.energy_total_mwh"],
-    note: "Placeholder pending counsel — contributes to, does not satisfy. Full S2 narrative lives in ISSB disclosures (/issb); TCFD pillars in /tcfd.",
+    metricKeys: ["derived.energy_total_mwh", "electricity_kwh"],
+    note: "Structural mapping — not counsel-approved determination.",
+  },
+  {
+    framework: "ISSB_S2",
+    datapointRef: "S2-climate-targets",
+    label: "Climate-related targets and transition plan",
+    required: false,
+    contributionOnly: true,
+    metricKeys: [],
+    note: "Structural mapping — not counsel-approved determination. Pure narrative: ClearESG has no metric proxy for target disclosure quality. See cascaded targets (/analytics/target-cascade) and MACC (/analytics/macc) for the underlying plan.",
+  },
+  // ISSB S1 (general sustainability-related disclosures) — workforce + governance rows
+  // already collected as DATA_METRICS; contribution-only pending counsel review of
+  // materiality assessment and cross-industry metric selection.
+  {
+    framework: "ISSB_S1",
+    datapointRef: "S1-workforce",
+    label: "Workforce composition and safety",
+    required: false,
+    contributionOnly: true,
+    metricKeys: [
+      "employees_total",
+      "employees_women",
+      "injuries_recordable",
+      "hours_worked_total",
+    ],
+    note: "Structural mapping — not counsel-approved determination. S1 questionnaire lives in ISSB disclosures (/issb).",
   },
   {
     framework: "ISSB_S1",
-    datapointRef: "S1-general",
-    label: "General sustainability disclosures (ISSB S1 — placeholder)",
+    datapointRef: "S1-governance",
+    label: "Sustainability governance and policies",
     required: false,
     contributionOnly: true,
-    metricKeys: ["employees_total"],
-    note: "Placeholder hook only. S1 questionnaire lives in ISSB disclosures (/issb).",
+    metricKeys: [
+      "board_size",
+      "board_independent",
+      "policy_anti_corruption",
+      "policy_whistleblower",
+      "policy_data_privacy",
+    ],
+    note: "Structural mapping — not counsel-approved determination.",
   },
   // GRI — contribution placeholders.
   {
@@ -113,15 +177,35 @@ export const FRAMEWORK_MAPPINGS: FrameworkMappingRow[] = [
     contributionOnly: true,
     metricKeys: ["electricity_kwh", "derived.energy_total_mwh"],
   },
-  // EU Taxonomy — eligibility stub only.
+  // EU Taxonomy — eligibility contribution rows only. Alignment (substantial
+  // contribution + DNSH + minimum safeguards) is scored in the dedicated Green
+  // Taxonomy module (/compliance/green-taxonomy), not here.
   {
     framework: "EU_TAXONOMY",
     datapointRef: "TAX-elig-energy",
-    label: "Taxonomy eligibility — energy activity (stub)",
+    label: "Taxonomy eligibility — energy activity",
     required: false,
     contributionOnly: true,
     metricKeys: ["derived.energy_total_mwh"],
-    note: "Eligibility hook only — not a determination of alignment.",
+    note: "Structural mapping — not counsel-approved determination. Eligibility hook only, not an alignment determination. Full screening: /compliance/green-taxonomy.",
+  },
+  {
+    framework: "EU_TAXONOMY",
+    datapointRef: "TAX-elig-ghg-scope1",
+    label: "Taxonomy eligibility — Scope 1 GHG activity data",
+    required: false,
+    contributionOnly: true,
+    metricKeys: ["diesel_litres", "petrol_litres", "natural_gas_m3"],
+    note: "Structural mapping — not counsel-approved determination. Eligibility hook only, not an alignment determination. Full screening: /compliance/green-taxonomy.",
+  },
+  {
+    framework: "EU_TAXONOMY",
+    datapointRef: "TAX-elig-ghg-scope2",
+    label: "Taxonomy eligibility — Scope 2 GHG activity data",
+    required: false,
+    contributionOnly: true,
+    metricKeys: ["electricity_kwh", "electricity_renewable_pct"],
+    note: "Structural mapping — not counsel-approved determination. Eligibility hook only, not an alignment determination. Full screening: /compliance/green-taxonomy.",
   },
   // VSME voluntary beachhead.
   {

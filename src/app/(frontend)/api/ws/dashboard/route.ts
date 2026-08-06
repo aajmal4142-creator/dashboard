@@ -15,6 +15,7 @@ import { getApiContext } from "@/lib/auth";
 import {
   HEARTBEAT_INTERVAL_MS,
   encodeSse,
+  ensureBusSubscriber,
   parseMetricsParam,
   sseResponseHeaders,
   subscribe,
@@ -49,6 +50,7 @@ export async function GET(req: Request): Promise<Response> {
   let closed = false;
   let unsubscribe: (() => void) | null = null;
   let eventSeq = 0;
+  const busSubscriber = ensureBusSubscriber(organisationId);
 
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
@@ -106,6 +108,7 @@ export async function GET(req: Request): Promise<Response> {
         }
         unsubscribe?.();
         unsubscribe = null;
+        busSubscriber.release();
       }
     },
     cancel() {
@@ -116,6 +119,7 @@ export async function GET(req: Request): Promise<Response> {
       }
       unsubscribe?.();
       unsubscribe = null;
+      busSubscriber.release();
     },
   });
 

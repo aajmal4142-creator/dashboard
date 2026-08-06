@@ -38,10 +38,14 @@ export async function SharedHtmlReportByToken({
     );
   }
 
+  const candidateOrigin = hdrs.get("origin") || hdrs.get("referer");
+
   const payload = await getPayload({ config });
   const resolved = await resolveReportShareToken(payload, token, {
     ip,
     userAgent,
+    embedded,
+    candidateOrigin,
   });
 
   if (!resolved.ok) {
@@ -50,13 +54,17 @@ export async function SharedHtmlReportByToken({
         ? "Link expired"
         : resolved.reason === "revoked"
           ? "Link revoked"
-          : "Link not found";
+          : resolved.reason === "origin_denied"
+            ? "Embedding not allowed"
+            : "Link not found";
     const body =
       resolved.reason === "expired"
         ? "Ask the organisation for a new share link."
         : resolved.reason === "revoked"
           ? "This share link is no longer valid."
-          : "This share link is invalid or the report is unavailable.";
+          : resolved.reason === "origin_denied"
+            ? "This domain is not on the allowlist configured for this embed. Ask the organisation to add it in Share report → Embed code."
+            : "This share link is invalid or the report is unavailable.";
     return (
       <main className="mx-auto max-w-2xl px-6 py-16 text-ink">
         <p className="label-caps">Shared report</p>
@@ -67,7 +75,11 @@ export async function SharedHtmlReportByToken({
   }
 
   return (
-    <main className="min-h-full bg-canvas text-ink">
+    <main
+      data-theme={resolved.themeMode}
+      style={{ colorScheme: resolved.themeMode }}
+      className="min-h-full bg-canvas text-ink"
+    >
       <InteractiveHtmlReport
         snapshot={resolved.snapshot}
         embedded={embedded}

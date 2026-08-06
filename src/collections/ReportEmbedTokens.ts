@@ -68,6 +68,27 @@ export const ReportEmbedTokens: CollectionConfig = {
       type: "date",
       admin: { description: "Set when the token is revoked; access denied thereafter" },
     },
+    {
+      name: "allowedOrigins",
+      type: "text",
+      hasMany: true,
+      admin: {
+        description:
+          "Domains allowed to iframe-embed this report (e.g. https://example.com). Empty = embedding denied everywhere; the direct share link still works without a domain.",
+      },
+    },
+    {
+      name: "theme",
+      type: "select",
+      required: true,
+      defaultValue: "light",
+      options: [
+        { label: "Light", value: "light" },
+        { label: "Dark", value: "dark" },
+        { label: "Match organisation", value: "org" },
+      ],
+      admin: { description: "Colour theme applied to the embedded/shared report view" },
+    },
   ],
   timestamps: true,
 };

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getCurrentContext, isNextRedirectError } from "@/lib/auth";
 import {
+  buildCaliforniaPack,
   computeCaliforniaCoverage,
   defaultScope3Required,
   type CaliforniaDatapointInput,
@@ -76,8 +77,9 @@ function tcfdAnswersFromDoc(answers: unknown): CaliforniaTcfdAnswerInput[] {
 }
 
 /**
- * GET /api/app/frameworks/california/coverage?law=253|261&periodId=&scope3=
+ * GET /api/app/frameworks/california/coverage?law=253|261&periodId=&scope3=&pack=
  * Deterministic California SB 253 / SB 261 checklist coverage for the active org.
+ * Pass pack=1 to include a plain-text SB 253/261 readiness pack.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -235,12 +237,17 @@ export async function GET(req: NextRequest) {
     const periodLabel =
       typeof period.label === "string" ? period.label : periodId;
 
+    const includePack =
+      params.pack === "1" || params.pack === "true" || params.pack === "yes";
+    const pack = includePack ? buildCaliforniaPack({ coverage, periodLabel }) : null;
+
     return NextResponse.json({
       success: true,
       law,
       periodLabel,
       reportingYear,
       coverage,
+      pack: pack ?? undefined,
     });
   } catch (error) {
     if (isNextRedirectError(error)) {

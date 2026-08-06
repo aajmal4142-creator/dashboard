@@ -97,6 +97,15 @@ export const ISSB_QUESTIONS: IssbQuestion[] = [
       "Disclose absolute gross Scope 1, Scope 2, and Scope 3 greenhouse gas emissions (ISSB S2 / TCFD Metrics).",
     autofillKey: "emissions",
     required: true,
+    metricKeys: [
+      "diesel_litres",
+      "petrol_litres",
+      "natural_gas_m3",
+      "electricity_kwh",
+      "electricity_renewable_pct",
+      "supplier_spend_total",
+      "business_travel_km",
+    ],
   },
   {
     id: "s2-targets",

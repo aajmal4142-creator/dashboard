@@ -7,14 +7,20 @@ import { rateLimit } from "@/lib/rate-limit";
 
 import { REPORT_EMBED_TOKENS_SLUG } from "@/collections/ReportEmbedTokens";
 
+import { resolveOrgBranding } from "@/lib/branding/resolve";
+
 import {
   buildEmbedCode,
   buildShareUrls,
   clampShareTtlDays,
   classifyEmbedTokenStatus,
   computeShareExpiry,
+  isEmbedTheme,
+  isOriginAllowed,
   isShareTokenExpired,
+  normalizeAllowedOrigins,
   SHARE_TOKEN_TTL_DAYS,
+  type EmbedTheme,
 } from "./htmlReport";
 import type { ReportSnapshot } from "./types";
 
@@ -26,6 +32,8 @@ export type MintShareLinkResult = {
   embedCode: string;
   expiresAt: string;
   ttlDays: number;
+  allowedOrigins: string[];
+  theme: EmbedTheme;
 };
 
 export type EmbedTokenListItem = {
@@ -40,6 +48,8 @@ export type EmbedTokenListItem = {
   lastAccessedAt: string | null;
   revokedAt: string | null;
   status: "active" | "expired" | "revoked";
+  allowedOrigins: string[];
+  theme: EmbedTheme;
 };
 
 export type ResolveShareTokenResult =
@@ -50,8 +60,13 @@ export type ResolveShareTokenResult =
       reportId: string;
       tokenId: string;
       generatedAtIso: string;
+      /** Already resolved from the token's theme setting ("org" resolves against branding). */
+      themeMode: "light" | "dark";
     }
-  | { ok: false; reason: "not_found" | "expired" | "revoked" | "no_snapshot" };
+  | {
+      ok: false;
+      reason: "not_found" | "expired" | "revoked" | "no_snapshot" | "origin_denied";
+    };
 
 function mintOpaqueToken(): string {
   return randomUUID();
@@ -96,6 +111,8 @@ export async function mintReportShareLink(
     ip?: string | null;
     userAgent?: string | null;
     ttlDays?: number;
+    allowedOrigins?: string[];
+    theme?: EmbedTheme;
   },
 ): Promise<
   { ok: true; result: MintShareLinkResult } | { ok: false; error: string; status: number }
@@ -115,6 +132,8 @@ export async function mintReportShareLink(
   const ttlDays = clampShareTtlDays(input.ttlDays ?? SHARE_TOKEN_TTL_DAYS);
   const token = mintOpaqueToken();
   const expiresAt = computeShareExpiry(new Date(), ttlDays);
+  const allowedOrigins = normalizeAllowedOrigins(input.allowedOrigins);
+  const theme: EmbedTheme = isEmbedTheme(input.theme) ? input.theme : "light";
   const doc = await payload.create({
     collection: REPORT_EMBED_TOKENS_SLUG,
     data: {
@@ -124,6 +143,8 @@ export async function mintReportShareLink(
       expiresAt: expiresAt.toISOString(),
       usageCount: 0,
       createdBy: input.actorId,
+      allowedOrigins,
+      theme,
     },
     overrideAccess: true,
   });
@@ -138,6 +159,8 @@ export async function mintReportShareLink(
     embedCode: buildEmbedCode(urls.embedUrl),
     expiresAt: expiresAt.toISOString(),
     ttlDays,
+    allowedOrigins,
+    theme,
   };
 
   await writeAuditLog(payload, {
@@ -209,6 +232,8 @@ export async function listReportEmbedTokens(
       lastAccessedAt: doc.lastAccessedAt ? String(doc.lastAccessedAt) : null,
       revokedAt,
       status,
+      allowedOrigins: normalizeAllowedOrigins(doc.allowedOrigins),
+      theme: isEmbedTheme(doc.theme) ? doc.theme : "light",
     });
   }
 
@@ -276,14 +301,42 @@ export async function revokeReportEmbedToken(
   return { ok: true, alreadyRevoked: false, tokenId: String(doc.id) };
 }
 
+async function resolveEmbedThemeMode(
+  payload: Payload,
+  organisationId: string,
+  theme: EmbedTheme,
+): Promise<"light" | "dark"> {
+  if (theme === "light" || theme === "dark") return theme;
+  try {
+    const org = await payload.findByID({
+      collection: "organisations",
+      id: organisationId,
+      depth: 0,
+      overrideAccess: true,
+    });
+    return resolveOrgBranding(org).defaultMode ?? "light";
+  } catch {
+    return "light";
+  }
+}
+
 /**
  * Resolve a public HTML share/embed token. Read-only; bumps usage + audit on success.
  * Loads the current report snapshot so living data is fresh when the snapshot changes.
+ *
+ * When `meta.embedded` is set, the caller's Origin/Referer must match the token's
+ * `allowedOrigins` allowlist — an empty allowlist denies embedding entirely, though the
+ * direct (non-framed) share link keeps working. Denials are audited but never bump usage.
  */
 export async function resolveReportShareToken(
   payload: Payload,
   token: string,
-  meta?: { ip?: string | null; userAgent?: string | null },
+  meta?: {
+    ip?: string | null;
+    userAgent?: string | null;
+    embedded?: boolean;
+    candidateOrigin?: string | null;
+  },
 ): Promise<ResolveShareTokenResult> {
   const found = await payload.find({
     collection: REPORT_EMBED_TOKENS_SLUG,
@@ -299,6 +352,21 @@ export async function resolveReportShareToken(
 
   const organisationId = relationId(doc.organisation);
   const reportId = relationId(doc.report);
+  const allowedOrigins = normalizeAllowedOrigins(doc.allowedOrigins);
+  const theme: EmbedTheme = isEmbedTheme(doc.theme) ? doc.theme : "light";
+
+  if (meta?.embedded && !isOriginAllowed(meta.candidateOrigin, allowedOrigins)) {
+    await writeAuditLog(payload, {
+      organisationId,
+      action: "report.embed.denied",
+      entityType: REPORT_EMBED_TOKENS_SLUG,
+      entityId: String(doc.id),
+      after: { reportId, candidateOrigin: meta.candidateOrigin ?? null },
+      ip: meta?.ip,
+      userAgent: meta?.userAgent,
+    });
+    return { ok: false, reason: "origin_denied" };
+  }
 
   let report;
   try {
@@ -344,6 +412,8 @@ export async function resolveReportShareToken(
     userAgent: meta?.userAgent,
   });
 
+  const themeMode = await resolveEmbedThemeMode(payload, organisationId, theme);
+
   return {
     ok: true,
     snapshot,
@@ -351,5 +421,6 @@ export async function resolveReportShareToken(
     reportId,
     tokenId: String(doc.id),
     generatedAtIso: nowIso,
+    themeMode,
   };
 }

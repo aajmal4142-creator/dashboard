@@ -3,7 +3,11 @@ import { NextResponse } from "next/server";
 
 import { PROCUREMENT_TRADEOFFS_SLUG } from "@/collections/ProcurementTradeoffs";
 import { getCurrentContext, isNextRedirectError } from "@/lib/auth";
-import { computeScenarioTradeoff, getOrgTradeoffScenario } from "@/lib/procurement";
+import {
+  buildRfpPack,
+  computeScenarioTradeoff,
+  getOrgTradeoffScenario,
+} from "@/lib/procurement";
 import config from "@/payload.config";
 
 function canWrite(role: string | null): boolean {
@@ -13,10 +17,11 @@ function canWrite(role: string | null): boolean {
 type RouteParams = { params: Promise<{ id: string }> };
 
 /**
- * GET /api/app/procurement/tradeoffs/[id]
+ * GET /api/app/procurement/tradeoffs/[id]?pack=1
  * DELETE — remove a saved scenario (write roles)
+ * Pass pack=1 to include a plain-text + CSV RFP/vendor comparison pack.
  */
-export async function GET(_req: Request, { params }: RouteParams) {
+export async function GET(req: Request, { params }: RouteParams) {
   try {
     const ctx = await getCurrentContext();
     if (!ctx.user || !ctx.activeOrg || !ctx.role) {
@@ -30,10 +35,26 @@ export async function GET(_req: Request, { params }: RouteParams) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
+    const comparison = computeScenarioTradeoff(scenario);
+    const params_ = new URL(req.url).searchParams;
+    const includePack =
+      params_.get("pack") === "1" ||
+      params_.get("pack") === "true" ||
+      params_.get("pack") === "yes";
+    const pack = includePack
+      ? buildRfpPack({
+          title: scenario.name,
+          notes: scenario.notes,
+          weights: scenario.weights,
+          comparison,
+        })
+      : null;
+
     return NextResponse.json({
       scenario,
-      comparison: computeScenarioTradeoff(scenario),
+      comparison,
       canWrite: canWrite(ctx.role),
+      pack: pack ?? undefined,
     });
   } catch (error) {
     if (isNextRedirectError(error)) {

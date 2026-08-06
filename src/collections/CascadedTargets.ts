@@ -99,6 +99,26 @@ export const CascadedTargets: CollectionConfig = {
       type: "textarea",
     },
     {
+      name: "abatementLevers",
+      type: "relationship",
+      relationTo: "abatement-levers",
+      hasMany: true,
+      admin: {
+        description:
+          "Abatement levers (MACC) that this cascade's plan relies on — read-only reference for the decarbon plan panel.",
+      },
+    },
+    {
+      name: "reductionProjects",
+      type: "relationship",
+      relationTo: "reduction-projects",
+      hasMany: true,
+      admin: {
+        description:
+          "Reduction projects executing against this cascade — read-only reference for the decarbon plan panel.",
+      },
+    },
+    {
       name: "allocations",
       type: "array",
       labels: { singular: "Allocation", plural: "Allocations" },
