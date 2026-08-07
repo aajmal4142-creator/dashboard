@@ -157,7 +157,7 @@ export function clientsUsageRollupToCsv(rollup: ClientsUsageRollup): string {
     "membersActive",
     "periodsUsed",
     "suppliersUsed",
-    "planListPriceEur",
+    "planListPriceUsd",
   ];
   const rows = rollup.clients.map((c) => [
     c.id,
@@ -169,7 +169,7 @@ export function clientsUsageRollupToCsv(rollup: ClientsUsageRollup): string {
     String(c.membersActive),
     String(c.usage.periods.used),
     String(c.usage.suppliers.used),
-    String(PLAN_LIMITS[c.plan].priceEur),
+    String(PLAN_LIMITS[c.plan].priceUsd),
   ]);
   return [header, ...rows]
     .map((cols) => cols.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
@@ -193,7 +193,7 @@ export function buildClientInvoiceLineItems(
   client: ClientUsageRow,
 ): ClientInvoiceLineItem[] {
   const seats = client.seatsPaid ?? 1;
-  const unitPrice = PLAN_LIMITS[client.plan].priceEur;
+  const unitPrice = PLAN_LIMITS[client.plan].priceUsd;
   const items: ClientInvoiceLineItem[] = [
     {
       description: `${PLAN_LIMITS[client.plan].label} plan — ${client.name}`,

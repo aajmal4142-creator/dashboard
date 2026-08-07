@@ -10,8 +10,9 @@ export type BiQuotaLimits = {
 export const BI_PLAN_QUOTAS: Record<PlanId, BiQuotaLimits> = {
   free: { perHour: 10, perDay: 100 },
   pro: { perHour: 500, perDay: 10_000 },
-  /** Consultant maps to enterprise — unlimited. */
+  professional: { perHour: 2_000, perDay: 50_000 },
   consultant: { perHour: null, perDay: null },
+  enterprise: { perHour: null, perDay: null },
 };
 
 export const BI_QUOTA_WARNING_PERCENT = 80;

@@ -105,7 +105,10 @@ export async function GET() {
       plan: ctx.activeOrg.plan,
       brand: ctx.activeOrg.brand,
       clientCount: rows.length,
-      clientCap: ctx.activeOrg.plan === "consultant" ? 10 : 3,
+      clientCap:
+        ctx.activeOrg.plan === "consultant" || ctx.activeOrg.plan === "enterprise"
+          ? 10
+          : 3,
     },
     clients: sortByDeadlineRisk(rows),
     templates: SECTOR_TEMPLATES,

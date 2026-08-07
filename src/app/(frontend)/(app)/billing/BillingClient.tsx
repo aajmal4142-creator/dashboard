@@ -6,7 +6,15 @@ import { useEffect, useState } from "react";
 import { PageCard, PageFrame, StatusLine } from "@/components/shell/PageFrame";
 import { Button } from "@/components/ui/button";
 import type { MembershipRole } from "@/lib/access/membership";
-import { PLAN_LIMITS, type PlanId } from "@/lib/billing/plans";
+import {
+  ANNUAL_DISCOUNT_LABEL,
+  CHECKOUT_PLAN_IDS,
+  formatUsdAnnual,
+  formatUsdMonthly,
+  PLAN_LIMITS,
+  type CheckoutPlanId,
+  type PlanId,
+} from "@/lib/billing/plans";
 import type { UsageMeters } from "@/lib/billing/usage";
 import { subscriptionStatusLabel } from "@/lib/ui/displayLabels";
 
@@ -131,7 +139,7 @@ export function BillingClient({
     providers !== null &&
     (providers.currency === "INR" || providers.activeProvider === "razorpay");
 
-  async function checkout(plan: Exclude<PlanId, "free">) {
+  async function checkout(plan: CheckoutPlanId) {
     if (!canManage) {
       setStatusTone("error");
       setStatus("Only an owner or admin can change the plan.");
@@ -366,9 +374,11 @@ export function BillingClient({
           </p>
           <p className="font-data text-[22px] font-bold text-ink">
             {PLAN_LIMITS[state.plan].label}
-            {PLAN_LIMITS[state.plan].priceEur > 0
-              ? ` · €${PLAN_LIMITS[state.plan].priceEur}/mo`
-              : ""}
+            {state.plan === "enterprise"
+              ? " · Custom"
+              : PLAN_LIMITS[state.plan].priceUsd > 0
+                ? ` · ${formatUsdMonthly(state.plan)}`
+                : " · $0/mo"}
           </p>
           <p className="font-data text-[11px]">
             {subscriptionStatusLabel(state.subscriptionStatus)}
@@ -679,40 +689,73 @@ export function BillingClient({
           ) : null}
         </PageCard>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <p className="text-[13px] text-ink-muted">
+          14-day free trial of Pro — no credit card required. Annual billing:{" "}
+          {ANNUAL_DISCOUNT_LABEL} (≈ 2 months free).
+        </p>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {(
             [
-              ["pro", "Unlimited periods, clean PDF, evidence vault, 10 suppliers"],
-              [
-                "consultant",
-                "Everything in Pro + white-label, bulk nudge, 10 clients (+€15/client after)",
-              ],
-            ] as const
-          ).map(([plan, blurb]) => (
-            <PageCard key={plan} title={PLAN_LIMITS[plan].label}>
-              <p className="font-data text-[22px] font-bold text-ink">
-                €{PLAN_LIMITS[plan].priceEur}/mo
-              </p>
-              <p className="mt-2 text-[13px] text-ink-muted">{blurb}</p>
-              {canManage ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  className="mt-4"
-                  disabled={busy || state.plan === plan}
-                  onClick={() => void checkout(plan)}
-                >
-                  {state.plan === plan
-                    ? "Current"
-                    : `Upgrade to ${PLAN_LIMITS[plan].label}`}
-                </Button>
-              ) : (
-                <p className="mt-4 text-[13px] text-ink-muted">
-                  {state.plan === plan ? "Current plan" : "Ask an owner to upgrade"}
+              "free",
+              "pro",
+              "professional",
+              "consultant",
+              "enterprise",
+            ] as const satisfies readonly PlanId[]
+          ).map((plan) => {
+            const annual = formatUsdAnnual(plan);
+            const isCheckout = (CHECKOUT_PLAN_IDS as readonly string[]).includes(plan);
+            return (
+              <PageCard key={plan} title={PLAN_LIMITS[plan].label}>
+                <p className="font-data text-[22px] font-bold text-ink">
+                  {formatUsdMonthly(plan)}
                 </p>
-              )}
-            </PageCard>
-          ))}
+                {annual ? (
+                  <p className="mt-1 font-data text-[12px] text-ink-muted">
+                    or {annual} · {ANNUAL_DISCOUNT_LABEL}
+                  </p>
+                ) : plan === "enterprise" ? (
+                  <p className="mt-1 text-[12px] text-ink-muted">Contact sales</p>
+                ) : (
+                  <p className="mt-1 text-[12px] text-ink-muted">Forever free</p>
+                )}
+                <p className="mt-2 text-[13px] text-ink-muted">
+                  {PLAN_LIMITS[plan].blurb}
+                </p>
+                {canManage ? (
+                  plan === "enterprise" ? (
+                    <a
+                      href="mailto:sales@clearesg.com"
+                      className="mt-4 inline-flex text-[13px] font-medium text-accent underline-offset-2 hover:underline"
+                    >
+                      Contact sales
+                    </a>
+                  ) : isCheckout ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="mt-4"
+                      disabled={busy || state.plan === plan}
+                      onClick={() => void checkout(plan as CheckoutPlanId)}
+                    >
+                      {state.plan === plan
+                        ? "Current"
+                        : `Upgrade to ${PLAN_LIMITS[plan].label}`}
+                    </Button>
+                  ) : (
+                    <p className="mt-4 text-[13px] text-ink-muted">
+                      {state.plan === plan ? "Current plan" : "Included forever"}
+                    </p>
+                  )
+                ) : (
+                  <p className="mt-4 text-[13px] text-ink-muted">
+                    {state.plan === plan ? "Current plan" : "Ask an owner to upgrade"}
+                  </p>
+                )}
+              </PageCard>
+            );
+          })}
         </div>
       </div>
     </PageFrame>

@@ -503,7 +503,7 @@ export interface Organisation {
     };
   };
   stripeCustomerId?: string | null;
-  plan?: ('free' | 'pro' | 'consultant') | null;
+  plan?: ('free' | 'pro' | 'professional' | 'consultant' | 'enterprise') | null;
   subscriptionStatus?: ('none' | 'active' | 'past_due' | 'canceled') | null;
   onboardedAt?: string | null;
   /**

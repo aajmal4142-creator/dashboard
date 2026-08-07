@@ -370,7 +370,7 @@ async function seedOrgBundle(
     country: string;
     employeeCount: number;
     revenueBand: "lt_2m" | "2_10m" | "10_50m" | "50_250m" | "gt_250m";
-    plan: "free" | "pro" | "consultant";
+    plan: "free" | "pro" | "professional" | "consultant" | "enterprise";
     parentOrg?: string;
     ownerId: string;
     datapoints: DatapointSeed[];

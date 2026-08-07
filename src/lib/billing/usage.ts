@@ -53,6 +53,6 @@ export async function getUsageMeters(
     clients: { used: clients.totalDocs, max: cap(lim.maxClients) },
     watermarkedPdf: id === "free",
     evidenceVault: id !== "free",
-    whiteLabel: id === "consultant",
+    whiteLabel: id === "consultant" || id === "enterprise",
   };
 }

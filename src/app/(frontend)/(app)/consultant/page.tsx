@@ -102,7 +102,10 @@ export default async function ConsultantPage() {
         name: ctx.activeOrg.name,
         plan: ctx.activeOrg.plan,
         clientCount: rows.length,
-        clientCap: ctx.activeOrg.plan === "consultant" ? 10 : 3,
+        clientCap:
+          ctx.activeOrg.plan === "consultant" || ctx.activeOrg.plan === "enterprise"
+            ? 10
+            : 3,
         brand: {
           primaryColor: ctx.activeOrg.brand.primaryColor,
           domain: ctx.activeOrg.brand.domain,

@@ -1,36 +1,66 @@
-import { getCurrentContext } from "@/lib/auth";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
+import { getCurrentContext } from "@/lib/auth";
+import {
+  ANNUAL_DISCOUNT_LABEL,
+  formatUsdAnnual,
+  formatUsdMonthly,
+  PLAN_LIMITS,
+  type PlanId,
+} from "@/lib/billing/plans";
+
+const CATALOG: PlanId[] = ["free", "pro", "professional", "consultant", "enterprise"];
 
 export default async function PlansPage() {
   const ctx = await getCurrentContext();
   if (!ctx.user || !ctx.activeOrg) redirect("/login");
 
-  const plans = [
-    { name: "Starter", price: 99, datapoints: "1,000", reports: "5" },
-    { name: "Professional", price: 499, datapoints: "10,000", reports: "50" },
-    { name: "Enterprise", price: "Custom", datapoints: "Unlimited", reports: "Unlimited" },
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 p-8">
-      <div className="max-w-6xl mx-auto">
-        <Link href="/billing" className="text-blue-600 hover:underline mb-4 inline-block">← Back</Link>
-        <h1 className="text-4xl font-bold mb-8">Choose Your Plan</h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {plans.map((plan) => (
-            <div key={plan.name} className="bg-white rounded-lg shadow p-8">
-              <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
-              <p className="text-4xl font-bold text-blue-600 mb-4">${plan.price}</p>
-              <ul className="space-y-3 mb-6 text-slate-600">
-                <li>• {plan.datapoints} datapoints</li>
-                <li>• {plan.reports} reports</li>
-              </ul>
-              <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                Select Plan
-              </button>
-            </div>
-          ))}
+    <div className="min-h-screen bg-canvas p-8 text-ink">
+      <div className="mx-auto max-w-6xl">
+        <Link
+          href="/billing"
+          className="mb-4 inline-block text-[13px] text-accent underline-offset-2 hover:underline"
+        >
+          ← Back to billing
+        </Link>
+        <h1 className="font-display text-3xl font-semibold tracking-tight">
+          Choose your plan
+        </h1>
+        <p className="mt-2 max-w-2xl text-[14px] text-ink-muted">
+          14-day free trial of Pro — no credit card required. Annual billing:{" "}
+          {ANNUAL_DISCOUNT_LABEL} (≈ 2 months free).
+        </p>
+        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {CATALOG.map((id) => {
+            const plan = PLAN_LIMITS[id];
+            const annual = formatUsdAnnual(id);
+            return (
+              <div key={id} className="rounded-[6px] border border-rule bg-surface-1 p-6">
+                <h3 className="font-display text-xl font-semibold">{plan.label}</h3>
+                <p className="mt-2 font-data text-3xl font-bold tabular-nums">
+                  {formatUsdMonthly(id)}
+                </p>
+                {annual ? (
+                  <p className="mt-1 font-data text-[12px] text-ink-muted">
+                    or {annual} · {ANNUAL_DISCOUNT_LABEL}
+                  </p>
+                ) : id === "enterprise" ? (
+                  <p className="mt-1 text-[12px] text-ink-muted">Contact sales</p>
+                ) : (
+                  <p className="mt-1 text-[12px] text-ink-muted">Forever free</p>
+                )}
+                <p className="mt-4 text-[13px] text-ink-muted">{plan.blurb}</p>
+                <Link
+                  href="/billing"
+                  className="mt-6 inline-flex rounded-[4px] border border-rule-strong bg-surface-2 px-3 py-2 text-[13px] font-medium text-ink hover:border-accent"
+                >
+                  {id === "enterprise" ? "Contact sales" : "Manage on Billing"}
+                </Link>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

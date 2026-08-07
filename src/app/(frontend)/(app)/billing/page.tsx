@@ -64,9 +64,9 @@ export default async function BillingPage() {
     const annual =
       typeof planDoc.annualPrice === "number"
         ? planDoc.annualPrice
-        : Math.round(monthly * 12 * 0.85 * 100) / 100;
+        : Math.round(monthly * 10 * 100) / 100;
     const annualVsMonthly =
-      monthly > 0 ? Math.round((1 - annual / (monthly * 12)) * 100) : 15;
+      monthly > 0 ? Math.round((1 - annual / (monthly * 12)) * 100) : 17;
     const tiers = Array.isArray(planDoc.volumeDiscounts)
       ? planDoc.volumeDiscounts.map(
           (t: { minSeats: number; discountPercent: number }) => ({

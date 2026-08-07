@@ -23,8 +23,8 @@ export function billingProvider(): BillingProvider {
 /** Display / quoting currency — does not by itself enable a live charge path. */
 export function billingCurrency(): BillingCurrency {
   const raw = process.env.BILLING_CURRENCY?.trim().toUpperCase();
-  if (raw === "INR" || raw === "USD") return raw;
-  return "EUR";
+  if (raw === "INR" || raw === "EUR" || raw === "USD") return raw;
+  return "USD";
 }
 
 export function razorpayConfigured(): boolean {

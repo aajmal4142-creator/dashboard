@@ -299,7 +299,9 @@ export const Organisations: CollectionConfig = {
       options: [
         { label: "Free", value: "free" },
         { label: "Pro", value: "pro" },
+        { label: "Professional", value: "professional" },
         { label: "Consultant", value: "consultant" },
+        { label: "Enterprise", value: "enterprise" },
       ],
     },
     {

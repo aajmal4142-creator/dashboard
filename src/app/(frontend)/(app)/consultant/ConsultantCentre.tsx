@@ -195,7 +195,8 @@ export function ConsultantCentre({
               Billing
             </p>
             <p className="mt-2">
-              Consultant €199/mo includes 10 clients; +€15/client after (Phase 12 Stripe).
+              Consultant $799/mo includes multi-client dashboard and white-label reports.
+              Enterprise for custom client caps — contact sales.
             </p>
           </div>
         </div>

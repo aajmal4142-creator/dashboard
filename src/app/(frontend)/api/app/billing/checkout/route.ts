@@ -6,10 +6,11 @@ import { getCurrentContext } from "@/lib/auth";
 import {
   appOrigin,
   getStripe,
-  isPlanId,
+  isCheckoutPlanId,
   stripeConfigured,
+  stripePriceEnvName,
   stripePriceIdForPlan,
-  type PlanId,
+  type CheckoutPlanId,
 } from "@/lib/billing";
 import {
   mayEnablePaidBilling,
@@ -19,8 +20,8 @@ import {
 import config from "@/payload.config";
 
 /**
- * Start Checkout for Pro or Consultant.
- * Live Stripe charge requires WS0. Without WS0: safe stub / DEV bypass only — never charges.
+ * Start Checkout for Pro, Professional, or Consultant.
+ * Enterprise is custom — contact sales. Live Stripe charge requires WS0.
  */
 export async function POST(req: Request) {
   const ctx = await getCurrentContext();
@@ -32,13 +33,13 @@ export async function POST(req: Request) {
   }
 
   const body = (await req.json()) as { plan?: string };
-  if (!body.plan || body.plan === "free" || !isPlanId(body.plan)) {
+  if (!body.plan || !isCheckoutPlanId(body.plan)) {
     return NextResponse.json(
-      { error: "plan must be pro or consultant" },
+      { error: "plan must be pro, professional, or consultant" },
       { status: 400 },
     );
   }
-  const target = body.plan as Exclude<PlanId, "free">;
+  const target = body.plan as CheckoutPlanId;
   const origin = appOrigin(req);
   const payload = await getPayload({ config });
 
@@ -74,9 +75,7 @@ export async function POST(req: Request) {
     const priceId = stripePriceIdForPlan(target);
     if (!priceId) {
       return NextResponse.json(
-        {
-          error: `Missing env ${target === "pro" ? "STRIPE_PRICE_PRO" : "STRIPE_PRICE_CONSULTANT"}`,
-        },
+        { error: `Missing env ${stripePriceEnvName(target)}` },
         { status: 503 },
       );
     }
