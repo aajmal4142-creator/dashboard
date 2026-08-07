@@ -5,7 +5,8 @@ alwaysApply: true
 
 # ClearESG — binding rules
 
-Single source of truth: `BUILD_PLAN.md`. Follow phases 0→14 in order. Do not skip or reorder.
+Single source of truth for product constraints: this rule file + `PLATFORM_OVERVIEW.md`.
+Do not invent phases or skip auth / calc / design hard rules below.
 
 ## Design (§3) — non-negotiable
 
