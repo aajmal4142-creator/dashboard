@@ -23,6 +23,7 @@ import { GhgProtocolCompliance } from "./collections/GhgProtocolCompliance";
 import { ComplianceCheckpoints } from "./collections/ComplianceCheckpoints";
 import { ComplianceHistory } from "./collections/ComplianceHistory";
 import { Datapoints } from "./collections/Datapoints";
+import { DataSubjectRequests } from "./collections/DataSubjectRequests";
 import { DerivedMetricDefinitions } from "./collections/DerivedMetricDefinitions";
 import { EmissionFactors } from "./collections/EmissionFactors";
 import { Evidence } from "./collections/Evidence";
@@ -43,6 +44,7 @@ import { ReportingPeriods } from "./collections/ReportingPeriods";
 import { Reports } from "./collections/Reports";
 import { Scope3Sources } from "./collections/Scope3Sources";
 import { Scope3Activities } from "./collections/Scope3Activities";
+import { Scope3Boundaries } from "./collections/Scope3Boundaries";
 import { Subscriptions } from "./collections/Subscriptions";
 import { SubscriptionHistory } from "./collections/SubscriptionHistory";
 import { Suppliers } from "./collections/Suppliers";
@@ -112,6 +114,7 @@ import { WorkTrackerConnections } from "./collections/WorkTrackerConnections";
 import { Policies } from "./collections/Policies";
 import { TrustControlEvents } from "./collections/TrustControlEvents";
 import { EngagementCampaigns } from "./collections/EngagementCampaigns";
+import { FinancedEmissions } from "./collections/FinancedEmissions";
 
 /**
  * Collection registration — APPEND-ONLY for feature chats.
@@ -160,7 +163,9 @@ export default buildConfig({
     SupplyChainNetworks,
     Scope3Sources,
     Scope3Activities,
+    Scope3Boundaries,
     InternalDataRequests,
+    DataSubjectRequests,
     MaterialityAssessments,
     Reports,
     AuditLogs,
@@ -248,6 +253,7 @@ export default buildConfig({
     Policies,
     TrustControlEvents,
     EngagementCampaigns,
+    FinancedEmissions,
   ],
   editor: lexicalEditor(),
   email: consoleEmail,

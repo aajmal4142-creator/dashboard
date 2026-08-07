@@ -2,9 +2,100 @@ import { getPayload } from "payload";
 import { NextResponse } from "next/server";
 
 import { getCurrentContext } from "@/lib/auth";
+import { normaliseOpenSupplyHubId } from "@/lib/openSupplyHub";
+import {
+  isSbtiStatus,
+  parseEnforcementFlag,
+  serializeEnforcementFlag,
+  type EnforcementFlag,
+  type SbtiStatus,
+} from "@/lib/suppliers";
 import config from "@/payload.config";
 
 type Ctx = { params: Promise<{ id: string }> };
+
+function orgIdOf(value: unknown): string | null {
+  if (!value) return null;
+  if (typeof value === "string") return value;
+  if (typeof value === "object" && value !== null && "id" in value) {
+    return String((value as { id: string }).id);
+  }
+  return null;
+}
+
+export type SupplierDetailDto = {
+  id: string;
+  name: string;
+  contactEmail: string;
+  category: string;
+  annualSpend: number | null;
+  country: string | null;
+  openSupplyHubId: string | null;
+  registryRisk: {
+    sbtiStatus: SbtiStatus;
+    enforcementFlag: EnforcementFlag;
+    sources: string;
+    notes: string | null;
+    lastReviewedAt: string | null;
+  };
+};
+
+function toSupplierDetailDto(doc: {
+  id: string;
+  name: string;
+  contactEmail: string;
+  category: string;
+  annualSpend?: number | null;
+  country?: string | null;
+  openSupplyHubId?: string | null;
+  registryRisk?: {
+    sbtiStatus?: string | null;
+    enforcementFlag?: string | null;
+    sources?: string | null;
+    notes?: string | null;
+    lastReviewedAt?: string | null;
+  } | null;
+}): SupplierDetailDto {
+  const registryRisk = doc.registryRisk ?? {};
+  return {
+    id: String(doc.id),
+    name: doc.name,
+    contactEmail: doc.contactEmail,
+    category: doc.category,
+    annualSpend: doc.annualSpend ?? null,
+    country: doc.country ?? null,
+    openSupplyHubId: doc.openSupplyHubId ?? null,
+    registryRisk: {
+      sbtiStatus: isSbtiStatus(registryRisk.sbtiStatus)
+        ? registryRisk.sbtiStatus
+        : "unknown",
+      enforcementFlag: parseEnforcementFlag(registryRisk.enforcementFlag),
+      sources: registryRisk.sources ?? "",
+      notes: registryRisk.notes ?? null,
+      lastReviewedAt: registryRisk.lastReviewedAt ?? null,
+    },
+  };
+}
+
+/** GET /api/app/suppliers/[id] — detail view (Y07 OS Hub id + Y08 registry risk flags). */
+export async function GET(_req: Request, ctx: Ctx) {
+  const auth = await getCurrentContext();
+  if (!auth.activeOrg) {
+    return NextResponse.json({ error: "No active organisation" }, { status: 403 });
+  }
+
+  const { id } = await ctx.params;
+  const payload = await getPayload({ config });
+  const existing = await payload
+    .findByID({ collection: "suppliers", id, overrideAccess: true })
+    .catch(() => null);
+
+  if (!existing || orgIdOf(existing.organisation) !== auth.activeOrg.id) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({ supplier: toSupplierDetailDto(existing) });
+}
 
 export async function PATCH(req: Request, ctx: Ctx) {
   const auth = await getCurrentContext();
@@ -40,6 +131,13 @@ export async function PATCH(req: Request, ctx: Ctx) {
     industryIntensityOverride?: number | null;
     totalRevenue?: number | null;
     parentSupplier?: string | null;
+    openSupplyHubId?: string | null;
+    registryRisk?: {
+      sbtiStatus?: string;
+      enforcementFlag?: boolean | "unknown";
+      sources?: string;
+      notes?: string | null;
+    };
   };
 
   const updated = await payload.update({
@@ -96,6 +194,36 @@ export async function PATCH(req: Request, ctx: Ctx) {
         : {}),
       ...(body.parentSupplier !== undefined
         ? { parentSupplier: body.parentSupplier ?? null }
+        : {}),
+      ...(body.openSupplyHubId !== undefined
+        ? { openSupplyHubId: normaliseOpenSupplyHubId(body.openSupplyHubId) }
+        : {}),
+      ...(body.registryRisk !== undefined
+        ? {
+            registryRisk: {
+              ...(body.registryRisk.sbtiStatus !== undefined
+                ? {
+                    sbtiStatus: isSbtiStatus(body.registryRisk.sbtiStatus)
+                      ? body.registryRisk.sbtiStatus
+                      : "unknown",
+                  }
+                : {}),
+              ...(body.registryRisk.enforcementFlag !== undefined
+                ? {
+                    enforcementFlag: serializeEnforcementFlag(
+                      body.registryRisk.enforcementFlag,
+                    ),
+                  }
+                : {}),
+              ...(body.registryRisk.sources !== undefined
+                ? { sources: body.registryRisk.sources }
+                : {}),
+              ...(body.registryRisk.notes !== undefined
+                ? { notes: body.registryRisk.notes }
+                : {}),
+              lastReviewedAt: new Date().toISOString(),
+            },
+          }
         : {}),
     },
     overrideAccess: true,

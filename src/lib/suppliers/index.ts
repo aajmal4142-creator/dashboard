@@ -190,6 +190,26 @@ export {
   type SnapshotQuality,
 } from "./network";
 export {
+  SBTI_STATUSES,
+  SBTI_STATUS_LABELS,
+  describeEnforcementFlag,
+  describeSbtiStatus,
+  emptyRegistryRiskFlags,
+  isRegistryRiskConcern,
+  isSbtiStatus,
+  parseEnforcementFlag,
+  parseRegistryRiskCsv,
+  parseSourcesText,
+  serializeEnforcementFlag,
+  sourcesToText,
+  type EnforcementFlag,
+  type RegistryRiskCsvError,
+  type RegistryRiskCsvParseResult,
+  type RegistryRiskCsvRow,
+  type RegistryRiskFlags,
+  type SbtiStatus,
+} from "./registryRisk";
+export {
   acceptNetworkInvite,
   createNetworkInvite,
   declineNetworkInvite,

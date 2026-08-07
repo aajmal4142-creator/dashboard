@@ -10,6 +10,7 @@ import {
   docToFacility,
   isFacilityType,
 } from "@/lib/facilities";
+import { normaliseOpenSupplyHubId } from "@/lib/openSupplyHub";
 import config from "@/payload.config";
 
 function canWrite(role: string | null): boolean {
@@ -138,6 +139,10 @@ export async function POST(req: Request) {
         notes:
           typeof body.notes === "string" && body.notes.trim()
             ? body.notes.trim()
+            : undefined,
+        openSupplyHubId:
+          typeof body.openSupplyHubId === "string"
+            ? (normaliseOpenSupplyHubId(body.openSupplyHubId) ?? undefined)
             : undefined,
       },
       overrideAccess: true,

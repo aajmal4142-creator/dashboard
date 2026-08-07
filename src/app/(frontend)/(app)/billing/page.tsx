@@ -165,6 +165,7 @@ export default async function BillingPage() {
       planPricing={planPricing}
       dunning={dunning}
       contract={contract}
+      isConsultancy={ctx.activeOrg.type === "consultancy"}
     />
   );
 }

@@ -1,0 +1,169 @@
+import { getPayload } from "payload";
+import { NextRequest, NextResponse } from "next/server";
+
+import { getCurrentContext, isNextRedirectError } from "@/lib/auth";
+import {
+  buildCsrdIxbrlDocument,
+  buildCsrdXbrlTagInventory,
+  computeCsrdCoverage,
+  CSRD_XBRL_DISCLAIMER,
+  csrdXbrlInventoryToCsv,
+  type CsrdDatapointInput,
+} from "@/lib/frameworks/csrd";
+import { ensureOpenPeriod } from "@/lib/org/period";
+import { requirePermission } from "@/lib/policy/protect";
+import config from "@/payload.config";
+
+function evidenceIdsOf(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (typeof item === "string" && item.length > 0) return [item];
+    if (typeof item === "object" && item !== null && "id" in item) {
+      const id = (item as { id: unknown }).id;
+      if (typeof id === "string" && id.length > 0) return [id];
+    }
+    return [];
+  });
+}
+
+function asQuality(value: unknown): CsrdDatapointInput["quality"] {
+  if (
+    value === "measured" ||
+    value === "calculated" ||
+    value === "estimated" ||
+    value === "missing"
+  ) {
+    return value;
+  }
+  return "missing";
+}
+
+function asProvenance(value: unknown): CsrdDatapointInput["provenance"] {
+  if (value === "supplier_primary" || value === "spend_estimate" || value === "manual") {
+    return value;
+  }
+  return null;
+}
+
+/**
+ * GET /api/app/frameworks/csrd/xbrl?periodId=&format=json|xml&pack=1
+ *
+ * Structural CSRD/ESRS XBRL tagging beachhead over the existing coverage
+ * catalog. `format=xml` returns a well-formed Inline XBRL-style document
+ * (download); default `format=json` returns the tag inventory. Not an
+ * ESEF-certified filing — see CSRD_XBRL_DISCLAIMER.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const ctx = await getCurrentContext();
+    if (!ctx.user || !ctx.activeOrg) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const allowed = await requirePermission(
+      ctx.user.id,
+      ctx.activeOrg.id,
+      "view",
+      "compliance",
+      ctx.activeOrg.id,
+      "organisation",
+    );
+    if (!allowed) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const payload = await getPayload({ config });
+    const params = Object.fromEntries(new URL(req.url).searchParams);
+    const periodId =
+      typeof params.periodId === "string" && params.periodId.length > 0
+        ? params.periodId
+        : await ensureOpenPeriod(
+            ctx.activeOrg.id,
+            ctx.activeOrg.plan,
+            ctx.activeOrg.subscriptionStatus,
+          );
+
+    const period = await payload.findByID({
+      collection: "reporting-periods",
+      id: periodId,
+      depth: 0,
+      overrideAccess: true,
+    });
+    const periodOrg =
+      typeof period.organisation === "string"
+        ? period.organisation
+        : period.organisation?.id;
+    if (periodOrg !== ctx.activeOrg.id) {
+      return NextResponse.json({ error: "Period not in organisation" }, { status: 403 });
+    }
+
+    const datapoints = await payload.find({
+      collection: "datapoints",
+      where: {
+        and: [
+          { organisation: { equals: ctx.activeOrg.id } },
+          { period: { equals: periodId } },
+        ],
+      },
+      limit: 500,
+      depth: 0,
+      overrideAccess: true,
+    });
+
+    const inputs: CsrdDatapointInput[] = datapoints.docs.map((doc) => ({
+      metricKey: String(doc.metricKey),
+      quality: asQuality(doc.quality),
+      provenance: asProvenance(doc.provenance),
+      evidenceIds: evidenceIdsOf(doc.evidence),
+    }));
+
+    const coverage = computeCsrdCoverage({ periodId, datapoints: inputs });
+    const periodLabel = typeof period.label === "string" ? period.label : periodId;
+
+    const inventory = buildCsrdXbrlTagInventory({
+      coverage,
+      entityName: ctx.activeOrg.name,
+      periodLabel,
+    });
+
+    const format = (params.format ?? "json").toLowerCase();
+
+    if (format === "xml") {
+      const xml = buildCsrdIxbrlDocument(inventory);
+      return new NextResponse(xml, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/xhtml+xml; charset=utf-8",
+          "Content-Disposition": `attachment; filename="csrd-xbrl-${periodId}.xhtml"`,
+        },
+      });
+    }
+
+    if (format === "csv") {
+      const csv = csrdXbrlInventoryToCsv(inventory);
+      return new NextResponse(csv, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/csv; charset=utf-8",
+          "Content-Disposition": `attachment; filename="csrd-xbrl-tags-${periodId}.csv"`,
+        },
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      periodLabel,
+      disclaimer: CSRD_XBRL_DISCLAIMER,
+      inventory,
+    });
+  } catch (error) {
+    if (isNextRedirectError(error)) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    console.error("CSRD XBRL export error:", error);
+    return NextResponse.json(
+      { error: "Failed to build CSRD XBRL tag pack" },
+      { status: 500 },
+    );
+  }
+}

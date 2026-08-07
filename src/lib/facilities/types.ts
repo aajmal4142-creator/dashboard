@@ -17,6 +17,7 @@ export type FacilityNode = {
   active: boolean;
   parentId: string | null;
   notes: string | null;
+  openSupplyHubId: string | null;
 };
 
 export type MeterRow = {

@@ -170,6 +170,25 @@ export function CsrdCoverageClient() {
     setExportMsg("Gap pack downloaded.");
   }
 
+  async function downloadXbrl() {
+    setExportMsg(null);
+    const pid = coverage?.periodId;
+    const qs = pid ? `?format=xml&periodId=${encodeURIComponent(pid)}` : "?format=xml";
+    const res = await fetch(`/api/app/frameworks/csrd/xbrl${qs}`);
+    if (!res.ok) {
+      setError("Could not download XBRL tags.");
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `csrd-xbrl-tags${pid ? `-${pid}` : ""}.xhtml`;
+    a.click();
+    URL.revokeObjectURL(url);
+    setExportMsg("XBRL tag pack downloaded (structural beachhead — not ESEF-certified).");
+  }
+
   return (
     <PageFrame
       eyebrow="Frameworks"
@@ -214,6 +233,14 @@ export function CsrdCoverageClient() {
           >
             Publish
           </Link>
+          <button
+            type="button"
+            onClick={() => void downloadXbrl()}
+            className="inline-flex h-8 items-center rounded-[4px] border border-rule px-3 text-[13px] text-ink hover:border-rule-strong"
+            title="Structural iXBRL tagging beachhead — not an ESEF-certified filing"
+          >
+            Download XBRL tags
+          </button>
           <Link
             href={METRICS_HREF}
             className="inline-flex h-8 items-center rounded-[4px] bg-accent px-3 text-[13px] text-canvas hover:bg-accent-hover"
@@ -226,6 +253,11 @@ export function CsrdCoverageClient() {
       <div className="space-y-4">
         {error ? <StatusLine tone="error">{error}</StatusLine> : null}
         {exportMsg ? <StatusLine tone="ok">{exportMsg}</StatusLine> : null}
+        <StatusLine tone="neutral">
+          &ldquo;Download XBRL tags&rdquo; produces a structural iXBRL tagging beachhead
+          over this coverage — it is not an ESEF-certified filing and does not use the
+          official EFRAG ESRS XBRL taxonomy.
+        </StatusLine>
         {loading ? <PageSkeleton /> : null}
         {!loading && !coverage ? (
           <EmptyState

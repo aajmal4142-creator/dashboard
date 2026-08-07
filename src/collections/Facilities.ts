@@ -76,6 +76,15 @@ export const Facilities: CollectionConfig = {
       index: true,
     },
     {
+      name: "openSupplyHubId",
+      type: "text",
+      index: true,
+      admin: {
+        description:
+          "Open Supply Hub OS ID (e.g. US2021250D1DTN7). Links to the public facility profile at opensupplyhub.org — operator-entered, never inferred.",
+      },
+    },
+    {
       name: "parentFacility",
       type: "relationship",
       relationTo: FACILITIES_SLUG,

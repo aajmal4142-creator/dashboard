@@ -481,11 +481,11 @@ export function SuppliersClient({
                       if (!canWrite) {
                         return (
                           <Link
-                            href={`/suppliers/${r.id}/tier-emissions`}
+                            href={`/suppliers/${r.id}`}
                             className="text-[12px] text-accent underline-offset-2 hover:underline"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            Tier 2
+                            Detail
                           </Link>
                         );
                       }
@@ -494,6 +494,12 @@ export function SuppliersClient({
                           className="flex flex-wrap gap-2"
                           onClick={(e) => e.stopPropagation()}
                         >
+                          <Link
+                            href={`/suppliers/${r.id}`}
+                            className="text-[12px] font-medium text-accent underline-offset-2 hover:underline"
+                          >
+                            Detail
+                          </Link>
                           <Link
                             href={`/suppliers/${r.id}/tier-emissions`}
                             className="text-[12px] font-medium text-accent underline-offset-2 hover:underline"

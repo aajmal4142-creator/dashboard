@@ -12,6 +12,7 @@ import {
   isFacilityType,
   listOrgMeters,
 } from "@/lib/facilities";
+import { normaliseOpenSupplyHubId } from "@/lib/openSupplyHub";
 import config from "@/payload.config";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -115,6 +116,20 @@ export async function PUT(req: Request, context: RouteContext) {
       }
     }
 
+    let openSupplyHubId = existing.openSupplyHubId;
+    if (body.openSupplyHubId !== undefined) {
+      if (body.openSupplyHubId === null || body.openSupplyHubId === "") {
+        openSupplyHubId = null;
+      } else if (typeof body.openSupplyHubId === "string") {
+        openSupplyHubId = normaliseOpenSupplyHubId(body.openSupplyHubId);
+      } else {
+        return NextResponse.json(
+          { error: "openSupplyHubId must be a string or null" },
+          { status: 400 },
+        );
+      }
+    }
+
     let parentFacilityId = existing.parentId;
     if (body.parentFacilityId !== undefined) {
       if (body.parentFacilityId === null || body.parentFacilityId === "") {
@@ -168,6 +183,7 @@ export async function PUT(req: Request, context: RouteContext) {
             : existing.address,
         active: body.active !== undefined ? body.active !== false : existing.active,
         parentFacility: parentFacilityId,
+        openSupplyHubId,
         notes:
           body.notes !== undefined
             ? typeof body.notes === "string" && body.notes.trim()

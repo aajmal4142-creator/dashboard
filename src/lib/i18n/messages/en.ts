@@ -88,6 +88,8 @@ export const en: MessageTree = {
       settings: "Settings",
       trust: "Trust center",
       billing: "Billing",
+      billingClients: "Client billing",
+      financedEmissions: "Financed emissions",
       baseline: "Baseline",
     },
   },

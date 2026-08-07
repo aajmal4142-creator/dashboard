@@ -86,7 +86,9 @@ export interface Config {
     'supply-chain-networks': SupplyChainNetwork;
     'scope3-sources': Scope3Source;
     'scope3-activities': Scope3Activity;
+    'scope3-boundaries': Scope3Boundary;
     'internal-data-requests': InternalDataRequest;
+    'data-subject-requests': DataSubjectRequest;
     'materiality-assessments': MaterialityAssessment;
     reports: Report;
     'audit-logs': AuditLog;
@@ -174,6 +176,7 @@ export interface Config {
     policies: Policy;
     'trust-control-events': TrustControlEvent;
     'engagement-campaigns': EngagementCampaign;
+    'financed-emissions': FinancedEmission;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -200,7 +203,9 @@ export interface Config {
     'supply-chain-networks': SupplyChainNetworksSelect<false> | SupplyChainNetworksSelect<true>;
     'scope3-sources': Scope3SourcesSelect<false> | Scope3SourcesSelect<true>;
     'scope3-activities': Scope3ActivitiesSelect<false> | Scope3ActivitiesSelect<true>;
+    'scope3-boundaries': Scope3BoundariesSelect<false> | Scope3BoundariesSelect<true>;
     'internal-data-requests': InternalDataRequestsSelect<false> | InternalDataRequestsSelect<true>;
+    'data-subject-requests': DataSubjectRequestsSelect<false> | DataSubjectRequestsSelect<true>;
     'materiality-assessments': MaterialityAssessmentsSelect<false> | MaterialityAssessmentsSelect<true>;
     reports: ReportsSelect<false> | ReportsSelect<true>;
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
@@ -288,6 +293,7 @@ export interface Config {
     policies: PoliciesSelect<false> | PoliciesSelect<true>;
     'trust-control-events': TrustControlEventsSelect<false> | TrustControlEventsSelect<true>;
     'engagement-campaigns': EngagementCampaignsSelect<false> | EngagementCampaignsSelect<true>;
+    'financed-emissions': FinancedEmissionsSelect<false> | FinancedEmissionsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -476,6 +482,25 @@ export interface Organisation {
      * Default emission-factor methodology for calculations and reports. Changing it applies on the next calc / draft report rebuild.
      */
     emissionsStandard?: ('DEFRA' | 'IPCC' | 'GHGProtocol2004') | null;
+    /**
+     * DPDP / India privacy beachhead (Y06). Hosting region / Atlas is an open decision §11 — these fields do not by themselves constitute legal compliance.
+     */
+    privacy?: {
+      /**
+       * Org opts in to DPDP-flavoured data subject request tracking and retention policy on /settings/privacy.
+       */
+      dpdEnabled?: boolean | null;
+      retentionDays?: {
+        /**
+         * Retention window in days for datapoints (0 / empty = indefinite).
+         */
+        datapoints?: number | null;
+        /**
+         * Retention window in days for evidence uploads (0 / empty = indefinite).
+         */
+        evidence?: number | null;
+      };
+    };
   };
   stripeCustomerId?: string | null;
   plan?: ('free' | 'pro' | 'consultant') | null;
@@ -1011,6 +1036,35 @@ export interface Supplier {
    */
   country?: string | null;
   /**
+   * Open Supply Hub OS ID (e.g. US2021250D1DTN7). Links to the public facility profile at opensupplyhub.org — operator-entered, never inferred.
+   */
+  openSupplyHubId?: string | null;
+  /**
+   * Public-registry risk flags (Feature Y08). Operator-entered or CSV-imported from public registries — never a computed score.
+   */
+  registryRisk?: {
+    /**
+     * Science Based Targets initiative status, per the public SBTi companies-taking-action list.
+     */
+    sbtiStatus?: ('committed' | 'targets_set' | 'none' | 'unknown') | null;
+    /**
+     * Whether a public regulatory/enforcement action against this supplier is known. Not a score.
+     */
+    enforcementFlag?: ('true' | 'false' | 'unknown') | null;
+    /**
+     * One source per line: registry name / URL used for the flags above.
+     */
+    sources?: string | null;
+    /**
+     * Free-text context for the flags. Operator-entered.
+     */
+    notes?: string | null;
+    /**
+     * When these flags were last checked against the source.
+     */
+    lastReviewedAt?: string | null;
+  };
+  /**
    * Free ESG data from public sources (UN GC, govt registries)
    */
   esgData?: {
@@ -1167,6 +1221,10 @@ export interface Facility {
    */
   address?: string | null;
   active?: boolean | null;
+  /**
+   * Open Supply Hub OS ID (e.g. US2021250D1DTN7). Links to the public facility profile at opensupplyhub.org — operator-entered, never inferred.
+   */
+  openSupplyHubId?: string | null;
   /**
    * Optional parent site for operational hierarchy (campus → building). Not legal consolidation.
    */
@@ -1937,6 +1995,25 @@ export interface Scope3Activity {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scope3-boundaries".
+ */
+export interface Scope3Boundary {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * GHG Protocol Scope 3 category number (1–15).
+   */
+  category: number;
+  status: 'included' | 'excluded' | 'not_assessed';
+  /**
+   * Why this category is included/excluded — required for audit trail on exclusions.
+   */
+  rationale?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "internal-data-requests".
  */
 export interface InternalDataRequest {
@@ -1980,6 +2057,39 @@ export interface InternalDataRequest {
    * Evidence attachments linked on submit.
    */
   evidence?: (string | Evidence)[] | null;
+  createdBy?: (string | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "data-subject-requests".
+ */
+export interface DataSubjectRequest {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * DPDP data principal request type.
+   */
+  type: 'access' | 'erasure' | 'correction';
+  /**
+   * Email of the data principal making the request.
+   */
+  requesterEmail: string;
+  status: 'open' | 'in_progress' | 'fulfilled' | 'rejected';
+  /**
+   * Internal notes — how the request was verified / handled.
+   */
+  notes?: string | null;
+  /**
+   * Internal SLA due date for responding to the request.
+   */
+  dueAt?: string | null;
+  /**
+   * Set when an admin marks the request fulfilled.
+   */
+  fulfilledAt?: string | null;
+  fulfilledBy?: (string | null) | User;
   createdBy?: (string | null) | User;
   updatedAt: string;
   createdAt: string;
@@ -7550,6 +7660,64 @@ export interface EngagementCampaign {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "financed-emissions".
+ */
+export interface FinancedEmission {
+  id: string;
+  organisation: string | Organisation;
+  /**
+   * Optional reporting period this exposure applies to.
+   */
+  period?: (string | null) | ReportingPeriod;
+  /**
+   * Borrower / investee name.
+   */
+  counterparty: string;
+  /**
+   * PCAF asset class. Attribution formula applied is common to all classes in this beachhead (outstanding / EVIC); class-specific denominators (e.g. property value, total project cost) are not yet modelled separately.
+   */
+  assetClass:
+    | 'listed_equity_corporate_bonds'
+    | 'business_loans_unlisted_equity'
+    | 'project_finance'
+    | 'commercial_real_estate'
+    | 'motor_vehicle_loans';
+  /**
+   * Outstanding loan / investment amount (reporting currency).
+   */
+  outstandingAmount: number;
+  /**
+   * Enterprise Value Including Cash (listed) or total equity + debt (private). Leave empty when unknown — attribution stays quality-missing, never a fabricated factor.
+   */
+  evic?: number | null;
+  currency: 'USD' | 'EUR' | 'GBP' | 'INR';
+  /**
+   * Borrower's Scope 1 emissions (tCO2e). Leave empty if unknown.
+   */
+  borrowerScope1Tco2e?: number | null;
+  /**
+   * Borrower's Scope 2 emissions (tCO2e). Leave empty if unknown.
+   */
+  borrowerScope2Tco2e?: number | null;
+  /**
+   * Borrower's Scope 3 emissions (tCO2e), optional additive per PCAF guidance.
+   */
+  borrowerScope3Tco2e?: number | null;
+  /**
+   * PCAF data-quality source classification — drives the 1–5 score.
+   */
+  dataSource:
+    | 'verified_reported'
+    | 'unverified_reported'
+    | 'physical_activity_primary'
+    | 'physical_activity_proxy'
+    | 'economic_activity_proxy';
+  notes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -7649,8 +7817,16 @@ export interface PayloadLockedDocument {
         value: string | Scope3Activity;
       } | null)
     | ({
+        relationTo: 'scope3-boundaries';
+        value: string | Scope3Boundary;
+      } | null)
+    | ({
         relationTo: 'internal-data-requests';
         value: string | InternalDataRequest;
+      } | null)
+    | ({
+        relationTo: 'data-subject-requests';
+        value: string | DataSubjectRequest;
       } | null)
     | ({
         relationTo: 'materiality-assessments';
@@ -7999,6 +8175,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'engagement-campaigns';
         value: string | EngagementCampaign;
+      } | null)
+    | ({
+        relationTo: 'financed-emissions';
+        value: string | FinancedEmission;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -8132,6 +8312,17 @@ export interface OrganisationsSelect<T extends boolean = true> {
             };
         domain?: T;
         emissionsStandard?: T;
+        privacy?:
+          | T
+          | {
+              dpdEnabled?: T;
+              retentionDays?:
+                | T
+                | {
+                    datapoints?: T;
+                    evidence?: T;
+                  };
+            };
       };
   stripeCustomerId?: T;
   plan?: T;
@@ -8426,6 +8617,16 @@ export interface SuppliersSelect<T extends boolean = true> {
   submittedData?: T;
   reminderCount?: T;
   country?: T;
+  openSupplyHubId?: T;
+  registryRisk?:
+    | T
+    | {
+        sbtiStatus?: T;
+        enforcementFlag?: T;
+        sources?: T;
+        notes?: T;
+        lastReviewedAt?: T;
+      };
   esgData?:
     | T
     | {
@@ -8584,6 +8785,18 @@ export interface Scope3ActivitiesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "scope3-boundaries_select".
+ */
+export interface Scope3BoundariesSelect<T extends boolean = true> {
+  organisation?: T;
+  category?: T;
+  status?: T;
+  rationale?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "internal-data-requests_select".
  */
 export interface InternalDataRequestsSelect<T extends boolean = true> {
@@ -8610,6 +8823,23 @@ export interface InternalDataRequestsSelect<T extends boolean = true> {
   lastReminderAt?: T;
   reminderCount?: T;
   evidence?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "data-subject-requests_select".
+ */
+export interface DataSubjectRequestsSelect<T extends boolean = true> {
+  organisation?: T;
+  type?: T;
+  requesterEmail?: T;
+  status?: T;
+  notes?: T;
+  dueAt?: T;
+  fulfilledAt?: T;
+  fulfilledBy?: T;
   createdBy?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -10925,6 +11155,7 @@ export interface FacilitiesSelect<T extends boolean = true> {
   region?: T;
   address?: T;
   active?: T;
+  openSupplyHubId?: T;
   parentFacility?: T;
   notes?: T;
   updatedAt?: T;
@@ -11241,6 +11472,26 @@ export interface EngagementCampaignsSelect<T extends boolean = true> {
   publicToken?: T;
   surveyMode?: T;
   surveyResponseCount?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "financed-emissions_select".
+ */
+export interface FinancedEmissionsSelect<T extends boolean = true> {
+  organisation?: T;
+  period?: T;
+  counterparty?: T;
+  assetClass?: T;
+  outstandingAmount?: T;
+  evic?: T;
+  currency?: T;
+  borrowerScope1Tco2e?: T;
+  borrowerScope2Tco2e?: T;
+  borrowerScope3Tco2e?: T;
+  dataSource?: T;
+  notes?: T;
   updatedAt?: T;
   createdAt?: T;
 }

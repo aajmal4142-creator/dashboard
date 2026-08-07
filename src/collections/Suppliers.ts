@@ -171,6 +171,74 @@ export const Suppliers: CollectionConfig = {
       },
     },
     {
+      name: "openSupplyHubId",
+      type: "text",
+      index: true,
+      admin: {
+        description:
+          "Open Supply Hub OS ID (e.g. US2021250D1DTN7). Links to the public facility profile at opensupplyhub.org — operator-entered, never inferred.",
+      },
+    },
+    {
+      name: "registryRisk",
+      type: "group",
+      admin: {
+        description:
+          "Public-registry risk flags (Feature Y08). Operator-entered or CSV-imported from public registries — never a computed score.",
+      },
+      fields: [
+        {
+          name: "sbtiStatus",
+          type: "select",
+          defaultValue: "unknown",
+          options: [
+            { label: "Committed", value: "committed" },
+            { label: "Targets set", value: "targets_set" },
+            { label: "None", value: "none" },
+            { label: "Unknown", value: "unknown" },
+          ],
+          admin: {
+            description:
+              "Science Based Targets initiative status, per the public SBTi companies-taking-action list.",
+          },
+        },
+        {
+          name: "enforcementFlag",
+          type: "select",
+          defaultValue: "unknown",
+          options: [
+            { label: "Flagged (known enforcement action)", value: "true" },
+            { label: "Clear (checked, none found)", value: "false" },
+            { label: "Unknown / not checked", value: "unknown" },
+          ],
+          admin: {
+            description:
+              "Whether a public regulatory/enforcement action against this supplier is known. Not a score.",
+          },
+        },
+        {
+          name: "sources",
+          type: "textarea",
+          admin: {
+            description:
+              "One source per line: registry name / URL used for the flags above.",
+          },
+        },
+        {
+          name: "notes",
+          type: "textarea",
+          admin: { description: "Free-text context for the flags. Operator-entered." },
+        },
+        {
+          name: "lastReviewedAt",
+          type: "date",
+          admin: {
+            description: "When these flags were last checked against the source.",
+          },
+        },
+      ],
+    },
+    {
       name: "esgData",
       type: "group",
       admin: {

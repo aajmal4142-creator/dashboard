@@ -234,6 +234,11 @@ export function buildNavGroups(opts: {
       icon: Network,
     },
     { href: "/database", labelKey: "nav.items.database", icon: Database },
+    {
+      href: "/finance/pcaf",
+      labelKey: "nav.items.financedEmissions",
+      icon: Wallet,
+    },
   ];
 
   const collaborate: NavItem[] = [
@@ -292,6 +297,13 @@ export function buildNavGroups(opts: {
     { href: "/trust", labelKey: "nav.items.trust", icon: Shield },
     { href: "/billing", labelKey: "nav.items.billing", icon: CreditCard },
   ];
+  if (opts.orgType === "consultancy") {
+    account.push({
+      href: "/billing/clients",
+      labelKey: "nav.items.billingClients",
+      icon: CreditCard,
+    });
+  }
   if (!opts.onboarded) {
     account.push({
       href: "/onboarding",

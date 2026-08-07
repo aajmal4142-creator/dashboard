@@ -15,6 +15,22 @@ export {
   type PlanLimits,
 } from "./plans";
 export { getStripe, stripeConfigured, appOrigin } from "./stripe";
+
+// Y05 — Razorpay / INR billing (open decision §11, gated scaffolding)
+export {
+  billingCurrency,
+  billingProvider,
+  createRazorpayOrder,
+  providerNotRazorpayDenial,
+  razorpayConfigured,
+  razorpayNotConfiguredDenial,
+  razorpayPaidBillingDenial,
+  type BillingCurrency,
+  type BillingProvider,
+  type RazorpayDenial,
+  type RazorpayOrder,
+  type RazorpayOrderResult,
+} from "./razorpay";
 export { getUsageMeters, type UsageMeters } from "./usage";
 
 // Days 36-45 Billing Expansion

@@ -50,6 +50,14 @@ export function atlasRegionConfigured(): string | null {
   return process.env.CLEARESG_ATLAS_REGION?.trim() || null;
 }
 
+/**
+ * DPDP retention purge (Y06) is dry-run only until explicitly enabled.
+ * Never deletes production data automatically — ops must opt in per §11.
+ */
+export function retentionPurgeLive(): boolean {
+  return process.env.CLEARESG_RETENTION_PURGE_LIVE === "1";
+}
+
 export type GateDenial = {
   error: string;
   code: "WS0_REQUIRED" | "DISCLAIMER_REQUIRED" | "DEV_BYPASS_FORBIDDEN";

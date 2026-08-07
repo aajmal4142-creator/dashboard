@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { PageCard, PageFrame, StatusLine } from "@/components/shell/PageFrame";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,12 @@ type DunningState = {
   manualPaymentLink: string | null;
 };
 
+type ProvidersState = {
+  activeProvider: "stripe" | "razorpay";
+  currency: "INR" | "EUR" | "USD";
+  razorpay: { configured: boolean };
+};
+
 function Meter({
   label,
   used,
@@ -80,12 +86,14 @@ export function BillingClient({
   planPricing = null,
   dunning = null,
   contract = null,
+  isConsultancy = false,
 }: {
   initial: BillingState;
   role?: MembershipRole | null;
   planPricing?: PlanPricing | null;
   dunning?: DunningState | null;
   contract?: ContractState | null;
+  isConsultancy?: boolean;
 }) {
   const [state, setState] = useState(initial);
   const [cycle, setCycle] = useState<"monthly" | "annual">(
@@ -100,10 +108,28 @@ export function BillingClient({
     message: string;
     newBillingCycle: "monthly" | "annual";
   } | null>(null);
+  const [providers, setProviders] = useState<ProvidersState | null>(null);
   const canManage = role === null ? true : role === "owner" || role === "admin";
   const readOnlyNonOwner = role !== null && role !== "owner" && role !== "admin";
   const isTrialing = state.subscriptionStatus === "trialing";
   const extensionsLeft = Math.max(0, 2 - (contractState?.trialExtensionCount ?? 0));
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/app/billing/providers")
+      .then((res) => (res.ok ? (res.json() as Promise<ProvidersState>) : null))
+      .then((data) => {
+        if (active && data) setProviders(data);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const showInrBanner =
+    providers !== null &&
+    (providers.currency === "INR" || providers.activeProvider === "razorpay");
 
   async function checkout(plan: Exclude<PlanId, "free">) {
     if (!canManage) {
@@ -364,6 +390,14 @@ export function BillingClient({
           >
             Revenue recognition notes
           </Link>
+          {isConsultancy && canManage ? (
+            <Link
+              href="/billing/clients"
+              className="block text-accent underline-offset-2 hover:underline"
+            >
+              Client billing rollup
+            </Link>
+          ) : null}
         </div>
       }
     >
@@ -441,6 +475,20 @@ export function BillingClient({
             Plan changes and the Stripe portal are limited to owners and admins. You can
             still review usage below.
           </StatusLine>
+        ) : null}
+
+        {showInrBanner ? (
+          <div className="rounded-[6px] border border-rule bg-surface-1 px-4 py-3">
+            <p className="text-[13px] text-ink">
+              <span className="font-semibold text-amber">INR via Razorpay</span> —
+              configure env after open decision §11.
+            </p>
+            <p className="mt-1 text-[12px] text-ink-muted">
+              {providers?.razorpay.configured
+                ? "Razorpay keys are set. Live INR checkout still requires Workstream 0 sign-off (docs/LAUNCH_DECISIONS.md)."
+                : "Set RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, and BILLING_PROVIDER=razorpay once ops confirms the INR/Razorpay decision. Stripe checkout above is unaffected."}
+            </p>
+          </div>
         ) : null}
 
         <div className="flex flex-wrap gap-2">

@@ -27,3 +27,18 @@ export {
   type CsrdGapPack,
 } from "./draft";
 export { CsrdEsrsPdfDocument } from "./CsrdEsrsPdfDocument";
+
+export {
+  CSRD_XBRL_DISCLAIMER,
+  CSRD_XBRL_NAMESPACE,
+  CSRD_XBRL_PREFIX,
+  buildCsrdIxbrlDocument,
+  buildCsrdXbrlTagInventory,
+  csrdXbrlConcepts,
+  csrdXbrlInventoryToCsv,
+  type CsrdXbrlConceptDef,
+  type CsrdXbrlDataType,
+  type CsrdXbrlNumericFact,
+  type CsrdXbrlTagInventory,
+  type CsrdXbrlTagRow,
+} from "./xbrl";

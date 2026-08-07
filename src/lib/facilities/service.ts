@@ -65,6 +65,7 @@ export function docToFacility(doc: {
   active?: unknown;
   parentFacility?: unknown;
   notes?: unknown;
+  openSupplyHubId?: unknown;
   createdAt?: unknown;
   updatedAt?: unknown;
 }): FacilityDto {
@@ -79,6 +80,7 @@ export function docToFacility(doc: {
     active: doc.active !== false,
     parentId: relationId(doc.parentFacility),
     notes: optionalString(doc.notes),
+    openSupplyHubId: optionalString(doc.openSupplyHubId),
     meterCount: 0,
     createdAt: String(doc.createdAt ?? ""),
     updatedAt: String(doc.updatedAt ?? ""),
@@ -217,6 +219,7 @@ export async function buildFacilitiesIndex(
     active: f.active,
     parentId: f.parentId,
     notes: f.notes,
+    openSupplyHubId: f.openSupplyHubId,
   }));
   const meterRows: MeterRow[] = meters.map((m) => ({
     id: m.id,
@@ -312,6 +315,7 @@ export type FacilityWriteInput = {
   active?: boolean;
   parentFacilityId?: string | null;
   notes?: string | null;
+  openSupplyHubId?: string | null;
 };
 
 export type MeterWriteInput = {

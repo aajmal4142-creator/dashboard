@@ -22,6 +22,7 @@ import {
   type MeterDto,
   type MeterUtility,
 } from "@/lib/facilities";
+import { buildOpenSupplyHubUrl } from "@/lib/openSupplyHub";
 import { cn } from "@/lib/utils";
 
 type IndexPayload = {
@@ -42,6 +43,7 @@ type FacilityForm = {
   active: boolean;
   parentFacilityId: string;
   notes: string;
+  openSupplyHubId: string;
 };
 
 type MeterForm = {
@@ -64,6 +66,7 @@ function emptyFacilityForm(): FacilityForm {
     active: true,
     parentFacilityId: "",
     notes: "",
+    openSupplyHubId: "",
   };
 }
 
@@ -213,6 +216,7 @@ export function FacilitiesClient({
       active: f.active,
       parentFacilityId: f.parentId ?? "",
       notes: f.notes ?? "",
+      openSupplyHubId: f.openSupplyHubId ?? "",
     });
     setFacilityError(null);
     setFacilityOpen(true);
@@ -233,6 +237,7 @@ export function FacilitiesClient({
         active: facilityForm.active,
         parentFacilityId: facilityForm.parentFacilityId || null,
         notes: facilityForm.notes || null,
+        openSupplyHubId: facilityForm.openSupplyHubId || null,
       };
       const url = editingFacilityId
         ? `/api/app/facilities/${editingFacilityId}`
@@ -489,6 +494,29 @@ export function FacilitiesClient({
                       {selected.notes}
                     </p>
                   ) : null}
+                  <p className="mt-3 text-[12px] text-[color:var(--ink-muted)]">
+                    Open Supply Hub{" "}
+                    {selected.openSupplyHubId ? (
+                      buildOpenSupplyHubUrl(selected.openSupplyHubId) ? (
+                        <a
+                          href={
+                            buildOpenSupplyHubUrl(selected.openSupplyHubId) ?? undefined
+                          }
+                          target="_blank"
+                          rel="noreferrer"
+                          className="editorial-link text-accent"
+                        >
+                          {selected.openSupplyHubId}
+                        </a>
+                      ) : (
+                        <span className="font-data text-[color:var(--ink)]">
+                          {selected.openSupplyHubId}
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-[color:var(--ink-muted)]">Not linked</span>
+                    )}
+                  </p>
                 </div>
 
                 <div className="rounded-[6px] border border-[color:var(--rule)] bg-[color:var(--surface-1)]">
@@ -662,6 +690,14 @@ export function FacilitiesClient({
                 value={facilityForm.address}
                 onChange={(e) =>
                   setFacilityForm((f) => ({ ...f, address: e.target.value }))
+                }
+              />
+              <AppField
+                label="Open Supply Hub OS ID"
+                placeholder="e.g. US2021250D1DTN7"
+                value={facilityForm.openSupplyHubId}
+                onChange={(e) =>
+                  setFacilityForm((f) => ({ ...f, openSupplyHubId: e.target.value }))
                 }
               />
               <AppField

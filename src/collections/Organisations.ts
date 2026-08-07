@@ -244,6 +244,50 @@ export const Organisations: CollectionConfig = {
               "Default emission-factor methodology for calculations and reports. Changing it applies on the next calc / draft report rebuild.",
           },
         },
+        {
+          name: "privacy",
+          type: "group",
+          admin: {
+            description:
+              "DPDP / India privacy beachhead (Y06). Hosting region / Atlas is an open decision §11 — these fields do not by themselves constitute legal compliance.",
+          },
+          fields: [
+            {
+              name: "dpdEnabled",
+              type: "checkbox",
+              defaultValue: false,
+              label: "DPDP workflows enabled",
+              admin: {
+                description:
+                  "Org opts in to DPDP-flavoured data subject request tracking and retention policy on /settings/privacy.",
+              },
+            },
+            {
+              name: "retentionDays",
+              type: "group",
+              fields: [
+                {
+                  name: "datapoints",
+                  type: "number",
+                  min: 0,
+                  admin: {
+                    description:
+                      "Retention window in days for datapoints (0 / empty = indefinite).",
+                  },
+                },
+                {
+                  name: "evidence",
+                  type: "number",
+                  min: 0,
+                  admin: {
+                    description:
+                      "Retention window in days for evidence uploads (0 / empty = indefinite).",
+                  },
+                },
+              ],
+            },
+          ],
+        },
       ],
     },
     { name: "stripeCustomerId", type: "text", admin: { readOnly: true } },

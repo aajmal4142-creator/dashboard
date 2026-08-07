@@ -21,6 +21,7 @@
 | 2026-08-05 | B01–B06 + X01 | Field PWA + offline queue; Zapier/Make recipes; multi-year contracts; trial extend; ASC 606 notes; CBAM filing pack + declarant/ready                                                                                                          |
 | 2026-08-05 | X02–X08       | Residual claim pack + guard + project fields; restatements as-of; materiality IROs + crosswalk; BRSR pack export; assurance sampling + opinion draft; consolidation eliminations + statutory/management pack; engagement public commute survey |
 | 2026-08-06 | X09–X14       | Procurement RFP-lite pack + download; cascade↔MACC↔reduction decarbon plan panel; embed domain allowlist + theme + dynamic CSP; California filing pack; Redis bus fan-out for SSE; ISSB S1/S2 + EU Taxonomy real mappings                      |
+| 2026-08-07 | Y01–Y09       | Scope 3 Cat 1–15 boundary matrix; CSRD iXBRL tag pack; consultant client billing rollup; GST/HSN→Scope 3 import; Razorpay/INR gated beachhead; DPDP DSR/retention beachhead; Open Supply Hub IDs; registry risk flags; PCAF financed emissions |
 
 ---
 
@@ -28,11 +29,11 @@
 
 | Bucket                                                | Count  | This wave          |
 | ----------------------------------------------------- | ------ | ------------------ |
-| Partial — gaps #1–#91                                 | **21** | Yes                |
-| Partial — extras outside spreadsheet                  | **14** | Yes                |
-| Buildable — gaps #1–#91                               | **6**  | Yes                |
-| Buildable — extras outside spreadsheet                | **10** | Yes                |
-| **Total remaining (non-AI, non-pay)**                 | **31** | Next: **Y01**      |
+| Partial — gaps #1–#91                                 | **21** | Done*              |
+| Partial — extras outside spreadsheet                  | **14** | Done*              |
+| Buildable — gaps #1–#91                               | **6**  | Done*              |
+| Buildable — extras outside spreadsheet                | **10** | Done* (Y01–Y10)    |
+| **Total remaining (non-AI, non-pay)**                 | **0**  | Wave complete*     |
 | Already SHIPPED (of 91)                               | 50     | Done               |
 | Duplicates in 91                                      | 5      | Ignore             |
 | AI related                                            | 8      | Later → AI backlog |
@@ -111,18 +112,18 @@
 
 ## Table D — Extra BUILDABLE outside spreadsheet (10)
 
-| ID  | Feature                           | What to finish                                                       | Wave | Effort | Note                     |
-| --- | --------------------------------- | -------------------------------------------------------------------- | ---- | ------ | ------------------------ |
-| Y01 | Scope 3 — all 15 GHG categories   | Category matrix + inclusion/exclusion; fill Cat 2/3/8/10–14 surfaces | 1    | L      | **Largest product hole** |
-| Y02 | CSRD XBRL / iXBRL tagging         | ESRS taxonomy tagging / ESEF-style package (beyond JSON/XML)         | 2    | L      |                          |
-| Y03 | Consultant multi-client billing   | Per-client invoices / seats / usage rollup                           | 4    | M      | Differentiator           |
-| Y04 | India GST / HSN → Scope 3         | GST/HSN mapper into spend path                                       | 1    | M      | India wedge              |
-| Y05 | Razorpay + INR billing            | India payments                                                       | 4    | M      | **Open decision §11**    |
-| Y06 | DPDP / India privacy workflows    | DSR/retention product flows                                          | 4    | M      | **Open decision §11**    |
-| Y07 | Open Supply Hub OS ID             | OS ID on supplier/facility + map link                                | 1    | S      | Free                     |
-| Y08 | Public-registry risk enrichment   | SBTi / enforcement flags into risk (documented; no invented scores)  | 1    | M      | Free                     |
-| Y09 | PCAF financed emissions           | In-house Cat 15-style module                                         | 4    | L      |                          |
-| Y10 | Snowflake / Databricks connectors | Done* — Databricks in P14 (Snowflake in P02)                         | 3    | L      |                          |
+| ID  | Feature                           | What to finish                                                     | Wave | Effort | Note                     |
+| --- | --------------------------------- | ------------------------------------------------------------------ | ---- | ------ | ------------------------ |
+| Y01 | Scope 3 — all 15 GHG categories   | Done* — `/scope3/boundary` Cat 1–15 include/exclude matrix + API   | 1    | L      | **Largest product hole** |
+| Y02 | CSRD XBRL / iXBRL tagging         | Done* — `csrd/xbrl.ts` tag pack + download (not ESEF-certified)    | 2    | L      |                          |
+| Y03 | Consultant multi-client billing   | Done* — `/billing/clients` rollup + CSV + draft invoice            | 4    | M      | Differentiator           |
+| Y04 | India GST / HSN → Scope 3         | Done* — `gstHsn.ts` mapper + `/scope3/gst-hsn` import              | 1    | M      | India wedge              |
+| Y05 | Razorpay + INR billing            | Done* — gated beachhead (`BILLING_PROVIDER`); §11 still open       | 4    | M      | **Open decision §11**    |
+| Y06 | DPDP / India privacy workflows    | Done* — `/settings/privacy` DSR + retention; §11 region still open | 4    | M      | **Open decision §11**    |
+| Y07 | Open Supply Hub OS ID             | Done* — `openSupplyHubId` on suppliers/facilities + map link       | 1    | S      | Free                     |
+| Y08 | Public-registry risk enrichment   | Done* — SBTi/enforcement flags (no invented scores) + CSV import   | 1    | M      | Free                     |
+| Y09 | PCAF financed emissions           | Done* — `/finance/pcaf` attribution module (Cat 15-style)          | 4    | L      |                          |
+| Y10 | Snowflake / Databricks connectors | Done* — Databricks in P14 (Snowflake in P02)                       | 3    | L      |                          |
 
 \*Done = ship-today depth landed; starred items may still have L follow-ups noted in Status/What to finish.
 

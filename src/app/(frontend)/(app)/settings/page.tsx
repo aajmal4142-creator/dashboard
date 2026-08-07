@@ -166,6 +166,22 @@ export default async function SettingsPage() {
             </p>
           </div>
         </section>
+        <section className="mt-10 border-t border-rule pt-8">
+          <div className="max-w-xl">
+            <h2 className="font-display text-xl text-ink">Privacy & DPDP</h2>
+            <div className="title-rule mt-2" />
+            <p className="mt-3 text-sm text-ink-muted">
+              Log data subject requests and set a retention policy. DPDP Act product
+              beachhead — hosting region / Atlas is an open decision (§11); this does not
+              constitute legal compliance.
+            </p>
+            <p className="mt-4">
+              <a href="/settings/privacy" className="editorial-link text-accent">
+                Manage privacy & DPDP →
+              </a>
+            </p>
+          </div>
+        </section>
       </div>
     </PageFrame>
   );

@@ -152,6 +152,15 @@ export default function Scope3Dashboard() {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Link
+          href="/scope3/boundary"
+          className="bg-blue-50 border border-blue-200 rounded-lg p-6 hover:bg-blue-100 transition"
+        >
+          <h3 className="font-bold mb-2">Boundary — Cat 1–15</h3>
+          <p className="text-sm text-gray-600">
+            All 15 GHG Protocol categories: inclusion/exclusion and rationale
+          </p>
+        </Link>
+        <Link
           href="/scope3/sources"
           className="bg-blue-50 border border-blue-200 rounded-lg p-6 hover:bg-blue-100 transition"
         >
@@ -183,6 +192,15 @@ export default function Scope3Dashboard() {
           <h3 className="font-bold mb-2">Activity records</h3>
           <p className="text-sm text-gray-600">
             List, filter, edit, and delete CSV-imported Scope 3 activities
+          </p>
+        </Link>
+        <Link
+          href="/scope3/gst-hsn"
+          className="bg-blue-50 border border-blue-200 rounded-lg p-6 hover:bg-blue-100 transition"
+        >
+          <h3 className="font-bold mb-2">GST / HSN → Scope 3 (India)</h3>
+          <p className="text-sm text-gray-600">
+            Paste GST invoice lines to preview a Scope 3 category + spend mapping
           </p>
         </Link>
       </div>
